@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Importación de Ingresos</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="ingresos.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+        import { getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+        import { getFirestore, collection, getDocs, query, where, orderBy, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+        window.firebaseModules = { initializeApp, getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence, getFirestore, collection, getDocs, query, where, orderBy, getDoc };
+    </script>
+    <script type="module" src="ingresos.js"></script>
+</head>
+<body>
+    <div class="ingresos-main-container">
+        <h1 class="ingresos-title">Importación de Ingresos</h1>
+
+        <div id="ingresos-message"></div>
+
+        <div class="ingresos-fields-container">
+            <div class="ingresos-form-group">
+                <label for="buscarNumeroFactura" class="ingresos-label">Buscar Número de Factura:</label>
+                <input type="text" id="buscarNumeroFactura" placeholder="Buscar por número de factura" autocomplete="off">
+            </div>
+            <div class="ingresos-form-group">
+                <label for="buscarProveedor" class="ingresos-label">Buscar Proveedor:</label>
+                <input type="text" id="buscarProveedor" placeholder="Buscar por proveedor" autocomplete="off">
+            </div>
+            <div class="ingresos-form-group">
+                <label for="buscarOrdenCompra" class="ingresos-label">Buscar Orden de Compra:</label>
+                <input type="text" id="buscarOrdenCompra" placeholder="Buscar por orden de compra" autocomplete="off">
+            </div>
+            <div class="ingresos-form-group">
+                <label for="buscarActa" class="ingresos-label">Buscar Acta:</label>
+                <input type="text" id="buscarActa" placeholder="Buscar por acta" autocomplete="off">
+            </div>
+            <div class="ingresos-form-group">
+                <label for="buscarSalidas" class="ingresos-label">Buscar Salidas:</label>
+                <input type="text" id="buscarSalidas" placeholder="Buscar por salidas" autocomplete="off">
+            </div>
+            <div class="ingresos-form-group">
+                <label for="fechaDesde" class="ingresos-label">Fecha Desde:</label>
+                <input type="date" id="fechaDesde" autocomplete="off">
+            </div>
+            <div class="ingresos-form-group">
+                <label for="fechaHasta" class="ingresos-label">Fecha Hasta:</label>
+                <input type="date" id="fechaHasta" autocomplete="off">
+            </div>
+            <div class="ingresos-form-group">
+                <label for="selectAno" class="ingresos-label">Año:</label>
+                <select id="selectAno" autocomplete="off"></select>
+            </div>
+            <div class="ingresos-form-group">
+                <label for="selectMes" class="ingresos-label">Mes:</label>
+                <select id="selectMes" autocomplete="off"></select>
+            </div>
+            <div class="ingresos-actions-menu">
+                <button id="actionsBtn"><i class="fas fa-angle-down"></i> Acciones</button>
+                <div id="actionsMenu" class="ingresos-dropdown-menu">
+                    <div class="menu-title"><i class="fas fa-angle-down"></i> Acciones</div>
+                    <a href="#" id="downloadAll">Descargar todos los registros</a>
+                    <a href="#" id="downloadPage">Descargar hoja actual</a>
+                    <a href="#" id="downloadMes">Descargar mes</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="ingresos-table-container">
+            <table id="ingresosTable" class="ingresos-table">
+                <thead>
+                    <tr>
+                        <th>Fecha de Ingreso</th>
+                        <th>Número de Factura</th>
+                        <th>Fecha de Factura</th>
+                        <th>Monto</th>
+                        <th>OC</th>
+                        <th>Fecha de OC</th>
+                        <th>Proveedor</th>
+                        <th>Acta</th>
+                        <th>Fecha de Salida</th>
+                        <th>Salida</th>
+                        <th>Usuario</th>
+                    </tr>
+                </thead>
+                <tbody id="ingresosBody">
+                </tbody>
+            </table>
+        </div>
+
+        <div class="ingresos-pagination" id="pagination">
+            <div class="ingresos-pagination-info" id="paginationInfo"></div>
+            <div class="ingresos-pagination-controls">
+                <button id="prevBtn">Anterior</button>
+                <div class="ingresos-page-numbers" id="pageNumbers"></div>
+                <button id="nextBtn">Siguiente</button>
+            </div>
+        </div>
+
+        <div id="ingresos-loading" class="ingresos-loading">
+            <div class="ingresos-loading-spinner"></div>
+            <div class="ingresos-loading-text">Procesando...</div>
+        </div>
+
+        <div id="ingresos-toast" class="ingresos-toast"></div>
+
+        <div id="downloadMesModal" class="modal">
+            <div class="modal-content">
+                <span class="close" id="closeDownloadMes">&times;</span>
+                <h2>Descargar por Mes</h2>
+                <div class="modal-form-group">
+                    <label for="selectDownloadAno">Año:</label>
+                    <select id="selectDownloadAno" autocomplete="off"></select>
+                </div>
+                <div class="modal-form-group">
+                    <label for="selectDownloadMes">Mes:</label>
+                    <select id="selectDownloadMes" autocomplete="off"></select>
+                </div>
+                <div class="modal-buttons">
+                    <button type="button" class="modal-btn modal-btn-secondary" id="cancelDownloadMes">Cancelar</button>
+                    <button type="button" class="modal-btn modal-btn-primary" id="confirmDownloadMes">Descargar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

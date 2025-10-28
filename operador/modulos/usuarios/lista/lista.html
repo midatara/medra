@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de Usuarios</title>
+    <link rel="stylesheet" href="lista.css">
+</head>
+<body>
+    <div id="outer-container-lista">
+        <div id="content-lista-usuarios">
+            <h1>Lista de Usuarios</h1>
+            <div class="search-container">
+                <input type="text" id="search-input" placeholder="Buscar por nombre completo o usuario..." autocomplete="off">
+            </div>
+            <div id="users-list" class="users-grid">
+                <!-- Las tarjetas de usuarios se cargarán dinámicamente aquí -->
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="lista.js"></script>
+</body>
+</html>

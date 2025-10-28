@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 - Página no encontrada | Mi Datara</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #f0f4ff, #d9e6ff);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            text-align: center;
+            padding: 20px;
+            max-width: 600px;
+        }
+
+        h1 {
+            font-size: 10rem;
+            margin: 0;
+            color: #0077cc;
+            animation: float 2s infinite alternate;
+        }
+
+        h2 {
+            font-size: 2rem;
+            margin: 10px 0;
+            font-weight: 400;
+        }
+
+        p {
+            font-size: 1.2rem;
+            margin: 15px 0;
+            color: #555;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            100% { transform: translateY(-20px); }
+        }
+
+        /* Opcional: pequeño icono o efecto decorativo */
+        .emoji {
+            font-size: 3rem;
+            display: block;
+            margin: 20px 0;
+            animation: bounce 1.5s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>404</h1>
+        <span class="emoji">🛸</span>
+        <h2>Página no encontrada</h2>
+        <p>Lo sentimos, pero la página que buscas no existe o fue movida.</p>
+        <p>Te invitamos a explorar otros contenidos de <strong>Mi Datara</strong>.</p>
+    </div>
+</body>
+</html>

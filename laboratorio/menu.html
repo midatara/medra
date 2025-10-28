@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menú - Datara Salud</title>
+    <link rel="icon" href="../img/logo-operador/favicon.ico">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .header {
+            background: #3A5795;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #ddd;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            font-size: 14px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            color: white;
+        }
+
+        .header .info {
+            font-size: 14px;
+            color: white;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .header .user {
+            font-weight: bold;
+        }
+
+        .header .date {
+            font-size: 12px;
+        }
+
+        .header .logout-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .header .logout-btn:hover {
+            opacity: 0.8;
+        }
+
+        .layout {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .sidebar {
+            width: 180px;
+            background: #ffffff;
+            border-right: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            padding: 15px 10px;
+            align-items: flex-start;
+            overflow-y: auto;
+            position: relative;
+            z-index: 1200;
+        }
+
+        .sidebar h2 {
+            margin: 0 auto 5px auto;
+            color: #3A5795;
+            font-weight: bold;
+            font-size: 16px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+            text-align: center;
+            width: 100%;
+        }
+
+        .sidebar a {
+            color: #333;
+            text-decoration: none;
+            margin-bottom: 3px;
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            transition: 0.3s;
+            width: 100%;
+            text-align: left;
+        }
+
+        .sidebar a i {
+            margin-right: 8px;
+            color: #3A5795;
+            font-size: 12px;
+        }
+
+        .sidebar a:hover {
+            background: #ddd;
+            color: #333;
+        }
+
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #f0f2f5;
+            transition: margin-left 0.3s ease;
+            z-index: 1000;
+        }
+
+        .content {
+            padding: 15px;
+            flex: 1;
+            max-height: calc(100vh - 60px);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .card {
+            background: #ffffff;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .card h3 {
+            color: #3A5795;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .card p,
+        .card li {
+            color: #555;
+            font-size: 13px;
+        }
+
+        .card ul {
+            list-style: disc;
+            padding-left: 18px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            min-height: 600px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1300;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            overflow: auto;
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-content h2 {
+            margin-top: 0;
+            font-size: 16px;
+            color: #3A5795;
+        }
+
+        .modal-content p {
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .modal-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .modal-btn-primary {
+            background-color: #3A5795;
+            color: white;
+        }
+
+        .modal-btn-primary:hover {
+            background-color: #2a4373;
+        }
+
+        .modal-btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .modal-btn-secondary:hover {
+            background-color: #5a6268;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: #000;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Datara Salud - Laboratorio</h1>
+        <div class="info">
+            <div class="user">Bienvenido, <span id="userName">Usuario</span></div>
+            <div class="date" id="currentDate"></div>
+            <button class="logout-btn" onclick="openLogoutModal()">
+                <i class="fas fa-sign-out-alt"></i> Salir
+            </button>
+        </div>
+    </div>
+
+    <div class="layout">
+        <div class="sidebar">
+            <h2>Datara Salud</h2>
+            <div class="main-menu">
+                <a href="#" data-path="modulos/ingresos/ingresos.html"><i class="fas fa-file-invoice"></i> <span class="menu-text">Facturas</span></a>
+                <a href="#" data-path="modulos/resumen/resumen.html"><i class="fas fa-chart-pie"></i> <span class="menu-text">Resumen</span></a>
+                <a href="#" data-submenu="cerrar-sesion"><i class="fas fa-sign-out-alt"></i> <span class="menu-text">Cerrar Sesión</span></a>
+            </div>
+        </div>
+
+        <div class="main">
+            <div class="content">
+                <div class="card">
+                    <h3>Estadísticas</h3>
+                    <p>CPU: 15% | Memoria: 3.2GB | Almacenamiento: 120GB</p>
+                </div>
+                <div class="card">
+                    <h3>Actividad Reciente</h3>
+                    <ul>
+                        <li>Archivo subido: Informe.pdf</li>
+                        <li>Usuario creado: juan@example.com</li>
+                        <li>Actualización del sistema realizada</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="logoutModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="closeLogoutModal">&times;</span>
+            <h2>Confirmar Cierre de Sesión</h2>
+            <p>¿Estás seguro de que deseas cerrar sesión?</p>
+            <div class="modal-buttons">
+                <button class="modal-btn modal-btn-secondary" id="cancelLogout">No</button>
+                <button class="modal-btn modal-btn-primary" id="confirmLogout">Sí</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
+            authDomain: "datara-salud.firebaseapp.com",
+            projectId: "datara-salud",
+            storageBucket: "datara-salud.firebasestorage.app",
+            messagingSenderId: "198886910481",
+            appId: "1:198886910481:web:abbc345203a423a6329fb0",
+            measurementId: "G-MLYVTZPPLD"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        setPersistence(auth, browserSessionPersistence);
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                window.location.replace('../index.html');
+                return;
+            }
+
+            const userDoc = await getDoc(doc(db, 'users', user.uid));
+            if (userDoc.exists()) {
+                const userData = userDoc.data();
+                document.getElementById('userName').textContent = userData.username || 'Usuario';
+            }
+        });
+
+        window.logout = async () => {
+            try {
+                await signOut(auth);
+                window.location.replace('../index.html');
+            } catch (error) {
+                console.error('Error al cerrar sesión:', error);
+            }
+        };
+
+        window.openLogoutModal = () => {
+            const modal = document.getElementById('logoutModal');
+            modal.style.display = 'block';
+        };
+
+        document.getElementById('closeLogoutModal').addEventListener('click', () => {
+            document.getElementById('logoutModal').style.display = 'none';
+        });
+
+        document.getElementById('cancelLogout').addEventListener('click', () => {
+            document.getElementById('logoutModal').style.display = 'none';
+        });
+
+        document.getElementById('confirmLogout').addEventListener('click', () => {
+            document.getElementById('logoutModal').style.display = 'none';
+            logout();
+        });
+
+        window.addEventListener('click', (e) => {
+            const modal = document.getElementById('logoutModal');
+            if (e.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+    </script>
+
+    <script>
+        function updateDate() {
+            const now = new Date();
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('currentDate').textContent = now.toLocaleDateString('es-ES', options);
+        }
+        updateDate();
+
+        document.querySelectorAll('.main-menu a').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const path = link.getAttribute('data-path');
+                const submenuId = link.getAttribute('data-submenu');
+
+                if (submenuId === 'cerrar-sesion') {
+                    openLogoutModal();
+                    return;
+                }
+
+                if (path) {
+                    loadContent(path);
+                }
+            });
+        });
+
+        function loadContent(path) {
+            if (path === '#') {
+                document.querySelector('.content').innerHTML = '<div class="loading">Contenido no disponible.</div>';
+                return;
+            }
+            const iframe = document.createElement('iframe');
+            iframe.src = path;
+            iframe.style.width = '100%';
+            iframe.style.height = '100%';
+            iframe.style.border = 'none';
+            iframe.style.minHeight = '600px';
+            document.querySelector('.content').innerHTML = '';
+            document.querySelector('.content').appendChild(iframe);
+        }
+    </script>
+</body>
+</html>

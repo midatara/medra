@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menú - Datara Salud</title>
+    <link rel="icon" href="../img/logo-operador/favicon.ico">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .header {
+            background: #3A5795;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #ddd;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            font-size: 14px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            color: white;
+        }
+
+        .header .info {
+            font-size: 14px;
+            color: white;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .header .user {
+            font-weight: bold;
+        }
+
+        .header .date {
+            font-size: 12px;
+        }
+
+        .header .logout-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .header .logout-btn:hover {
+            opacity: 0.8;
+        }
+
+        .layout {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .sidebar {
+            width: 180px;
+            background: #ffffff;
+            border-right: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            padding: 15px 10px;
+            align-items: flex-start;
+            overflow-y: auto;
+            position: relative;
+            z-index: 1200;
+        }
+
+        .sidebar h2 {
+            margin: 0 auto 5px auto;
+            color: #3A5795;
+            font-weight: bold;
+            font-size: 16px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+            text-align: center;
+            width: 100%;
+        }
+
+        .sidebar a {
+            color: #333;
+            text-decoration: none;
+            margin-bottom: 3px;
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            transition: 0.3s;
+            width: 100%;
+            text-align: left;
+        }
+
+        .sidebar a i {
+            margin-right: 8px;
+            color: #3A5795;
+            font-size: 12px;
+        }
+
+        .sidebar a:hover {
+            background: #ddd;
+            color: #333;
+        }
+
+        .submenu {
+            display: none;
+            width: 100%;
+        }
+
+        .back-link {
+            color: #3A5795 !important;
+            font-weight: bold;
+        }
+
+        .submenu-content a {
+            padding-left: 20px;
+        }
+
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #f0f2f5;
+            transition: margin-left 0.3s ease;
+            z-index: 1000;
+        }
+
+        .content {
+            padding: 15px;
+            flex: 1;
+            max-height: calc(100vh - 60px);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .card {
+            background: #ffffff;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .card h3 {
+            color: #3A5795;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .card p,
+        .card li {
+            color: #555;
+            font-size: 13px;
+        }
+
+        .card ul {
+            list-style: disc;
+            padding-left: 18px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            min-height: 600px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Datara Salud - Operador</h1>
+        <div class="info">
+            <div class="user">Bienvenido, <span id="userName">Usuario</span></div>
+            <div class="date" id="currentDate"></div>
+            <button class="logout-btn" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i> Salir
+            </button>
+        </div>
+    </div>
+
+    <div class="layout">
+        <div class="sidebar">
+            <h2>Datara Salud</h2>
+            <div class="main-menu">
+                <a href="#" data-submenu="implantes"><i class="fas fa-tooth"></i> <span class="menu-text">Implantes</span></a>
+                <a href="#" data-submenu="consignacion"><i class="fas fa-box"></i> <span class="menu-text">Consignación</span></a>
+                <a href="#" data-submenu="historico"><i class="fas fa-history"></i> <span class="menu-text">Histórico</span></a>
+                <a href="#" data-submenu="laboratorio"><i class="fas fa-flask"></i> <span class="menu-text">Laboratorio</span></a>
+                <a href="#" data-submenu="visualizador"><i class="fas fa-chart-line"></i> <span class="menu-text">Visualizador</span></a>
+                <a href="#" data-submenu="prestacion"><i class="fas fa-briefcase-medical"></i> <span class="menu-text">Prestación</span></a>
+                <a href="#" data-submenu="herramientas"><i class="fas fa-tools"></i> <span class="menu-text">Herramientas</span></a>
+                <a href="#" data-submenu="importacion"><i class="fas fa-file-import"></i> <span class="menu-text">Importación</span></a>
+                <a href="#" data-submenu="apuntes"><i class="fas fa-note-sticky"></i> <span class="menu-text">Apuntes</span></a>
+                <a href="#" data-submenu="migracion"><i class="fas fa-exchange-alt"></i> <span class="menu-text">Migración</span></a>
+                <a href="#" data-submenu="dashboard"><i class="fas fa-tachometer-alt"></i> <span class="menu-text">Dashboard</span></a>
+                <a href="#" data-submenu="archivos"><i class="fas fa-folder"></i> <span class="menu-text">Archivos</span></a>
+                <a href="#" data-submenu="usuarios"><i class="fas fa-users"></i> <span class="menu-text">Usuarios</span></a>
+                <a href="#" data-submenu="configuracion"><i class="fas fa-cog"></i> <span class="menu-text">Configuración</span></a>
+                <a href="#" data-submenu="cerrar-sesion"><i class="fas fa-sign-out-alt"></i> <span class="menu-text">Cerrar Sesión</span></a>
+            </div>
+            <div class="submenu" style="display: none;">
+                <a href="#" class="back-link" data-tooltip="Volver"><i class="fas fa-arrow-left"></i> <span class="menu-text">Volver</span></a>
+                <div class="submenu-content"></div>
+            </div>
+        </div>
+
+        <div class="main">
+            <div class="content">
+                <div class="card">
+                    <h3>Estadísticas</h3>
+                    <p>CPU: 15% | Memoria: 3.2GB | Almacenamiento: 120GB</p>
+                </div>
+                <div class="card">
+                    <h3>Actividad Reciente</h3>
+                    <ul>
+                        <li>Archivo subido: Informe.pdf</li>
+                        <li>Usuario creado: juan@example.com</li>
+                        <li>Actualización del sistema realizada</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
+            authDomain: "datara-salud.firebaseapp.com",
+            projectId: "datara-salud",
+            storageBucket: "datara-salud.firebasestorage.app",
+            messagingSenderId: "198886910481",
+            appId: "1:198886910481:web:abbc345203a423a6329fb0",
+            measurementId: "G-MLYVTZPPLD"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // NUEVO: Configurar persistencia a 'session' (por pestaña/iframe, no compartida)
+        setPersistence(auth, browserSessionPersistence);
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                window.location.replace('../index.html');
+                return;
+            }
+
+            const userDoc = await getDoc(doc(db, 'users', user.uid));
+            if (userDoc.exists()) {
+                const userData = userDoc.data();
+                document.getElementById('userName').textContent = userData.username || 'Usuario';
+            }
+        });
+
+        window.logout = async () => {
+            try {
+                await signOut(auth);
+                window.location.replace('../index.html'); 
+            } catch (error) {
+                console.error('Error al cerrar sesión:', error);
+            }
+        };
+    </script>
+
+    <script>
+        function updateDate() {
+            const now = new Date();
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('currentDate').textContent = now.toLocaleDateString('es-ES', options);
+        }
+        updateDate();
+
+        const submenus = {
+            'implantes': [
+                { text: 'Cargas', path: 'modulos/implantes/cargas/cargas.html', icon: 'fas fa-upload' },
+                { text: 'Pacientes', path: 'modulos/implantes/pacientes/pacientes.html', icon: 'fas fa-user-md' },
+                { text: 'Referencias', path: 'modulos/implantes/referencias/referencias.html', icon: 'fas fa-link' },
+                { text: 'Paquetización', path: 'modulos/implantes/paquetizacion/paquetizacion.html', icon: 'fas fa-boxes' },
+                { text: 'Mantenedor', path: 'modulos/implantes/mantenedor/mantenedor.html', icon: 'fas fa-tools' },
+                { text: 'Tránsito', path: 'modulos/implantes/transito/transito.html', icon: 'fas fa-shipping-fast' }
+            ],
+            'consignacion': [
+                { text: 'Cargas', path: 'modulos/consignacion/cargas/cargas.html', icon: 'fas fa-boxes' },
+                { text: 'Pacientes', path: 'modulos/consignacion/pacientes/pacientes.html', icon: 'fas fa-user-injured' },
+                { text: 'Historial', path: 'modulos/consignacion/historial/historial.html', icon: 'fas fa-history' },
+                { text: 'Guías', path: 'modulos/consignacion/guias/guias.html', icon: 'fas fa-route' },
+                { text: 'Reportes', path: 'modulos/consignacion/reportes/reportes.html', icon: 'fas fa-chart-line' }
+            ],
+            'historico': [
+                { text: 'Registros', path: 'modulos/historico/registros/registros.html', icon: 'fas fa-history' },
+                { text: 'Búsqueda', path: 'modulos/historico/busqueda/busqueda.html', icon: 'fas fa-search' },
+                { text: 'Exportar', path: 'modulos/historico/exportar/exportar.html', icon: 'fas fa-download' }
+            ],
+            'laboratorio': [
+                { text: 'Ingresos', path: 'modulos/laboratorio/ingresos/ingresos.html', icon: 'fas fa-plus' },
+                { text: 'Resumen', path: 'modulos/laboratorio/resumen/resumen.html', icon: 'fas fa-chart-pie' }
+            ],
+            'visualizador': [
+                { text: 'Gráficos', path: 'modulos/visualizador/graficos/graficos.html', icon: 'fas fa-chart-line' },
+                { text: 'Tablas', path: 'modulos/visualizador/tablas/tablas.html', icon: 'fas fa-table' },
+                { text: 'Filtros', path: 'modulos/visualizador/filtros/filtros.html', icon: 'fas fa-filter' }
+            ],
+            'prestacion': [
+                { text: 'Medicos', path: 'modulos/prestaciones/medicos/medicos.html', icon: 'fas fa-user-md' },
+                { text: 'Empresas', path: 'modulos/prestaciones/empresas/empresas.html', icon: 'fas fa-building' }
+            ],
+            'herramientas': [
+                { text: 'Calculadoras', path: 'modulos/herramientas/calculadoras/calculadoras.html', icon: 'fas fa-calculator' },
+                { text: 'Convertidores', path: 'modulos/herramientas/convertidores/convertidores.html', icon: 'fas fa-exchange-alt' },
+                { text: 'Utilidades', path: 'modulos/herramientas/utilidades/utilidades.html', icon: 'fas fa-wrench' }
+            ],
+            'importacion': [
+                { text: 'Reportes', path: 'modulos/importacion/reportes/reportes.html', icon: 'fas fa-notes-medical' },
+                { text: 'órdenes de compra', path: 'modulos/importacion/ordenes/ordenes.html', icon: 'fas fa-file-medical' },
+                { text: 'Guías Medtronic', path: 'modulos/importacion/medtronic/medtronic.html', icon: 'fas fa-clipboard-list' }
+            ],
+            'apuntes': [
+                { text: 'Notas', path: 'modulos/apuntes/notas/notas.html', icon: 'fas fa-sticky-note' },
+                { text: 'Categorías', path: 'modulos/apuntes/categorias/categorias.html', icon: 'fas fa-tags' },
+                { text: 'Búsqueda', path: 'modulos/apuntes/busqueda/busqueda.html', icon: 'fas fa-search' }
+            ],
+            'migracion': [
+                { text: 'Datos', path: 'modulos/migracion/datos/datos.html', icon: 'fas fa-database' },
+                { text: 'Configuración', path: 'modulos/migracion/configuracion/configuracion.html', icon: 'fas fa-cog' },
+                { text: 'Ejecutar', path: 'modulos/migracion/ejecutar/ejecutar.html', icon: 'fas fa-forward' }
+            ],
+            'dashboard': [
+                { text: 'Resumen', path: 'modulos/dashboard/resumen/resumen.html', icon: 'fas fa-tachometer-alt' },
+                { text: 'Métricas', path: 'modulos/dashboard/metricas/metricas.html', icon: 'fas fa-chart-bar' },
+                { text: 'Alertas', path: 'modulos/dashboard/alertas/alertas.html', icon: 'fas fa-bell' }
+            ],
+            'archivos': [
+                { text: 'Gestión', path: 'modulos/archivos/gestion/gestion.html', icon: 'fas fa-folder-open' },
+                { text: 'Subir', path: 'modulos/archivos/subir/subir.html', icon: 'fas fa-upload' },
+                { text: 'Descargar', path: 'modulos/archivos/descargar/descargar.html', icon: 'fas fa-download' }
+            ],
+            'usuarios': [
+                { text: 'Crear', path: 'modulos/usuarios/crear/crear.html', icon: 'fas fa-user-plus' },
+                { text: 'Lista', path: 'modulos/usuarios/lista/lista.html', icon: 'fas fa-users' },
+                { text: 'Roles', path: 'modulos/usuarios/roles/roles.html', icon: 'fas fa-user-tag' }
+            ],
+            'configuracion': [
+                { text: 'General', path: 'modulos/configuracion/general/general.html', icon: 'fas fa-cog' },
+                { text: 'Seguridad', path: 'modulos/configuracion/seguridad/seguridad.html', icon: 'fas fa-shield-alt' },
+                { text: 'Sistema', path: 'modulos/configuracion/sistema/sistema.html', icon: 'fas fa-server' }
+            ]
+        };
+
+        document.querySelectorAll('.main-menu a[data-submenu]').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const submenuId = link.getAttribute('data-submenu');
+                if (submenuId === 'cerrar-sesion') {
+                    logout();
+                    return;
+                }
+                const submenu = document.querySelector('.submenu');
+                const submenuContent = document.querySelector('.submenu-content');
+                const mainMenu = document.querySelector('.main-menu');
+
+                mainMenu.style.display = 'none';
+                submenu.style.display = 'block';
+
+                submenuContent.innerHTML = ''; 
+                const items = submenus[submenuId] || [
+                    { text: 'Opción 1', path: '#', icon: 'fas fa-list' },
+                    { text: 'Opción 2', path: '#', icon: 'fas fa-edit' },
+                    { text: 'Opción 3', path: '#', icon: 'fas fa-trash' }
+                ];
+                items.forEach(item => {
+                    const a = document.createElement('a');
+                    a.href = '#';
+                    a.innerHTML = `<i class="${item.icon}"></i> <span class="menu-text submenu-text">${item.text}</span>`;
+                    a.setAttribute('data-path', item.path);
+                    a.setAttribute('data-tooltip', item.text);
+                    a.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        loadContent(item.path);
+                    });
+                    submenuContent.appendChild(a);
+                });
+
+                const backLink = document.querySelector('.back-link');
+                backLink.replaceWith(backLink.cloneNode(true)); 
+                document.querySelector('.back-link').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    mainMenu.style.display = 'block';
+                    submenu.style.display = 'none';
+                });
+            });
+        });
+
+        function loadContent(path) {
+            if (path === '#') {
+                document.querySelector('.content').innerHTML = '<div class="loading">Contenido no disponible.</div>';
+                return;
+            }
+            const iframe = document.createElement('iframe');
+            iframe.src = path;
+            iframe.style.width = '100%';
+            iframe.style.height = '100%';
+            iframe.style.border = 'none';
+            iframe.style.minHeight = '600px';
+            document.querySelector('.content').innerHTML = '';
+            document.querySelector('.content').appendChild(iframe);
+        }
+
+    </script>
+</body>
+</html>

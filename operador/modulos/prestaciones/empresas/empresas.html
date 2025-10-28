@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Empresas</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+        import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, orderBy, where, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+        window.firebaseModules = { initializeApp, getAuth, onAuthStateChanged, getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, orderBy, where, getDoc };
+    </script>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            overflow: hidden;
+            font-size: 12px;
+        }
+        .empresas-main-container {
+            width: 100%;
+            height: 100%;
+            background: white;
+            padding: 5px 20px 20px 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        .empresas-title {
+            text-align: start;
+            margin: 0 0 15px 0;
+            font-size: 18px;
+        }
+        .empresas-fields-container {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .empresas-left-section, .empresas-right-section {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-end;
+            gap: 20px;
+            flex: 1;
+        }
+        .empresas-form-group {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 4px;
+            flex: 1;
+            min-width: 0;
+            max-width: 300px;
+        }
+        .empresas-label {
+            font-size: 10px;
+            font-weight: bold;
+            color: #333;
+            white-space: nowrap;
+        }
+        #nombre, #rut, #buscarNombre, #buscarRut {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 11px;
+            box-sizing: border-box;
+        }
+        #nombre:focus, #rut:focus, #buscarNombre:focus, #buscarRut:focus {
+            box-shadow: 0 0 12px rgba(0, 123, 255, 0.5);
+            outline: none;
+        }
+        .empresas-register-btn {
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            white-space: nowrap;
+            font-size: 12px;
+            flex-shrink: 0;
+            align-self: flex-end;
+            box-shadow: 0 2px 4px rgba(0,123,255,0.25);
+            transition: background-color 0.3s ease;
+        }
+        .empresas-register-btn:hover {
+            background-color: #0056b3;
+            transform: translateY(-1px);
+        }
+        .empresas-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            font-size: 11px;
+            border: 1px solid #ddd;
+        }
+        .empresas-table th, .empresas-table td {
+            padding: 4px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        .empresas-table th {
+            background-color: #f2f2f2;
+            font-size: 11px;
+        }
+        .empresas-table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+        .empresas-actions {
+            display: flex;
+            gap: 5px;
+        }
+        .empresas-actions button {
+            padding: 4px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .empresas-btn-edit { background-color: #ffc107; color: #000; }
+        .empresas-btn-delete { background-color: #dc3545; color: white; }
+        .empresas-btn-history { background-color: #17a2b8; color: white; }
+        .empresas-pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+        .empresas-pagination-info {
+            font-size: 11px;
+        }
+        .empresas-pagination-controls button {
+            padding: 6px 10px;
+            margin: 0 5px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+        .empresas-pagination-controls button:hover:not(:disabled) {
+            background-color: #0056b3;
+        }
+        .empresas-pagination-controls button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .empresas-page-numbers {
+            display: flex;
+            gap: 5px;
+        }
+        .empresas-page-numbers button {
+            padding: 4px 8px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            font-size: 11px;
+        }
+        .empresas-page-numbers button.active {
+            background-color: #007bff;
+            color: white;
+        }
+        .empresas-page-numbers button:hover {
+            background-color: #f0f0f0;
+        }
+        .empresas-page-numbers .empresas-dots {
+            padding: 5px;
+            cursor: default;
+            font-size: 11px;
+        }
+        #empresas-message {
+            margin-bottom: 20px;
+            padding: 8px;
+            border-radius: 4px;
+            display: none;
+            font-size: 11px;
+        }
+        .empresas-message-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .empresas-message-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .empresas-loading {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 120px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            padding: 16px;
+            backdrop-filter: blur(8px);
+        }
+        .empresas-loading.show {
+            display: flex;
+        }
+        .empresas-loading-spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid #e3f2fd;
+            border-top: 3px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 8px;
+        }
+        .empresas-loading-text {
+            font-size: 12px;
+            color: #333;
+            font-weight: 500;
+            text-align: center;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .empresas-toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #d4edda;
+            color: #155724;
+            padding: 12px 20px;
+            border-radius: 6px;
+            border: 1px solid #c3e6cb;
+            font-size: 12px;
+            z-index: 1001;
+            max-width: 300px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            opacity: 0;
+            transform: translateX(100%);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .empresas-toast.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .empresas-toast.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1002;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+        }
+        .modal-form-group {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 15px;
+        }
+        .modal-form-group label {
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .modal-form-group input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .modal-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .modal-btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        .modal-btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+        .modal-btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+        .delete-modal-text {
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        #historyContent {
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 12px;
+            line-height: 1.4;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .history-entry {
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #eee;
+        }
+        .modal-content h2 {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        hr {
+            margin: 10px 0;
+        }
+        @media (max-width: 768px) {
+            .empresas-fields-container {
+                flex-direction: column;
+                gap: 20px;
+            }
+            .empresas-left-section, .empresas-right-section {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 15px;
+            }
+            .empresas-form-group {
+                max-width: none;
+            }
+            .empresas-actions {
+                flex-direction: column;
+            }
+            .empresas-toast {
+                top: 10px;
+                right: 10px;
+                left: 10px;
+                max-width: none;
+            }
+            .empresas-loading {
+                width: 100px;
+                height: 70px;
+                padding: 12px;
+            }
+            .empresas-loading-spinner {
+                width: 28px;
+                height: 28px;
+            }
+            .modal-content {
+                width: 90%;
+                margin: 20% auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="empresas-main-container">
+        <h1 class="empresas-title">Registro de Empresas</h1>
+        
+        <div id="empresas-message"></div>
+
+        <form id="empresaForm" class="empresas-fields-container">
+            <div class="empresas-left-section">
+                <div class="empresas-form-group">
+                    <label for="nombre" class="empresas-label">Nombre de la empresa:</label>
+                    <input type="text" id="nombre" placeholder="Nombre de la empresa" required autocomplete="off">
+                </div>
+                <div class="empresas-form-group">
+                    <label for="rut" class="empresas-label">RUT de la empresa:</label>
+                    <input type="text" id="rut" placeholder="RUT de la empresa (Ej: 76.123.456-7)" required autocomplete="off">
+                </div>
+                <button type="submit" class="empresas-register-btn">Registrar</button>
+            </div>
+            <div class="empresas-right-section">
+                <div class="empresas-form-group">
+                    <label for="buscarNombre" class="empresas-label">Buscar empresa:</label>
+                    <input type="text" id="buscarNombre" placeholder="Buscar por nombre" autocomplete="off">
+                </div>
+                <div class="empresas-form-group">
+                    <label for="buscarRut" class="empresas-label">Buscar RUT:</label>
+                    <input type="text" id="buscarRut" placeholder="Buscar por RUT" autocomplete="off">
+                </div>
+            </div>
+        </form>
+
+        <table id="empresasTable" class="empresas-table">
+            <thead>
+                <tr>
+                    <th>Nombre de la empresa</th>
+                    <th>RUT de la empresa</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="empresasBody">
+            </tbody>
+        </table>
+
+        <div class="empresas-pagination" id="pagination">
+            <div class="empresas-pagination-info" id="paginationInfo">
+            </div>
+            <div class="empresas-pagination-controls">
+                <button id="prevBtn">Anterior</button>
+                <div class="empresas-page-numbers" id="pageNumbers"></div>
+                <button id="nextBtn">Siguiente</button>
+            </div>
+        </div>
+
+        <div id="empresas-loading" class="empresas-loading">
+            <div class="empresas-loading-spinner"></div>
+            <div class="empresas-loading-text">Procesando...</div>
+        </div>
+
+        <div id="empresas-toast" class="empresas-toast"></div>
+    </div>
+
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="closeEditModal">&times;</span>
+            <h2>Editar Empresa</h2>
+            <form id="editForm">
+                <input type="hidden" id="editId">
+                <div class="modal-form-group">
+                    <label for="editNombre">Nombre de la empresa:</label>
+                    <input type="text" id="editNombre" required>
+                </div>
+                <div class="modal-form-group">
+                    <label for="editRut">RUT de la empresa:</label>
+                    <input type="text" id="editRut" required>
+                </div>
+                <div class="modal-buttons">
+                    <button type="button" class="modal-btn modal-btn-secondary" id="cancelEdit">Cancelar</button>
+                    <button type="submit" class="modal-btn modal-btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="deleteModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="closeDeleteModal">&times;</span>
+            <h2>Eliminar Empresa</h2>
+            <p class="delete-modal-text" id="deleteText"></p>
+            <div class="modal-buttons">
+                <button type="button" class="modal-btn modal-btn-secondary" id="cancelDelete">No</button>
+                <button type="button" class="modal-btn modal-btn-danger" id="confirmDelete">Sí</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="historyModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="closeHistory">&times;</span>
+            <h2 id="historyTitle">HISTORIAL EMPRESA</h2>
+            <hr>
+            <div id="historyContent"></div>
+            <div class="modal-buttons">
+                <button type="button" class="modal-btn modal-btn-secondary" id="closeHistoryBtn">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        const { initializeApp, getAuth, onAuthStateChanged } = window.firebaseModules;
+        const { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, orderBy, where, getDoc } = window.firebaseModules;
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
+            authDomain: "datara-salud.firebaseapp.com",
+            projectId: "datara-salud",
+            storageBucket: "datara-salud.firebasestorage.app",
+            messagingSenderId: "198886910481",
+            appId: "1:198886910481:web:abbc345203a423a6329fb0",
+            measurementId: "G-MLYVTZPPLD"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let empresas = [];
+        let currentPage = 1;
+        const PAGE_SIZE = 10;
+        let searchNombre = '';
+        let searchRut = '';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('empresaForm');
+            const loading = document.getElementById('empresas-loading');
+            const toast = document.getElementById('empresas-toast');
+            const empresasBody = document.getElementById('empresasBody');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const pageNumbers = document.getElementById('pageNumbers');
+            const paginationInfo = document.getElementById('paginationInfo');
+            const buscarNombreInput = document.getElementById('buscarNombre');
+            const buscarRutInput = document.getElementById('buscarRut');
+
+            const editModal = document.getElementById('editModal');
+            const deleteModal = document.getElementById('deleteModal');
+            const historyModal = document.getElementById('historyModal');
+            const closeEditSpan = document.getElementById('closeEditModal');
+            const cancelEdit = document.getElementById('cancelEdit');
+            const editForm = document.getElementById('editForm');
+            const closeDeleteSpan = document.getElementById('closeDeleteModal');
+            const cancelDelete = document.getElementById('cancelDelete');
+            const confirmDelete = document.getElementById('confirmDelete');
+            const deleteText = document.getElementById('deleteText');
+            const closeHistorySpan = document.getElementById('closeHistory');
+            const closeHistoryBtn = document.getElementById('closeHistoryBtn');
+            const historyTitle = document.getElementById('historyTitle');
+            const historyContent = document.getElementById('historyContent');
+
+            let currentEditId = null;
+            let currentEditOldNombre = null;
+            let currentEditOldRut = null;
+            let currentDeleteId = null;
+            let currentDeleteNombre = null;
+
+            window.showLoading = function() {
+                if (loading) loading.classList.add('show');
+            };
+
+            window.hideLoading = function() {
+                if (loading) loading.classList.remove('show');
+            };
+
+            function showToast(text, type = 'success') {
+                if (toast) {
+                    toast.textContent = text;
+                    toast.className = `empresas-toast ${type}`;
+                    toast.classList.add('show');
+                    setTimeout(() => {
+                        toast.classList.remove('show');
+                    }, 5000);
+                }
+            }
+
+            async function logAction(empresaId, action, oldData = null, newData = null) {
+                if (!window.currentUserData) {
+                    console.warn('Datos del usuario no disponibles para log');
+                    return;
+                }
+                
+                await addDoc(collection(db, "empresas_historial"), {
+                    empresaId,
+                    action,
+                    timestamp: new Date(),
+                    userId: auth.currentUser ? auth.currentUser.uid : null,
+                    userFullName: window.currentUserData.fullName || 'Usuario Invitado',
+                    username: window.currentUserData.username || 'invitado',
+                    oldData,
+                    newData
+                });
+            }
+
+            function openEditModal(id, nombre, rut) {
+                currentEditId = id;
+                currentEditOldNombre = nombre;
+                currentEditOldRut = rut;
+                document.getElementById('editNombre').value = nombre;
+                document.getElementById('editRut').value = rut;
+                editModal.style.display = 'block';
+            }
+
+            function closeEditModalHandler() {
+                editModal.style.display = 'none';
+                currentEditId = null;
+                currentEditOldNombre = null;
+                currentEditOldRut = null;
+                editForm.reset();
+            }
+
+            function openDeleteModal(id, nombre) {
+                currentDeleteId = id;
+                currentDeleteNombre = nombre;
+                deleteText.textContent = `¿Desea eliminar la empresa "${nombre}"?`;
+                deleteModal.style.display = 'block';
+            }
+
+            function closeDeleteModalHandler() {
+                deleteModal.style.display = 'none';
+                currentDeleteId = null;
+                currentDeleteNombre = null;
+            }
+
+            function openHistoryModal(id, currentNombre) {
+                historyTitle.textContent = `HISTORIAL ${currentNombre}`;
+                showLoading();
+                const q = query(collection(db, "empresas_historial"), where("empresaId", "==", id), orderBy("timestamp", "desc"));
+                getDocs(q).then((querySnapshot) => {
+                    hideLoading();
+                    let html = '';
+                    querySnapshot.forEach((doc) => {
+                        const log = doc.data();
+                        const date = log.timestamp ? log.timestamp.toDate().toLocaleDateString('es-CL') : 'Fecha inválida';
+                        
+                        if (log.action === 'create') {
+                            html += `<div class="history-entry">Creado | ${log.userFullName || 'Desconocido'} | ${log.username || 'desconocido'} |</div>`;
+                        } else if (log.action === 'update') {
+                            html += `<div class="history-entry">Modificado | ${log.userFullName || 'Desconocido'} | ${log.username || 'desconocido'} | modificado de ${log.oldData ? log.oldData.nombre : 'N/A'} a ${log.newData ? log.newData.nombre : 'N/A'}.</div>`;
+                        }
+                    });
+                    historyContent.innerHTML = html || '<div>No hay historial disponible.</div>';
+                    historyModal.style.display = 'block';
+                }).catch((error) => {
+                    hideLoading();
+                    showToast('Error al cargar el historial: ' + error.message, 'error');
+                    console.error('Error al cargar el historial de empresa:', error);
+                    console.error('Código de error:', error.code);
+                    console.error('Mensaje completo:', error.message);
+                });
+            }
+
+            function closeHistoryModalHandler() {
+                historyModal.style.display = 'none';
+                historyContent.innerHTML = '';
+            }
+
+            closeEditSpan.addEventListener('click', closeEditModalHandler);
+            cancelEdit.addEventListener('click', closeEditModalHandler);
+            window.addEventListener('click', (e) => {
+                if (e.target === editModal) closeEditModalHandler();
+            });
+
+            closeDeleteSpan.addEventListener('click', closeDeleteModalHandler);
+            cancelDelete.addEventListener('click', closeDeleteModalHandler);
+            window.addEventListener('click', (e) => {
+                if (e.target === deleteModal) closeDeleteModalHandler();
+            });
+
+            closeHistorySpan.addEventListener('click', closeHistoryModalHandler);
+            closeHistoryBtn.addEventListener('click', closeHistoryModalHandler);
+            window.addEventListener('click', (e) => {
+                if (e.target === historyModal) closeHistoryModalHandler();
+            });
+
+            editForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!currentEditId) return;
+
+                const nombre = document.getElementById('editNombre').value.trim();
+                const rut = document.getElementById('editRut').value.trim();
+
+                if (nombre && rut) {
+                    const oldNombre = currentEditOldNombre;
+                    const oldRut = currentEditOldRut;
+                    showLoading();
+                    try {
+                        await updateDoc(doc(db, "empresas", currentEditId), {
+                            nombre,
+                            rut,
+                            createdAt: new Date()
+                        });
+                        await logAction(currentEditId, 'update', {nombre: oldNombre, rut: oldRut}, {nombre, rut});
+                        hideLoading();
+                        showToast(`Se ha editado con éxito la empresa ${nombre}`, 'success');
+                        closeEditModalHandler();
+                        await loadEmpresas();
+                    } catch (error) {
+                        hideLoading();
+                        showToast('Error al editar la empresa: ' + error.message, 'error');
+                    }
+                } else {
+                    showToast('Por favor, completa todos los campos.', 'error');
+                }
+            });
+
+            confirmDelete.addEventListener('click', async () => {
+                if (!currentDeleteId || !currentDeleteNombre) return;
+
+                showLoading();
+                try {
+                    await deleteDoc(doc(db, "empresas", currentDeleteId));
+                    hideLoading();
+                    showToast(`Se ha eliminado con éxito la empresa ${currentDeleteNombre}`, 'success');
+                    closeDeleteModalHandler();
+                    await loadEmpresas();
+                } catch (error) {
+                    hideLoading();
+                    showToast('Error al eliminar la empresa: ' + error.message, 'error');
+                }
+            });
+
+            onAuthStateChanged(auth, async (user) => {
+                if (!user) {
+                    window.location.replace('../index.html');
+                    return;
+                }
+                
+                try {
+                    const userDocRef = doc(db, 'users', user.uid);
+                    const userDoc = await getDoc(userDocRef);
+                    if (userDoc.exists()) {
+                        window.currentUserData = userDoc.data();
+                    } else {
+                        window.currentUserData = { fullName: 'Usuario Invitado', username: 'invitado' };
+                    }
+                } catch (error) {
+                    console.error('Error al cargar datos del usuario:', error);
+                    window.currentUserData = { fullName: 'Usuario Invitado', username: 'invitado' };
+                }
+                
+                await loadEmpresas();
+            });
+
+            if (buscarNombreInput) {
+                buscarNombreInput.addEventListener('input', (e) => {
+                    searchNombre = e.target.value.trim();
+                    currentPage = 1;
+                    renderTable();
+                });
+            }
+
+            if (buscarRutInput) {
+                buscarRutInput.addEventListener('input', (e) => {
+                    searchRut = e.target.value.trim();
+                    currentPage = 1;
+                    renderTable();
+                });
+            }
+
+            async function loadEmpresas() {
+                showLoading();
+                try {
+                    const querySnapshot = await getDocs(collection(db, "empresas"));
+                    empresas = [];
+                    querySnapshot.forEach((doc) => {
+                        empresas.push({ id: doc.id, ...doc.data() });
+                    });
+                    empresas.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                    renderTable();
+                    hideLoading();
+                } catch (error) {
+                    hideLoading();
+                    showToast('Error al cargar las empresas: ' + error.message, 'error');
+                }
+            }
+
+            if (form) {
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+
+                    const nombre = document.getElementById('nombre').value.trim();
+                    const rut = document.getElementById('rut').value.trim();
+
+                    if (nombre && rut) {
+                        showLoading();
+                        try {
+                            const docRef = await addDoc(collection(db, "empresas"), {
+                                nombre,
+                                rut,
+                                createdAt: new Date()
+                            });
+                            await logAction(docRef.id, 'create', null, {nombre, rut});
+                            hideLoading();
+                            showToast(`Se ha registrado con éxito la empresa ${nombre}`, 'success');
+                            form.reset();
+                            await loadEmpresas();
+                        } catch (error) {
+                            hideLoading();
+                            showToast('Error al registrar la empresa: ' + error.message, 'error');
+                        }
+                    } else {
+                        showToast('Por favor, completa todos los campos.', 'error');
+                    }
+                });
+            }
+
+            function getFilteredEmpresas() {
+                return empresas.filter(empresa => 
+                    empresa.nombre.toLowerCase().includes(searchNombre.toLowerCase()) &&
+                    empresa.rut.toLowerCase().includes(searchRut.toLowerCase())
+                ).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            }
+
+            function renderTable() {
+                const filteredEmpresas = getFilteredEmpresas();
+                const start = (currentPage - 1) * PAGE_SIZE;
+                const end = start + PAGE_SIZE;
+                const pageEmpresas = filteredEmpresas.slice(start, end);
+
+                if (empresasBody) {
+                    empresasBody.innerHTML = '';
+
+                    pageEmpresas.forEach(empresa => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${empresa.nombre}</td>
+                            <td>${empresa.rut}</td>
+                            <td class="empresas-actions">
+                                <button title="Editar" class="empresas-btn-edit" onclick="openEditModal('${empresa.id}', '${empresa.nombre}', '${empresa.rut}')"><i class="fas fa-edit"></i></button>
+                                <button title="Eliminar" class="empresas-btn-delete" onclick="openDeleteModal('${empresa.id}', '${empresa.nombre}')"><i class="fas fa-trash"></i></button>
+                                <button title="Ver Historial" class="empresas-btn-history" onclick="openHistoryModal('${empresa.id}', '${empresa.nombre}')"><i class="fas fa-history"></i></button>
+                            </td>
+                        `;
+                        empresasBody.appendChild(row);
+                    });
+                }
+
+                updatePagination(filteredEmpresas.length);
+            }
+
+            function updatePagination(total) {
+                const totalPages = Math.ceil(total / PAGE_SIZE);
+                const startPage = Math.max(1, currentPage - 2);
+                const endPage = Math.min(totalPages, startPage + 4);
+
+                const startRecord = (currentPage - 1) * PAGE_SIZE + 1;
+                const endRecord = Math.min(currentPage * PAGE_SIZE, total);
+                const recordsThisPage = endRecord - startRecord + 1;
+                if (paginationInfo) paginationInfo.textContent = `Página ${currentPage} de ${totalPages} | ${recordsThisPage} registros en esta página de ${total}`;
+
+                if (prevBtn) prevBtn.disabled = currentPage === 1;
+                if (nextBtn) nextBtn.disabled = currentPage === totalPages;
+
+                if (pageNumbers) {
+                    pageNumbers.innerHTML = '';
+                    for (let i = startPage; i <= endPage; i++) {
+                        if (i > startPage && i <= endPage - 1 && endPage - startPage > 3) {
+                            const dots = document.createElement('span');
+                            dots.textContent = '...';
+                            dots.className = 'empresas-dots';
+                            pageNumbers.appendChild(dots);
+                            continue;
+                        }
+                        const btn = document.createElement('button');
+                        btn.textContent = i;
+                        btn.className = i === currentPage ? 'active' : '';
+                        btn.addEventListener('click', () => goToPage(i));
+                        pageNumbers.appendChild(btn);
+                    }
+                }
+            }
+
+            function goToPage(page) {
+                currentPage = page;
+                renderTable();
+            }
+
+            if (prevBtn) {
+                prevBtn.addEventListener('click', () => {
+                    if (currentPage > 1) {
+                        currentPage--;
+                        renderTable();
+                    }
+                });
+            }
+
+            if (nextBtn) {
+                nextBtn.addEventListener('click', () => {
+                    const totalPages = Math.ceil(getFilteredEmpresas().length / PAGE_SIZE);
+                    if (currentPage < totalPages) {
+                        currentPage++;
+                        renderTable();
+                    }
+                });
+            }
+
+            window.openEditModal = openEditModal;
+            window.openDeleteModal = openDeleteModal;
+            window.openHistoryModal = openHistoryModal;
+        });
+    </script>
+</body>
+</html>

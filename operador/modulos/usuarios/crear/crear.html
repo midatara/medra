@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crear Usuario</title>
+    <link rel="stylesheet" href="crear.css">
+</head>
+<body>
+    <div id="outer-container-crear">
+        <div id="content-crear-usuario">
+            <h1>Crear Usuario</h1>
+            <form id="form-crear-usuario">
+                <div class="form-group">
+                    <label for="crear-fullName">Nombre completo:</label>
+                    <input type="text" id="crear-fullName" required autocomplete="off">
+                </div>
+
+                <div class="form-group">
+                    <label for="crear-username">Nombre de usuario:</label>
+                    <input type="text" id="crear-username" required autocomplete="off">
+                </div>
+
+                <div class="form-group">
+                    <label for="crear-birthDate">Fecha de nacimiento:</label>
+                    <input type="date" id="crear-birthDate" required autocomplete="off">
+                </div>
+
+                <div class="form-group">
+                    <label for="crear-email">Correo electrónico:</label>
+                    <input type="email" id="crear-email" required autocomplete="off">
+                </div>
+
+                <div class="form-group">
+                    <label for="crear-sex">Sexo:</label>
+                    <select id="crear-sex" required>
+                        <option value="">Seleccione...</option>
+                        <option value="masculino">Masculino</option>
+                        <option value="femenino">Femenino</option>
+                        <option value="otro">Otro</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="crear-module">Módulo:</label>
+                    <select id="crear-module" required>
+                        <option value="">Seleccione...</option>
+                        <option value="Salud">Salud</option>
+                        <option value="Album">Album</option>
+                        <option value="Personal">Personal</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="crear-category">Categoría:</label>
+                    <select id="crear-category" required>
+                        <option value="">Seleccione...</option>
+                        <option value="Administrador">Administrador</option>
+                        <option value="Coordinadora">Coordinadora</option>
+                        <option value="Corporativa">Corporativa</option>
+                        <option value="Operador">Operador</option>
+                        <option value="Laboratorio">Laboratorio</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="crear-password">Contraseña:</label>
+                    <input type="password" id="crear-password" required minlength="6" autocomplete="off">
+                </div>
+
+                <div class="form-group">
+                    <label for="crear-repeatPassword">Repetir contraseña:</label>
+                    <input type="password" id="crear-repeatPassword" required minlength="6" autocomplete="off">
+                </div>
+
+                <button type="submit" class="btn-crear">Crear Usuario</button>
+            </form>
+            <div id="credential-card">
+                <div class="card-header">
+                    <img src="../../../../img/letra-d.png" alt="Datara-Salud" class="company-icon">
+                    <h2>Datara-Salud</h2>
+                </div>
+                <div class="card-body">
+                    <img id="user-icon" src="../../../../img/icono-otro.png" alt="Icono de usuario" class="user-icon">
+                    <div class="user-info">
+                        <h3 id="card-fullName">Nombre Completo</h3>
+                        <p id="card-username">Usuario</p>
+                        <p id="card-email">Correo Electrónico</p>
+                        <p id="card-birthDate">Fecha de Nacimiento</p>
+                        <p id="card-sex">Sexo</p>
+                        <p id="card-module">Módulo</p>
+                        <p id="card-category">Categoría</p>
+                    </div>
+                </div>
+            </div>
+            <div id="message-crear"></div>
+        </div>
+    </div>
+
+    <script type="module" src="crear.js"></script>
+</body>
+</html>
