@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Médicos</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+        import { getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+        import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, orderBy, where, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+        window.firebaseModules = { initializeApp, getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence, getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, orderBy, where, getDoc };
+    </script>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            overflow: hidden;
+            font-size: 12px;
+        }
+        .medicos-main-container {
+            width: 100%;
+            height: 100%;
+            background: white;
+            padding: 5px 20px 20px 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        .medicos-title {
+            text-align: start;
+            margin: 0 0 15px 0;
+            font-size: 18px;
+        }
+        .medicos-fields-container {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .medicos-left-section, .medicos-right-section {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-end;
+            gap: 20px;
+            flex: 1;
+        }
+        .medicos-form-group {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 4px;
+            flex: 1;
+            min-width: 0;
+            max-width: 300px;
+        }
+        .medicos-label {
+            font-size: 10px;
+            font-weight: bold;
+            color: #333;
+            white-space: nowrap;
+        }
+        #nombre, #especialidad, #buscarNombre, #buscarEspecialidad {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 11px;
+            box-sizing: border-box;
+        }
+        #nombre:focus, #especialidad:focus, #buscarNombre:focus, #buscarEspecialidad:focus {
+            box-shadow: 0 0 12px rgba(0, 123, 255, 0.5);
+            outline: none;
+        }
+        .medicos-register-btn {
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            white-space: nowrap;
+            font-size: 12px;
+            flex-shrink: 0;
+            align-self: flex-end;
+            box-shadow: 0 2px 4px rgba(0,123,255,0.25);
+            transition: background-color 0.3s ease;
+        }
+        .medicos-register-btn:hover {
+            background-color: #0056b3;
+            transform: translateY(-1px);
+        }
+        .medicos-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            font-size: 11px;
+            border: 1px solid #ddd;
+        }
+        .medicos-table th, .medicos-table td {
+            padding: 4px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        .medicos-table th {
+            background-color: #f2f2f2;
+            font-size: 11px;
+        }
+        .medicos-table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+        .medicos-actions {
+            display: flex;
+            gap: 5px;
+        }
+        .medicos-actions button {
+            padding: 4px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .medicos-btn-edit { background-color: #ffc107; color: #000; }
+        .medicos-btn-delete { background-color: #dc3545; color: white; }
+        .medicos-btn-history { background-color: #17a2b8; color: white; }
+        .medicos-pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            flex-wrap: nowrap;
+        }
+        .medicos-pagination-info {
+            font-size: 11px;
+            flex: 1;
+            text-align: left;
+        }
+        .medicos-pagination-controls {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            flex-shrink: 0;
+        }
+        .medicos-pagination-controls button {
+            padding: 6px 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+        .medicos-pagination-controls button:hover:not(:disabled) {
+            background-color: #0056b3;
+        }
+        .medicos-pagination-controls button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .medicos-page-numbers {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+        .medicos-page-numbers button {
+            padding: 4px 8px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            font-size: 11px;
+            border-radius: 4px;
+        }
+        .medicos-page-numbers button.active {
+            background-color: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        .medicos-page-numbers button:hover:not(.active) {
+            background-color: #f0f0f0;
+        }
+        .medicos-page-numbers .medicos-dots {
+            padding: 4px;
+            cursor: default;
+            font-size: 11px;
+            line-height: 1.5;
+        }
+        #medicos-message {
+            margin-bottom: 20px;
+            padding: 8px;
+            border-radius: 4px;
+            display: none;
+            font-size: 11px;
+        }
+        .medicos-message-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .medicos-message-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .medicos-loading {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 120px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            padding: 16px;
+            backdrop-filter: blur(8px);
+        }
+        .medicos-loading.show {
+            display: flex;
+        }
+        .medicos-loading-spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid #e3f2fd;
+            border-top: 3px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 8px;
+        }
+        .medicos-loading-text {
+            font-size: 12px;
+            color: #333;
+            font-weight: 500;
+            text-align: center;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .medicos-toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #d4edda;
+            color: #155724;
+            padding: 12px 20px;
+            border-radius: 6px;
+            border: 1px solid #c3e6cb;
+            font-size: 12px;
+            z-index: 1001;
+            max-width: 300px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            opacity: 0;
+            transform: translateX(100%);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .medicos-toast.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .medicos-toast.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1002;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+        }
+        .modal-form-group {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 15px;
+        }
+        .modal-form-group label {
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .modal-form-group input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .modal-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .modal-btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        .modal-btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+        .modal-btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+        .delete-modal-text {
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        #historyContent {
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 12px;
+            line-height: 1.4;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .history-entry {
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #eee;
+        }
+        .modal-content h2 {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        hr {
+            margin: 10px 0;
+        }
+        .medicos-actions-menu {
+            position: relative;
+            margin-top: 10px;
+            text-align: right;
+        }
+        #actionsBtn {
+            background: none;
+            border: none;
+            color: #007bff;
+            cursor: pointer;
+            font-size: 12px;
+            padding: 8px 16px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        #actionsBtn:hover {
+            color: #0056b3;
+            text-decoration: underline;
+        }
+        .medicos-dropdown-menu {
+            display: none;
+            position: absolute;
+            right: 0;
+            bottom: 100%;
+            background-color: white;
+            min-width: 250px;
+            box-shadow: 0px -8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .medicos-dropdown-menu a {
+            color: black;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+        .medicos-dropdown-menu a:hover {
+            background-color: #f1f1f1;
+        }
+        @media (max-width: 768px) {
+            .medicos-fields-container {
+                flex-direction: column;
+                gap: 20px;
+            }
+            .medicos-left-section, .medicos-right-section {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 15px;
+            }
+            .medicos-form-group {
+                max-width: none;
+            }
+            .medicos-actions {
+                flex-direction: column;
+            }
+            .medicos-toast {
+                top: 10px;
+                right: 10px;
+                left: 10px;
+                max-width: none;
+            }
+            .medicos-loading {
+                width: 100px;
+                height: 70px;
+                padding: 12px;
+            }
+            .medicos-loading-spinner {
+                width: 28px;
+                height: 28px;
+            }
+            .modal-content {
+                width: 90%;
+                margin: 20% auto;
+            }
+            .medicos-pagination {
+                flex-direction: row;
+                align-items: center;
+                gap: 10px;
+            }
+            .medicos-pagination-info {
+                font-size: 10px;
+            }
+            .medicos-pagination-controls {
+                flex-shrink: 0;
+            }
+            .medicos-pagination-controls button {
+                padding: 4px 8px;
+                font-size: 10px;
+            }
+            .medicos-page-numbers button {
+                padding: 3px 6px;
+                font-size: 10px;
+            }
+            .medicos-dropdown-menu {
+                min-width: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="medicos-main-container">
+        <h1 class="medicos-title">Registro de Médicos</h1>
+        
+        <div id="medicos-message"></div>
+
+        <form id="medicoForm" class="medicos-fields-container">
+            <div class="medicos-left-section">
+                <div class="medicos-form-group">
+                    <label for="nombre" class="medicos-label">Nombre del médico:</label>
+                    <input type="text" id="nombre" placeholder="Nombre del médico" required autocomplete="off">
+                </div>
+                <div class="medicos-form-group">
+                    <label for="especialidad" class="medicos-label">Especialidad:</label>
+                    <input type="text" id="especialidad" placeholder="Especialidad del médico" autocomplete="off">
+                </div>
+                <button type="submit" class="medicos-register-btn">Registrar</button>
+            </div>
+            <div class="medicos-right-section">
+                <div class="medicos-form-group">
+                    <label for="buscarNombre" class="medicos-label">Buscar médico:</label>
+                    <input type="text" id="buscarNombre" placeholder="Buscar por nombre" autocomplete="off">
+                </div>
+                <div class="medicos-form-group">
+                    <label for="buscarEspecialidad" class="medicos-label">Buscar especialidad:</label>
+                    <input type="text" id="buscarEspecialidad" placeholder="Buscar por especialidad" autocomplete="off">
+                </div>
+            </div>
+        </form>
+
+        <table id="medicosTable" class="medicos-table">
+            <thead>
+                <tr>
+                    <th>Nombre del médico</th>
+                    <th>Especialidad</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="medicosBody">
+            </tbody>
+        </table>
+
+        <div class="medicos-pagination" id="pagination">
+            <div class="medicos-pagination-info" id="paginationInfo">
+            </div>
+            <div class="medicos-pagination-controls">
+                <button id="prevBtn">Anterior</button>
+                <div class="medicos-page-numbers" id="pageNumbers"></div>
+                <button id="nextBtn">Siguiente</button>
+            </div>
+        </div>
+
+        <div class="medicos-actions-menu">
+            <button id="actionsBtn">Acciones <i class="fas fa-angle-right"></i></button>
+            <div id="actionsMenu" class="medicos-dropdown-menu">
+                <a href="#" id="downloadAll">Descargar todos los registros</a>
+                <a href="#" id="downloadPage">Descargar hoja actual</a>
+                <a href="#" id="downloadTemplate">Descargar formato para importar</a>
+                <a href="#" id="importExcel">Importar Excel</a>
+            </div>
+        </div>
+
+        <input type="file" id="fileUpload" style="display:none;" accept=".xlsx, .xls">
+
+        <div id="medicos-loading" class="medicos-loading">
+            <div class="medicos-loading-spinner"></div>
+            <div class="medicos-loading-text">Procesando...</div>
+        </div>
+
+        <div id="medicos-toast" class="medicos-toast"></div>
+    </div>
+
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="closeEditModal">&times;</span>
+            <h2>Editar Médico</h2>
+            <form id="editForm">
+                <input type="hidden" id="editId">
+                <div class="modal-form-group">
+                    <label for="editNombre">Nombre del médico:</label>
+                    <input type="text" id="editNombre" required>
+                </div>
+                <div class="modal-form-group">
+                    <label for="editEspecialidad">Especialidad:</label>
+                    <input type="text" id="editEspecialidad">
+                </div>
+                <div class="modal-buttons">
+                    <button type="button" class="modal-btn modal-btn-secondary" id="cancelEdit">Cancelar</button>
+                    <button type="submit" class="modal-btn modal-btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="deleteModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="closeDeleteModal">&times;</span>
+            <h2>Eliminar Médico</h2>
+            <p class="delete-modal-text" id="deleteText"></p>
+            <div class="modal-buttons">
+                <button type="button" class="modal-btn modal-btn-secondary" id="cancelDelete">No</button>
+                <button type="button" class="modal-btn modal-btn-danger" id="confirmDelete">Sí</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="historyModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="closeHistory">&times;</span>
+            <h2 id="historyTitle">HISTORIAL MÉDICO</h2>
+            <hr>
+            <div id="historyContent"></div>
+            <div class="modal-buttons">
+                <button type="button" class="modal-btn modal-btn-secondary" id="closeHistoryBtn">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        const { initializeApp, getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence } = window.firebaseModules;
+        const { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, orderBy, where, getDoc } = window.firebaseModules;
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
+            authDomain: "datara-salud.firebaseapp.com",
+            projectId: "datara-salud",
+            storageBucket: "datara-salud.firebasestorage.app",
+            messagingSenderId: "198886910481",
+            appId: "1:198886910481:web:abbc345203a423a6329fb0",
+            measurementId: "G-MLYVTZPPLD"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        setPersistence(auth, browserSessionPersistence);
+
+        let medicos = [];
+        let currentPage = 1;
+        const PAGE_SIZE = 10;
+        let searchNombre = '';
+        let searchEspecialidad = '';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('medicoForm');
+            const loading = document.getElementById('medicos-loading');
+            const toast = document.getElementById('medicos-toast');
+            const medicosBody = document.getElementById('medicosBody');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const pageNumbers = document.getElementById('pageNumbers');
+            const paginationInfo = document.getElementById('paginationInfo');
+            const buscarNombreInput = document.getElementById('buscarNombre');
+            const buscarEspecialidadInput = document.getElementById('buscarEspecialidad');
+
+            const editModal = document.getElementById('editModal');
+            const deleteModal = document.getElementById('deleteModal');
+            const historyModal = document.getElementById('historyModal');
+            const closeEditSpan = document.getElementById('closeEditModal');
+            const cancelEdit = document.getElementById('cancelEdit');
+            const editForm = document.getElementById('editForm');
+            const closeDeleteSpan = document.getElementById('closeDeleteModal');
+            const cancelDelete = document.getElementById('cancelDelete');
+            const confirmDelete = document.getElementById('confirmDelete');
+            const deleteText = document.getElementById('deleteText');
+            const closeHistorySpan = document.getElementById('closeHistory');
+            const closeHistoryBtn = document.getElementById('closeHistoryBtn');
+            const historyTitle = document.getElementById('historyTitle');
+            const historyContent = document.getElementById('historyContent');
+
+            const actionsBtn = document.getElementById('actionsBtn');
+            const actionsMenu = document.getElementById('actionsMenu');
+            const downloadAll = document.getElementById('downloadAll');
+            const downloadPage = document.getElementById('downloadPage');
+            const downloadTemplate = document.getElementById('downloadTemplate');
+            const importExcel = document.getElementById('importExcel');
+            const fileUpload = document.getElementById('fileUpload');
+
+            let currentEditId = null;
+            let currentEditOldNombre = null;
+            let currentEditOldEspecialidad = null;
+            let currentDeleteId = null;
+            let currentDeleteNombre = null;
+
+            window.showLoading = function() {
+                if (loading) loading.classList.add('show');
+            };
+
+            window.hideLoading = function() {
+                if (loading) loading.classList.remove('show');
+            };
+
+            function showToast(text, type = 'success') {
+                if (toast) {
+                    toast.textContent = text;
+                    toast.className = `medicos-toast ${type}`;
+                    toast.classList.add('show');
+                    setTimeout(() => {
+                        toast.classList.remove('show');
+                    }, 5000);
+                }
+            }
+
+            async function logAction(medicoId, action, oldData = null, newData = null) {
+                if (!window.currentUserData) {
+                    console.warn('Datos del usuario no disponibles para log');
+                    return;
+                }
+                
+                await addDoc(collection(db, "medicos_historial"), {
+                    medicoId,
+                    action,
+                    timestamp: new Date(),
+                    userId: auth.currentUser ? auth.currentUser.uid : null,
+                    userFullName: window.currentUserData.fullName || 'Usuario Invitado',
+                    username: window.currentUserData.username || 'invitado',
+                    oldData,
+                    newData
+                });
+            }
+
+            async function isDuplicate(nombre, excludeId = null) {
+                const nombreQuery = query(collection(db, "medicos"), where("nombre", "==", nombre.trim()));
+                const querySnapshot = await getDocs(nombreQuery);
+                return querySnapshot.docs.some(doc => doc.id !== excludeId);
+            }
+
+            function openEditModal(id, nombre, especialidad) {
+                currentEditId = id;
+                currentEditOldNombre = nombre;
+                currentEditOldEspecialidad = especialidad;
+                document.getElementById('editNombre').value = nombre;
+                document.getElementById('editEspecialidad').value = especialidad || '';
+                editModal.style.display = 'block';
+            }
+
+            function closeEditModalHandler() {
+                editModal.style.display = 'none';
+                currentEditId = null;
+                currentEditOldNombre = null;
+                currentEditOldEspecialidad = null;
+                editForm.reset();
+            }
+
+            function openDeleteModal(id, nombre) {
+                currentDeleteId = id;
+                currentDeleteNombre = nombre;
+                deleteText.textContent = `¿Desea eliminar al médico "${nombre}"?`;
+                deleteModal.style.display = 'block';
+            }
+
+            function closeDeleteModalHandler() {
+                deleteModal.style.display = 'none';
+                currentDeleteId = null;
+                currentDeleteNombre = null;
+            }
+
+            function openHistoryModal(id, currentNombre) {
+                historyTitle.textContent = `HISTORIAL ${currentNombre}`;
+                showLoading();
+                const q = query(collection(db, "medicos_historial"), where("medicoId", "==", id), orderBy("timestamp", "desc"));
+                getDocs(q).then((querySnapshot) => {
+                    hideLoading();
+                    let html = '';
+                    querySnapshot.forEach((doc) => {
+                        const log = doc.data();
+                        const date = log.timestamp ? log.timestamp.toDate().toLocaleDateString('es-CL') : 'Fecha inválida';
+                        
+                        if (log.action === 'create') {
+                            html += `<div class="history-entry">Creado | ${log.userFullName || 'Desconocido'} | ${log.username || 'desconocido'} | ${date}</div>`;
+                        } else if (log.action === 'update') {
+                            html += `<div class="history-entry">Modificado | ${log.userFullName || 'Desconocido'} | ${log.username || 'desconocido'} | ${date} | modificado de ${log.oldData ? log.oldData.nombre : 'N/A'} a ${log.newData ? log.newData.nombre : 'N/A'}.</div>`;
+                        }
+                    });
+                    historyContent.innerHTML = html || '<div>No hay historial disponible.</div>';
+                    historyModal.style.display = 'block';
+                }).catch((error) => {
+                    hideLoading();
+                    showToast('Error al cargar el historial: ' + error.message, 'error');
+                    console.error('Error al cargar el historial de médico:', error);
+                    console.error('Código de error:', error.code);
+                    console.error('Mensaje completo:', error.message);
+                });
+            }
+
+            function closeHistoryModalHandler() {
+                historyModal.style.display = 'none';
+                historyContent.innerHTML = '';
+            }
+
+            closeEditSpan.addEventListener('click', closeEditModalHandler);
+            cancelEdit.addEventListener('click', closeEditModalHandler);
+            window.addEventListener('click', (e) => {
+                if (e.target === editModal) closeEditModalHandler();
+            });
+
+            closeDeleteSpan.addEventListener('click', closeDeleteModalHandler);
+            cancelDelete.addEventListener('click', closeDeleteModalHandler);
+            window.addEventListener('click', (e) => {
+                if (e.target === deleteModal) closeDeleteModalHandler();
+            });
+
+            closeHistorySpan.addEventListener('click', closeHistoryModalHandler);
+            closeHistoryBtn.addEventListener('click', closeHistoryModalHandler);
+            window.addEventListener('click', (e) => {
+                if (e.target === historyModal) closeHistoryModalHandler();
+            });
+
+            editForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!currentEditId) return;
+
+                const nombre = document.getElementById('editNombre').value.trim();
+                const especialidad = document.getElementById('editEspecialidad').value.trim();
+
+                if (nombre) {
+                    showLoading();
+                    try {
+                        const nombreExists = await isDuplicate(nombre, currentEditId);
+                        if (nombreExists) {
+                            hideLoading();
+                            showToast('El nombre del médico ya existe.', 'error');
+                            return;
+                        }
+
+                        const oldNombre = currentEditOldNombre;
+                        const oldEspecialidad = currentEditOldEspecialidad;
+                        await updateDoc(doc(db, "medicos", currentEditId), {
+                            nombre,
+                            especialidad: especialidad || null,
+                            createdAt: new Date()
+                        });
+                        await logAction(currentEditId, 'update', {nombre: oldNombre, especialidad: oldEspecialidad}, {nombre, especialidad});
+                        hideLoading();
+                        showToast(`Se ha editado con éxito al médico ${nombre}`, 'success');
+                        closeEditModalHandler();
+                        await loadMedicos();
+                    } catch (error) {
+                        hideLoading();
+                        showToast('Error al editar el médico: ' + error.message, 'error');
+                    }
+                } else {
+                    showToast('Por favor, completa el campo nombre.', 'error');
+                }
+            });
+
+            confirmDelete.addEventListener('click', async () => {
+                if (!currentDeleteId || !currentDeleteNombre) return;
+
+                showLoading();
+                try {
+                    await deleteDoc(doc(db, "medicos", currentDeleteId));
+                    hideLoading();
+                    showToast(`Se ha eliminado con éxito al médico ${currentDeleteNombre}`, 'success');
+                    closeDeleteModalHandler();
+                    await loadMedicos();
+                } catch (error) {
+                    hideLoading();
+                    showToast('Error al eliminar el médico: ' + error.message, 'error');
+                }
+            });
+
+            onAuthStateChanged(auth, async (user) => {
+                if (!user) {
+                    window.location.replace('../../../index.html');
+                    return;
+                }
+                
+                try {
+                    const userDocRef = doc(db, 'users', user.uid);
+                    const userDoc = await getDoc(userDocRef);
+                    if (userDoc.exists()) {
+                        window.currentUserData = userDoc.data();
+                    } else {
+                        window.currentUserData = { fullName: 'Usuario Invitado', username: 'invitado' };
+                    }
+                } catch (error) {
+                    console.error('Error al cargar datos del usuario:', error);
+                    window.currentUserData = { fullName: 'Usuario Invitado', username: 'invitado' };
+                    showToast('Error al cargar datos del usuario.', 'error');
+                }
+                
+                await loadMedicos();
+            });
+
+            if (buscarNombreInput) {
+                buscarNombreInput.addEventListener('input', (e) => {
+                    searchNombre = e.target.value.trim();
+                    currentPage = 1;
+                    renderTable();
+                });
+            }
+
+            if (buscarEspecialidadInput) {
+                buscarEspecialidadInput.addEventListener('input', (e) => {
+                    searchEspecialidad = e.target.value.trim();
+                    currentPage = 1;
+                    renderTable();
+                });
+            }
+
+            async function loadMedicos() {
+                showLoading();
+                try {
+                    const querySnapshot = await getDocs(collection(db, "medicos"));
+                    medicos = [];
+                    querySnapshot.forEach((doc) => {
+                        medicos.push({ id: doc.id, ...doc.data() });
+                    });
+                    medicos.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                    renderTable();
+                    hideLoading();
+                } catch (error) {
+                    hideLoading();
+                    showToast('Error al cargar los médicos: ' + error.message, 'error');
+                }
+            }
+
+            if (form) {
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+
+                    const nombre = document.getElementById('nombre').value.trim();
+                    const especialidad = document.getElementById('especialidad').value.trim();
+
+                    if (nombre) {
+                        showLoading();
+                        try {
+                            const nombreExists = await isDuplicate(nombre);
+                            if (nombreExists) {
+                                hideLoading();
+                                showToast('El nombre del médico ya existe.', 'error');
+                                return;
+                            }
+
+                            const docRef = await addDoc(collection(db, "medicos"), {
+                                nombre,
+                                especialidad: especialidad || null,
+                                createdAt: new Date()
+                            });
+                            await logAction(docRef.id, 'create', null, {nombre, especialidad});
+                            hideLoading();
+                            showToast(`Se ha registrado con éxito al médico ${nombre}`, 'success');
+                            form.reset();
+                            await loadMedicos();
+                        } catch (error) {
+                            hideLoading();
+                            showToast('Error al registrar el médico: ' + error.message, 'error');
+                        }
+                    } else {
+                        showToast('Por favor, completa el campo nombre.', 'error');
+                    }
+                });
+            }
+
+            function getFilteredMedicos() {
+                return medicos.filter(medico => 
+                    medico.nombre.toLowerCase().includes(searchNombre.toLowerCase()) &&
+                    (!searchEspecialidad || (medico.especialidad && medico.especialidad.toLowerCase().includes(searchEspecialidad.toLowerCase())))
+                ).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            }
+
+            function renderTable() {
+                const filteredMedicos = getFilteredMedicos();
+                const start = (currentPage - 1) * PAGE_SIZE;
+                const end = start + PAGE_SIZE;
+                const pageMedicos = filteredMedicos.slice(start, end);
+
+                if (medicosBody) {
+                    medicosBody.innerHTML = '';
+
+                    pageMedicos.forEach(medico => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${medico.nombre}</td>
+                            <td>${medico.especialidad || 'Sin especialidad'}</td>
+                            <td class="medicos-actions">
+                                <button title="Editar" class="medicos-btn-edit" onclick="openEditModal('${medico.id}', '${medico.nombre}', '${medico.especialidad || ''}')"><i class="fas fa-edit"></i></button>
+                                <button title="Eliminar" class="medicos-btn-delete" onclick="openDeleteModal('${medico.id}', '${medico.nombre}')"><i class="fas fa-trash"></i></button>
+                                <button title="Ver Historial" class="medicos-btn-history" onclick="openHistoryModal('${medico.id}', '${medico.nombre}')"><i class="fas fa-history"></i></button>
+                            </td>
+                        `;
+                        medicosBody.appendChild(row);
+                    });
+                }
+
+                updatePagination(filteredMedicos.length);
+            }
+
+            function updatePagination(total) {
+                const totalPages = Math.ceil(total / PAGE_SIZE);
+                const startPage = Math.max(1, currentPage - 2);
+                const endPage = Math.min(totalPages, startPage + 4);
+
+                const startRecord = (currentPage - 1) * PAGE_SIZE + 1;
+                const endRecord = Math.min(currentPage * PAGE_SIZE, total);
+                const recordsThisPage = endRecord - startRecord + 1;
+                if (paginationInfo) paginationInfo.textContent = `Página ${currentPage} de ${totalPages} | ${recordsThisPage} registros en esta página de ${total}`;
+
+                if (prevBtn) prevBtn.disabled = currentPage === 1;
+                if (nextBtn) nextBtn.disabled = currentPage === totalPages;
+
+                if (pageNumbers) {
+                    pageNumbers.innerHTML = '';
+                    for (let i = startPage; i <= endPage; i++) {
+                        if (i > startPage && i <= endPage - 1 && endPage - startPage > 3) {
+                            const dots = document.createElement('span');
+                            dots.textContent = '...';
+                            dots.className = 'medicos-dots';
+                            pageNumbers.appendChild(dots);
+                            continue;
+                        }
+                        const btn = document.createElement('button');
+                        btn.textContent = i;
+                        btn.className = i === currentPage ? 'active' : '';
+                        btn.addEventListener('click', () => goToPage(i));
+                        pageNumbers.appendChild(btn);
+                    }
+                }
+            }
+
+            function goToPage(page) {
+                currentPage = page;
+                renderTable();
+            }
+
+            if (prevBtn) {
+                prevBtn.addEventListener('click', () => {
+                    if (currentPage > 1) {
+                        currentPage--;
+                        renderTable();
+                    }
+                });
+            }
+
+            if (nextBtn) {
+                nextBtn.addEventListener('click', () => {
+                    const totalPages = Math.ceil(getFilteredMedicos().length / PAGE_SIZE);
+                    if (currentPage < totalPages) {
+                        currentPage++;
+                        renderTable();
+                    }
+                });
+            }
+
+            actionsBtn.addEventListener('click', () => {
+                actionsMenu.style.display = actionsMenu.style.display === 'block' ? 'none' : 'block';
+            });
+
+            window.addEventListener('click', (e) => {
+                if (!actionsBtn.contains(e.target) && !actionsMenu.contains(e.target)) {
+                    actionsMenu.style.display = 'none';
+                }
+            });
+
+            downloadAll.addEventListener('click', (e) => {
+                e.preventDefault();
+                exportToExcel(medicos.map(m => ({nombre: m.nombre, especialidad: m.especialidad || 'Sin especialidad'})), 'todos_medicos');
+                actionsMenu.style.display = 'none';
+            });
+
+            downloadPage.addEventListener('click', (e) => {
+                e.preventDefault();
+                const filtered = getFilteredMedicos();
+                const start = (currentPage - 1) * PAGE_SIZE;
+                const end = start + PAGE_SIZE;
+                const pageData = filtered.slice(start, end).map(m => ({nombre: m.nombre, especialidad: m.especialidad || 'Sin especialidad'}));
+                exportToExcel(pageData, 'pagina_actual_medicos');
+                actionsMenu.style.display = 'none';
+            });
+
+            downloadTemplate.addEventListener('click', (e) => {
+                e.preventDefault();
+                downloadImportTemplate();
+                actionsMenu.style.display = 'none';
+            });
+
+            importExcel.addEventListener('click', (e) => {
+                e.preventDefault();
+                fileUpload.click();
+                actionsMenu.style.display = 'none';
+            });
+
+            fileUpload.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    await importFromExcel(file);
+                    fileUpload.value = '';
+                }
+            });
+
+            function exportToExcel(data, filename) {
+                const ws = XLSX.utils.json_to_sheet(data);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Médicos");
+                XLSX.writeFile(wb, filename + '.xlsx');
+            }
+
+            function downloadImportTemplate() {
+                const ws = XLSX.utils.aoa_to_sheet([["Nombre del médico", "Especialidad"]]);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Template");
+                XLSX.writeFile(wb, 'template_medicos.xlsx');
+            }
+
+            async function importFromExcel(file) {
+                showLoading();
+                try {
+                    const reader = new FileReader();
+                    reader.onload = async (e) => {
+                        const data = new Uint8Array(e.target.result);
+                        const wb = XLSX.read(data, {type: 'array'});
+                        const ws = wb.Sheets[wb.SheetNames[0]];
+                        const json = XLSX.utils.sheet_to_json(ws, {header: ["nombre", "especialidad"], range: 1}); // Skip header row
+
+                        let addedCount = 0;
+                        for (let row of json) {
+                            if (row.nombre) {
+                                const nombreExists = await isDuplicate(row.nombre);
+                                if (nombreExists) {
+                                    showToast(`El médico "${row.nombre}" ya existe, se omitió.`, 'error');
+                                    continue;
+                                }
+                                const docRef = await addDoc(collection(db, "medicos"), {
+                                    nombre: row.nombre.trim(),
+                                    especialidad: row.especialidad ? row.especialidad.trim() : null,
+                                    createdAt: new Date()
+                                });
+                                await logAction(docRef.id, 'create', null, {nombre: row.nombre, especialidad: row.especialidad});
+                                addedCount++;
+                            }
+                        }
+                        hideLoading();
+                        showToast(`Se han importado ${addedCount} médicos con éxito.`, 'success');
+                        await loadMedicos();
+                    };
+                    reader.readAsArrayBuffer(file);
+                } catch (error) {
+                    hideLoading();
+                    showToast('Error al importar el archivo: ' + error.message, 'error');
+                }
+            }
+
+            window.openEditModal = openEditModal;
+            window.openDeleteModal = openDeleteModal;
+            window.openHistoryModal = openHistoryModal;
+        });
+    </script>
+</body>
+</html>

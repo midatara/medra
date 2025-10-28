@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Importación de Órdenes</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <style>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            overflow: hidden;
+            font-size: 12px;
+        }
+
+        .ordenes-main-container {
+            width: 100%;
+            height: 100%;
+            background: white;
+            padding: 5px 20px 20px 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        .ordenes-title {
+            text-align: start;
+            margin: 0 0 15px 0;
+            font-size: 18px;
+        }
+
+        .ordenes-fields-container {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+
+        .ordenes-search-section {
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
+            flex: 1;
+        }
+
+        .ordenes-form-group {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 4px;
+            flex: 1;
+            min-width: 0;
+            max-width: 200px;
+        }
+
+        .ordenes-label {
+            font-size: 10px;
+            font-weight: bold;
+            color: #333;
+            white-space: nowrap;
+        }
+
+        #buscarCodigo,
+        #buscarProveedor,
+        #selectAno,
+        #selectMes {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 11px;
+            box-sizing: border-box;
+        }
+
+        #buscarCodigo:focus,
+        #buscarProveedor:focus,
+        #selectAno:focus,
+        #selectMes:focus {
+            box-shadow: 0 0 12px rgba(0, 123, 164, 0.5);
+            outline: none;
+        }
+
+        .ordenes-actions-menu {
+            position: relative;
+            text-align: right;
+            z-index: 101;
+        }
+
+        #actionsBtn {
+            background: none;
+            border: none;
+            color: #007bff;
+            cursor: pointer;
+            font-size: 12px;
+            padding: 8px 16px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        #actionsBtn:hover {
+            color: #0056b3;
+            text-decoration: underline;
+        }
+
+        .ordenes-dropdown-menu {
+            display: none;
+            position: absolute;
+            left: calc(-200px + 20px);
+            top: 100%;
+            background-color: white;
+            min-width: 200px;
+            box-shadow: -2px 8px 16px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            border-radius: 4px;
+            overflow: hidden;
+            flex-direction: column;
+        }
+
+        .ordenes-dropdown-menu a {
+            color: black;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            font-size: 12px;
+            overflow-wrap: break-word;
+        }
+
+        .ordenes-dropdown-menu a:hover {
+            background-color: #f1f1f1;
+        }
+
+        .ordenes-table-container {
+            max-height: 650px;
+            overflow-y: auto;
+            overflow-x: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .ordenes-table {
+            width: max-content;
+            min-width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 11px;
+            border: 1px solid #ddd;
+            table-layout: auto !important;
+        }
+
+        .ordenes-table th,
+        .ordenes-table td {
+            padding: 4px;
+            text-align: left;
+            border: 1px solid #ddd;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            position: relative;
+            min-width: 60px;
+            max-width: 300px;
+        }
+
+        .ordenes-table thead {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: #f2f2f2;
+        }
+
+        .ordenes-table th {
+            background-color: #f2f2f2;
+            font-size: 11px;
+            box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
+            min-width: 60px;
+            max-width: 300px;
+        }
+
+        .ordenes-table th:nth-child(1), .ordenes-table td:nth-child(1) { width: 80px; min-width: 80px; max-width: 300px; }
+        .ordenes-table th:nth-child(2), .ordenes-table td:nth-child(2) { width: 90px; min-width: 90px; max-width: 300px; }
+        .ordenes-table th:nth-child(3), .ordenes-table td:nth-child(3) { width: 90px; min-width: 90px; max-width: 300px; }
+        .ordenes-table th:nth-child(4), .ordenes-table td:nth-child(4) { width: 120px; min-width: 120px; max-width: 300px; }
+        .ordenes-table th:nth-child(5), .ordenes-table td:nth-child(5) { width: 100px; min-width: 100px; max-width: 300px; }
+        .ordenes-table th:nth-child(6), .ordenes-table td:nth-child(6) { width: 120px; min-width: 120px; max-width: 300px; }
+        .ordenes-table th:nth-child(7), .ordenes-table td:nth-child(7) { width: 100px; min-width: 100px; max-width: 300px; }
+        .ordenes-table th:nth-child(8), .ordenes-table td:nth-child(8) { width: 60px; min-width: 60px; max-width: 300px; }
+        .ordenes-table th:nth-child(9), .ordenes-table td:nth-child(9) { width: 60px; min-width: 60px; max-width: 300px; }
+        .ordenes-table th:nth-child(10), .ordenes-table td:nth-child(10) { width: 60px; min-width: 60px; max-width: 300px; }
+        .ordenes-table th:nth-child(11), .ordenes-table td:nth-child(11) { width: 70px; min-width: 70px; max-width: 300px; }
+        .ordenes-table th:nth-child(12), .ordenes-table td:nth-child(12) { width: 80px; min-width: 80px; max-width: 300px; }
+        .ordenes-table th:nth-child(13), .ordenes-table td:nth-child(13) { width: 150px; min-width: 150px; max-width: 400px; }
+
+        .resize-handle {
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 5px;
+            height: 100%;
+            cursor: col-resize;
+            background: transparent;
+            z-index: 101;
+            user-select: none;
+        }
+
+        .resize-handle:hover,
+        .resize-handle.active {
+            background: #007bff;
+        }
+
+        .ordenes-pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            flex-wrap: nowrap;
+        }
+
+        .ordenes-pagination-info {
+            font-size: 11px;
+            flex: 1;
+            text-align: left;
+        }
+
+        .ordenes-pagination-controls {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            flex-shrink: 0;
+        }
+
+        .ordenes-pagination-controls button {
+            padding: 6px 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+
+        .ordenes-pagination-controls button:hover:not(:disabled) {
+            background-color: #0056b3;
+        }
+
+        .ordenes-pagination-controls button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .ordenes-page-numbers {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+
+        .ordenes-page-numbers button {
+            padding: 4px 8px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            font-size: 11px;
+            border-radius: 4px;
+        }
+
+        .ordenes-page-numbers button.active {
+            background-color: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+
+        .ordenes-page-numbers button:hover:not(.active) {
+            background-color: #f0f0f0;
+        }
+
+        .ordenes-page-numbers .ordenes-dots {
+            padding: 4px;
+            cursor: default;
+            font-size: 11px;
+            line-height: 1.5;
+        }
+
+        #ordenes-message {
+            margin-bottom: 20px;
+            padding: 8px;
+            border-radius: 4px;
+            display: none;
+            font-size: 11px;
+        }
+
+        .ordenes-message-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .ordenes-message-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .ordenes-loading {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 120px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            padding: 16px;
+            backdrop-filter: blur(8px);
+        }
+
+        .ordenes-loading.show {
+            display: flex;
+        }
+
+        .ordenes-loading-spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid #e3f2fd;
+            border-top: 3px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 8px;
+        }
+
+        .ordenes-loading-text {
+            font-size: 12px;
+            color: #333;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        .ordenes-import-progress {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            padding: 20px;
+            backdrop-filter: blur(8px);
+        }
+
+        .ordenes-import-progress.show {
+            display: block;
+        }
+
+        .ordenes-progress-bar-container {
+            width: 100%;
+            height: 20px;
+            background-color: #e3f2fd;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .ordenes-progress-bar {
+            height: 100%;
+            background-color: #007bff;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .ordenes-progress-text {
+            font-size: 12px;
+            color: #333;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .ordenes-toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #d4edda;
+            color: #155724;
+            padding: 12px 20px;
+            border-radius: 6px;
+            border: 1px solid #c3e6cb;
+            font-size: 12px;
+            z-index: 1001;
+            max-width: 300px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            opacity: 0;
+            transform: translateX(100%);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        .ordenes-toast.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .ordenes-toast.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1002;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+        }
+
+        .modal-form-group {
+            margin-bottom: 15px;
+        }
+
+        .modal-form-group label {
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .modal-form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .modal-btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .modal-btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .ordenes-fields-container {
+                flex-direction: column;
+                gap: 20px;
+            }
+
+            .ordenes-search-section {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .ordenes-form-group {
+                max-width: none;
+            }
+
+            .ordenes-toast {
+                top: 10px;
+                right: 10px;
+                left: 10px;
+                max-width: none;
+            }
+
+            .ordenes-loading {
+                width: 100px;
+                height: 70px;
+                padding: 12px;
+            }
+
+            .ordenes-loading-spinner {
+                width: 28px;
+                height: 28px;
+            }
+
+            .ordenes-import-progress {
+                width: 90%;
+                max-width: 280px;
+                padding: 15px;
+            }
+
+            .modal-content {
+                width: 90%;
+                margin: 20% auto;
+            }
+
+            .ordenes-pagination {
+                flex-direction: row;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .ordenes-pagination-info {
+                font-size: 10px;
+            }
+
+            .ordenes-pagination-controls button {
+                padding: 4px 8px;
+                font-size: 10px;
+            }
+
+            .ordenes-page-numbers button {
+                padding: 3px 6px;
+                font-size: 10px;
+            }
+
+            .ordenes-dropdown-menu {
+                min-width: 180px;
+                left: calc(-180px + 20px);
+            }
+
+            .ordenes-table-container {
+                max-height: 400px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="ordenes-main-container">
+        <h1 class="ordenes-title">Importación de Órdenes</h1>
+        <div id="ordenes-message"></div>
+        <div class="ordenes-fields-container">
+            <div class="ordenes-search-section">
+                <div class="ordenes-form-group">
+                    <label for="buscarCodigo" class="ordenes-label">Buscar código:</label>
+                    <input type="text" id="buscarCodigo" placeholder="Buscar por código" autocomplete="off">
+                </div>
+                <div class="ordenes-form-group">
+                    <label for="buscarProveedor" class="ordenes-label">Buscar proveedor:</label>
+                    <input type="text" id="buscarProveedor" placeholder="Buscar por proveedor" autocomplete="off">
+                </div>
+                <div class="ordenes-form-group">
+                    <label for="selectAno" class="ordenes-label">Año:</label>
+                    <select id="selectAno"></select>
+                </div>
+                <div class="ordenes-form-group">
+                    <label for="selectMes" class="ordenes-label">Mes:</label>
+                    <select id="selectMes"></select>
+                </div>
+            </div>
+            <div class="ordenes-actions-menu">
+                <button id="actionsBtn">Acciones <i class="fas fa-angle-down"></i></button>
+                <div id="actionsMenu" class="ordenes-dropdown-menu">
+                    <a href="#" id="downloadTemplate">Formato de importación</a>
+                    <a href="#" id="importExcel">Importar Excel</a>
+                    <a href="#" id="downloadAll">Descargar todos los registros</a>
+                    <a href="#" id="downloadPage">Descargar hoja actual</a>
+                    <a href="#" id="downloadMes">Descargar mes</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="ordenes-table-container">
+            <table id="ordenesTable" class="ordenes-table">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Generación</th>
+                        <th>Autorización</th>
+                        <th>Sociedad</th>
+                        <th>Tipo de compra</th>
+                        <th>Proveedor</th>
+                        <th>Digitador</th>
+                        <th>Nivel actual</th>
+                        <th>Nivel ox</th>
+                        <th>Liberada</th>
+                        <th>Total</th>
+                        <th>Estado</th>
+                        <th>Evento</th>
+                    </tr>
+                </thead>
+                <tbody id="ordenesBody"></tbody>
+            </table>
+        </div>
+
+        <div class="ordenes-pagination" id="pagination">
+            <div class="ordenes-pagination-info" id="paginationInfo"></div>
+            <div class="ordenes-pagination-controls">
+                <button id="prevBtn">Anterior</button>
+                <div class="ordenes-page-numbers" id="pageNumbers"></div>
+                <button id="nextBtn">Siguiente</button>
+            </div>
+        </div>
+
+        <input type="file" id="fileUpload" style="display:none;" accept=".xlsx, .xls">
+        <div id="ordenes-loading" class="ordenes-loading">
+            <div class="ordenes-loading-spinner"></div>
+            <div class="ordenes-loading-text">Procesando...</div>
+        </div>
+        <div id="ordenes-import-progress" class="ordenes-import-progress">
+            <div class="ordenes-progress-bar-container">
+                <div id="progressBar" class="ordenes-progress-bar"></div>
+            </div>
+            <div id="progressText" class="ordenes-progress-text">Importando: 0%</div>
+        </div>
+        <div id="ordenes-toast" class="ordenes-toast"></div>
+    </div>
+
+    <div id="downloadMesModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="closeDownloadMes">x</span>
+            <h2>Descargar por Mes</h2>
+            <div class="modal-form-group">
+                <label for="selectDownloadAno">Año:</label>
+                <select id="selectDownloadAno"></select>
+            </div>
+            <div class="modal-form-group">
+                <label for="selectDownloadMes">Mes:</label>
+                <select id="selectDownloadMes"></select>
+            </div>
+            <div class="modal-buttons">
+                <button type="button" class="modal-btn modal-btn-secondary" id="cancelDownloadMes">Cancelar</button>
+                <button type="button" class="modal-btn modal-btn-primary" id="confirmDownloadMes">Descargar</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+    import { getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+    import { getFirestore, collection, addDoc, getDocs, query, where, doc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+    window.firebaseModules = {
+        initializeApp, getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence,
+        getFirestore, collection, addDoc, getDocs, query, where, doc, updateDoc
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const { initializeApp: initApp, getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence } = window.firebaseModules;
+        const { getFirestore, collection, addDoc, getDocs, query, where, doc, updateDoc } = window.firebaseModules;
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
+            authDomain: "datara-salud.firebaseapp.com",
+            projectId: "datara-salud",
+            storageBucket: "datara-salud.firebasestorage.app",
+            messagingSenderId: "198886910481",
+            appId: "1:198886910481:web:abbc345203a423a6329fb0",
+            measurementId: "G-MLYVTZPPLD"
+        };
+
+        const app = initApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        setPersistence(auth, browserSessionPersistence);
+
+        let ordenes = [];
+        let currentPage = 1;
+        const PAGE_SIZE = 100;
+        let searchCodigo = '';
+        let searchProveedor = '';
+        let selectedAno = new Date().getFullYear();
+        let selectedMes = '';
+        let anos = new Set();
+        let mesesPorAno = {};
+
+        function formatDateToDDMMYYYY(isoString) {
+            if (!isoString || isoString === '-') return '-';
+            const date = new Date(isoString);
+            if (isNaN(date)) return '-';
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            return `${day}-${month}-${year}`;
+        }
+
+        function parseExcelDate(value) {
+            if (!value) return null;
+            if (typeof value === 'number') {
+                const date = XLSX.SSF.parse_date_code(value);
+                if (date) return new Date(date.y, date.m - 1, date.d).toISOString();
+            }
+            if (typeof value === 'string') {
+                const cleaned = value.trim().replace(/[/\.]/g, '-');
+                const match = cleaned.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+                if (match) {
+                    const [_, d, m, y] = match.map(Number);
+                    if (d >= 1 && d <= 31 && m >= 1 && m <= 12 && y >= 1900 && y <= 2100) {
+                        return new Date(y, m - 1, d).toISOString();
+                    }
+                }
+            }
+            if (value && typeof value === 'object') return parseExcelDate(value.w || value.v || '');
+            return null;
+        }
+
+        const loading = document.getElementById('ordenes-loading');
+        const importProgress = document.getElementById('ordenes-import-progress');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        const toast = document.getElementById('ordenes-toast');
+        const ordenesBody = document.getElementById('ordenesBody');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const pageNumbers = document.getElementById('pageNumbers');
+        const paginationInfo = document.getElementById('paginationInfo');
+        const buscarCodigoInput = document.getElementById('buscarCodigo');
+        const buscarProveedorInput = document.getElementById('buscarProveedor');
+        const selectAno = document.getElementById('selectAno');
+        const selectMes = document.getElementById('selectMes');
+        const downloadMesModal = document.getElementById('downloadMesModal');
+        const closeDownloadMes = document.getElementById('closeDownloadMes');
+        const cancelDownloadMes = document.getElementById('cancelDownloadMes');
+        const confirmDownloadMes = document.getElementById('confirmDownloadMes');
+        const selectDownloadAno = document.getElementById('selectDownloadAno');
+        const selectDownloadMes = document.getElementById('selectDownloadMes');
+        const actionsBtn = document.getElementById('actionsBtn');
+        const actionsMenu = document.getElementById('actionsMenu');
+        const downloadTemplate = document.getElementById('downloadTemplate');
+        const importExcel = document.getElementById('importExcel');
+        const downloadAll = document.getElementById('downloadAll');
+        const downloadPage = document.getElementById('downloadPage');
+        const downloadMes = document.getElementById('downloadMes');
+        const fileUpload = document.getElementById('fileUpload');
+
+        window.showLoading = () => loading.classList.add('show');
+        window.hideLoading = () => loading.classList.remove('show');
+
+        function showImportProgress(percent) {
+            importProgress.classList.add('show');
+            progressBar.style.width = `${percent}%`;
+            progressText.textContent = `Importando: ${Math.round(percent)}%`;
+        }
+
+        function hideImportProgress() {
+            importProgress.classList.remove('show');
+            progressBar.style.width = '0%';
+            progressText.textContent = 'Importando: 0%';
+        }
+
+        function showToast(text, type = 'success') {
+            toast.textContent = text;
+            toast.className = `ordenes-toast ${type}`;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 5000);
+        }
+
+        async function getOrdenByCodigo(codigo) {
+            if (!codigo || typeof codigo !== 'string') return null;
+            const q = query(collection(db, "ordenes"), where("codigo", "==", codigo.trim()));
+            const querySnapshot = await getDocs(q);
+            if (!querySnapshot.empty) {
+                const docSnap = querySnapshot.docs[0];
+                return { id: docSnap.id, ...docSnap.data() };
+            }
+            return null;
+        }
+
+        function openDownloadMesModal() {
+            populateAnoSelect(selectDownloadAno);
+            selectDownloadAno.value = selectedAno;
+            populateMesSelect(selectDownloadMes, selectDownloadAno.value);
+            downloadMesModal.style.display = 'block';
+        }
+
+        function closeDownloadMesModalHandler() {
+            downloadMesModal.style.display = 'none';
+        }
+
+        closeDownloadMes.addEventListener('click', closeDownloadMesModalHandler);
+        cancelDownloadMes.addEventListener('click', closeDownloadMesModalHandler);
+        window.addEventListener('click', (e) => {
+            if (e.target === downloadMesModal) closeDownloadMesModalHandler();
+        });
+
+        confirmDownloadMes.addEventListener('click', async () => {
+            const ano = selectDownloadAno.value;
+            const mes = selectDownloadMes.value;
+            if (ano && mes) {
+                showLoading();
+                try {
+                    const data = await getOrdenesByMes(ano, mes);
+                    exportToExcel(data.map(o => formatRow(o)), `ordenes_${ano}_${mes}`);
+                    hideLoading();
+                    closeDownloadMesModalHandler();
+                } catch (error) {
+                    hideLoading();
+                    showToast('Error al descargar el mes: ' + error.message, 'error');
+                }
+            } else {
+                showToast('Por favor, selecciona año y mes.', 'error');
+            }
+        });
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                window.location.replace('../../../../../index.html');
+                return;
+            }
+            window.currentUserData = { fullName: user.displayName || 'Usuario Invitado', username: user.email || 'invitado' };
+            await loadOrdenes();
+            populateAnoSelect(selectAno);
+            selectAno.value = selectedAno;
+            populateMesSelect(selectMes, selectedAno);
+            populateAnoSelect(selectDownloadAno);
+        });
+
+        buscarCodigoInput?.addEventListener('input', (e) => {
+            searchCodigo = e.target.value.trim();
+            currentPage = 1;
+            renderTable();
+        });
+        buscarProveedorInput?.addEventListener('input', (e) => {
+            searchProveedor = e.target.value.trim();
+            currentPage = 1;
+            renderTable();
+        });
+        selectAno?.addEventListener('change', (e) => {
+            selectedAno = e.target.value;
+            populateMesSelect(selectMes, selectedAno);
+            currentPage = 1;
+            renderTable();
+        });
+        selectMes?.addEventListener('change', (e) => {
+            selectedMes = e.target.value;
+            currentPage = 1;
+            renderTable();
+        });
+        selectDownloadAno?.addEventListener('change', (e) => {
+            populateMesSelect(selectDownloadMes, e.target.value);
+        });
+
+        async function loadOrdenes() {
+            showLoading();
+            try {
+                const querySnapshot = await getDocs(collection(db, "ordenes"));
+                ordenes = [];
+                anos = new Set();
+                mesesPorAno = {};
+
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    ordenes.push({ id: doc.id, ...data });
+
+                    const generacionDate = new Date(data.generacion);
+                    if (!isNaN(generacionDate)) {
+                        const ano = generacionDate.getFullYear();
+                        const mes = generacionDate.toLocaleString('es-CL', { month: 'long' });
+                        anos.add(ano);
+                        if (!mesesPorAno[ano]) mesesPorAno[ano] = new Set();
+                        mesesPorAno[ano].add(mes);
+                    }
+                });
+
+                renderTable();
+                hideLoading();
+            } catch (error) {
+                hideLoading();
+                showToast('Error al cargar las órdenes: ' + error.message, 'error');
+            }
+        }
+
+        function populateAnoSelect(select) {
+            select.innerHTML = '<option value="">Todos</option>';
+            Array.from(anos).sort((a, b) => b - a).forEach(ano => {
+                const option = document.createElement('option');
+                option.value = ano;
+                option.textContent = ano;
+                select.appendChild(option);
+            });
+        }
+
+        function populateMesSelect(select, ano) {
+            select.innerHTML = '<option value="">Todos</option>';
+            if (ano && mesesPorAno[ano]) {
+                const mesesOrden = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+                Array.from(mesesPorAno[ano])
+                    .sort((a, b) => mesesOrden.indexOf(a.toLowerCase()) - mesesOrden.indexOf(b.toLowerCase()))
+                    .forEach(mes => {
+                        const option = document.createElement('option');
+                        option.value = mes;
+                        option.textContent = mes.charAt(0).toUpperCase() + mes.slice(1);
+                        select.appendChild(option);
+                    });
+            }
+        }
+
+        actionsBtn.addEventListener('click', () => {
+            actionsMenu.style.display = actionsMenu.style.display === 'block' ? 'none' : 'block';
+        });
+
+        window.addEventListener('click', (e) => {
+            if (!actionsBtn.contains(e.target) && !actionsMenu.contains(e.target)) {
+                actionsMenu.style.display = 'none';
+            }
+        });
+
+        downloadTemplate.addEventListener('click', (e) => { e.preventDefault(); downloadImportTemplate(); actionsMenu.style.display = 'none'; });
+        importExcel.addEventListener('click', (e) => { e.preventDefault(); fileUpload.click(); actionsMenu.style.display = 'none'; });
+        downloadAll.addEventListener('click', (e) => { e.preventDefault(); exportToExcel(ordenes.map(o => formatRow(o)), 'todas_ordenes'); actionsMenu.style.display = 'none'; });
+        downloadPage.addEventListener('click', (e) => {
+            e.preventDefault();
+            const filtered = getFilteredOrdenes();
+            const start = (currentPage - 1) * PAGE_SIZE;
+            const end = start + PAGE_SIZE;
+            exportToExcel(filtered.slice(start, end).map(o => formatRow(o)), 'pagina_actual_ordenes');
+            actionsMenu.style.display = 'none';
+        });
+        downloadMes.addEventListener('click', (e) => { e.preventDefault(); openDownloadMesModal(); actionsMenu.style.display = 'none'; });
+
+        fileUpload.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                await importFromExcel(file);
+                fileUpload.value = '';
+            }
+        });
+
+        function formatRow(o) {
+            return {
+                codigo: o.codigo,
+                generacion: formatDateToDDMMYYYY(o.generacion),
+                autorizacion: formatDateToDDMMYYYY(o.autorizacion),
+                sociedad: o.sociedad,
+                tipoCompra: o.tipoCompra,
+                proveedor: o.proveedor,
+                digitador: o.digitador,
+                nivelActual: o.nivelActual,
+                nivelOx: o.nivelOx,
+                liberada: o.liberada,
+                total: o.total,
+                estado: o.estado,
+                evento: o.evento
+            };
+        }
+
+        function exportToExcel(data, filename) {
+            const ws = XLSX.utils.json_to_sheet(data, { dateNF: 'dd-mm-yyyy', cellDates: true });
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Órdenes");
+            XLSX.writeFile(wb, filename + '.xlsx');
+        }
+
+        function downloadImportTemplate() {
+            const ws = XLSX.utils.aoa_to_sheet([
+                ["Código", "Generación", "Autorización", "Sociedad", "Tipo de compra", "Proveedor", "Digitador", "Nivel actual", "Nivel ox", "Liberada", "Total", "Estado"],
+                ["55130", "30-09-2025", "", "CLINICA REGIONAL LIRCAY SPA", "Normal", "WINKLER LTDA", "FRANCISCO SANCHEZ (CAS)", "2", "2", "SI", "420000", "Pendiente"]
+            ]);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Template");
+            XLSX.writeFile(wb, 'template_ordenes.xlsx');
+        }
+
+        async function importFromExcel(file) {
+            try {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const data = new Uint8Array(e.target.result);
+                    const wb = XLSX.read(data, { type: 'array', cellDates: true, dateNF: 'dd-mm-yyyy' });
+                    const ws = wb.Sheets[wb.SheetNames[0]];
+                    const json = XLSX.utils.sheet_to_json(ws, {
+                        header: ["codigo", "generacion", "autorizacion", "sociedad", "tipoCompra", "proveedor", "digitador", "nivelActual", "nivelOx", "liberada", "total", "estado"],
+                        range: 1, defval: '', raw: false
+                    });
+
+                    let addedCount = 0;
+                    let updatedCount = 0;
+                    const totalRows = json.length;
+                    showImportProgress(0);
+
+                    for (let i = 0; i < json.length; i++) {
+                        const row = json[i];
+                        const generacionISO = parseExcelDate(row.generacion);
+                        const autorizacionISO = parseExcelDate(row.autorizacion);
+
+                        if (!generacionISO) {
+                            showToast(`Fila ${i + 2}: Fecha de generación inválida o vacía`, 'error');
+                            continue;
+                        }
+
+                        const processedRow = {
+                            codigo: String(row.codigo || '').trim(),
+                            generacion: generacionISO,
+                            autorizacion: autorizacionISO || '-',
+                            sociedad: String(row.sociedad || '').trim(),
+                            tipoCompra: String(row.tipoCompra || '').trim(),
+                            proveedor: String(row.proveedor || '').trim(),
+                            digitador: String(row.digitador || '').trim(),
+                            nivelActual: String(row.nivelActual || '').trim(),
+                            nivelOx: String(row.nivelOx || '').trim(),
+                            liberada: String(row.liberada || '').trim(),
+                            total: String(row.total || '').replace(/[^\d]/g, ''),
+                            estado: String(row.estado || '').trim()
+                        };
+
+                        if (!processedRow.codigo) {
+                            showToast(`Fila ${i + 2}: Falta código`, 'error');
+                            continue;
+                        }
+
+                        const existing = await getOrdenByCodigo(processedRow.codigo);
+                        if (existing) {
+                            const hasChanges = Object.keys(processedRow).some(k => {
+                                if (k === 'generacion' || k === 'autorizacion') return processedRow[k] !== (existing[k] || '');
+                                return processedRow[k] !== String(existing[k] || '').trim();
+                            });
+                            if (hasChanges) {
+                                await updateDoc(doc(db, "ordenes", existing.id), {
+                                    ...processedRow,
+                                    evento: `Actualizado ${new Date().toLocaleString('es-CL')}`,
+                                    createdAt: new Date()
+                                });
+                                updatedCount++;
+                            }
+                        } else {
+                            await addDoc(collection(db, "ordenes"), {
+                                ...processedRow,
+                                evento: `Importado ${new Date().toLocaleString('es-CL')}`,
+                                createdAt: new Date()
+                            });
+                            addedCount++;
+                        }
+
+                        showImportProgress(((
+
+i + 1) / totalRows) * 100);
+                    }
+
+                    hideImportProgress();
+                    showToast(`Importadas: ${addedCount} nuevas, ${updatedCount} actualizadas.`, 'success');
+                    await loadOrdenes();
+                    renderTable();
+                };
+                reader.readAsArrayBuffer(file);
+            } catch (error) {
+                hideImportProgress();
+                showToast('Error al importar: ' + error.message, 'error');
+            }
+        }
+
+        async function getOrdenesByMes(ano, mes) {
+            return ordenes.filter(o => {
+                const d = new Date(o.generacion);
+                return d.getFullYear() == ano && d.toLocaleString('es-CL', { month: 'long' }) === mes;
+            });
+        }
+
+        function getFilteredOrdenes() {
+            return ordenes.filter(o => {
+                const c = String(o.codigo || '').trim().toLowerCase();
+                const p = String(o.proveedor || '').trim().toLowerCase();
+                const d = new Date(o.generacion);
+                return (!searchCodigo || c.includes(searchCodigo.toLowerCase())) &&
+                       (!searchProveedor || p.includes(searchProveedor.toLowerCase())) &&
+                       (!selectedAno || d.getFullYear() == selectedAno) &&
+                       (!selectedMes || d.toLocaleString('es-CL', { month: 'long' }) === selectedMes);
+            });
+        }
+
+        function renderTable() {
+            const filtered = getFilteredOrdenes();
+            const start = (currentPage - 1) * PAGE_SIZE;
+            const end = start + PAGE_SIZE;
+            const page = filtered.sort((a, b) => a.codigo.localeCompare(b.codigo)).slice(start, end);
+            ordenesBody.innerHTML = '';
+            page.forEach(o => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${o.codigo || ''}</td>
+                    <td>${formatDateToDDMMYYYY(o.generacion)}</td>
+                    <td>${formatDateToDDMMYYYY(o.autorizacion)}</td>
+                    <td>${o.sociedad || ''}</td>
+                    <td>${o.tipoCompra || ''}</td>
+                    <td>${o.proveedor || ''}</td>
+                    <td>${o.digitador || ''}</td>
+                    <td>${o.nivelActual || ''}</td>
+                    <td>${o.nivelOx || ''}</td>
+                    <td>${o.liberada || ''}</td>
+                    <td>${o.total || ''}</td>
+                    <td>${o.estado || ''}</td>
+                    <td>${o.evento || 'N/A'}</td>`;
+                ordenesBody.appendChild(tr);
+            });
+            updatePagination(filtered.length);
+            setupColumnResize();
+        }
+
+        function updatePagination(total) {
+            const pages = Math.ceil(total / PAGE_SIZE);
+            const start = Math.max(1, currentPage - 2);
+            const end = Math.min(pages, start + 4);
+            paginationInfo.textContent = `Página ${currentPage} de ${pages} | ${Math.min(PAGE_SIZE, total - (currentPage - 1) * PAGE_SIZE)} registros en esta página de ${total}`;
+            prevBtn.disabled = currentPage === 1;
+            nextBtn.disabled = currentPage === pages;
+            pageNumbers.innerHTML = '';
+            for (let i = start; i <= end; i++) {
+                if (i > start && i < end && end - start > 3) {
+                    const dots = document.createElement('span');
+                    dots.textContent = '...'; dots.className = 'ordenes-dots';
+                    pageNumbers.appendChild(dots);
+                    i = end - 1;
+                    continue;
+                }
+                const btn = document.createElement('button');
+                btn.textContent = i;
+                btn.className = i === currentPage ? 'active' : '';
+                btn.addEventListener('click', () => { currentPage = i; renderTable(); });
+                pageNumbers.appendChild(btn);
+            }
+        }
+
+        prevBtn.addEventListener('click', () => { if (currentPage > 1) { currentPage--; renderTable(); } });
+        nextBtn.addEventListener('click', () => {
+            const totalPages = Math.ceil(getFilteredOrdenes().length / PAGE_SIZE);
+            if (currentPage < totalPages) { currentPage++; renderTable(); }
+        });
+
+        function setupColumnResize() {
+            const headers = document.querySelectorAll('.ordenes-table th');
+            headers.forEach((header, index) => {
+                const existingHandle = header.querySelector('.resize-handle');
+                if (existingHandle) existingHandle.remove();
+
+                const resizeHandle = document.createElement('div');
+                resizeHandle.className = 'resize-handle';
+                header.appendChild(resizeHandle);
+                header.style.position = 'relative';
+
+                let isResizing = false;
+                let startX, startWidth;
+
+                const startResize = (e) => {
+                    isResizing = true;
+                    startX = e.pageX || (e.touches?.[0].pageX);
+                    startWidth = header.offsetWidth;
+                    resizeHandle.classList.add('active');
+                    e.preventDefault();
+                };
+
+                const resize = (e) => {
+                    if (!isResizing) return;
+                    const clientX = e.pageX || (e.touches?.[0].pageX);
+                    if (!clientX) return;
+                    const diff = clientX - startX;
+                    const newWidth = Math.max(60, Math.min(400, startWidth + diff));
+                    header.style.width = `${newWidth}px`;
+                    header.style.minWidth = `${newWidth}px`;
+                    header.style.maxWidth = `${newWidth}px`;
+                    const cells = document.querySelectorAll(`.ordenes-table td:nth-child(${index + 1})`);
+                    cells.forEach(cell => {
+                        cell.style.width = `${newWidth}px`;
+                        cell.style.minWidth = `${newWidth}px`;
+                        cell.style.maxWidth = `${newWidth}px`;
+                    });
+                };
+
+                const stopResize = () => {
+                    if (isResizing) {
+                        isResizing = false;
+                        resizeHandle.classList.remove('active');
+                    }
+                };
+
+                resizeHandle.addEventListener('mousedown', startResize);
+                resizeHandle.addEventListener('touchstart', startResize, { passive: false });
+                document.addEventListener('mousemove', resize);
+                document.addEventListener('touchmove', resize, { passive: false });
+                document.addEventListener('mouseup', stopResize);
+                document.addEventListener('touchend', stopResize);
+            });
+        }
+    });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Importación de Ingresos</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="ingresos.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+        import { getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+        import { getFirestore, collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc, orderBy, getDoc, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+        window.firebaseModules = { initializeApp, getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence, getFirestore, collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc, orderBy, getDoc, writeBatch };
+    </script>
+    <script type="module" src="ingresos.js"></script>
+</head>
+<body>
+    <div class="ingresos-main-container">
+        <h1 class="ingresos-title">Importación de Ingresos</h1>
+
+        <div id="ingresos-message"></div>
+
+        <div class="ingresos-fields-container">
+            <div class="ingresos-form-group">
+                <label for="fechaIngreso" class="ingresos-label">Fecha de Ingreso:</label>
+                <input type="date" id="fechaIngreso" autocomplete="off">
+            </div>
+            <div class="ingresos-form-group">
+                <label for="numeroFactura" class="ingresos-label">Número de Factura:</label>
+                <input type="text" id="numeroFactura" autocomplete="off">
+            </div>
+            <div class="ingresos-form-group">
+                <label for="fechaFactura" class="ingresos-label">Fecha de Factura:</label>
+                <input type="date" id="fechaFactura" autocomplete="off">
+            </div>
+            <div class="ingresos-form-group">
+                <label for="monto" class="ingresos-label">Monto:</label>
+                <input type="text" id="monto" autocomplete="off">
+            </div>
+            <div class="ingresos-form-group">
+                <label for="ordenCompra" class="ingresos-label">Orden de Compra:</label>
+                <input type="text" id="ordenCompra" autocomplete="off">
+            </div>
+            <div class="ingresos-form-group">
+                <label for="acta" class="ingresos-label">Acta:</label>
+                <input type="text" id="acta" autocomplete="off">
+            </div>
+            <div class="ingresos-form-group">
+                <label for="salida" class="ingresos-label">Salida:</label>
+                <input type="text" id="salida" autocomplete="off">
+            </div>
+            <button id="ingresarBtn" class="modal-btn modal-btn-primary">Ingresar</button>
+            <div class="ingresos-form-group">
+                <label for="fechaOc" class="ingresos-label">Fecha de OC:</label>
+                <input type="text" id="fechaOc" readonly autocomplete="off">
+            </div>
+            <div class="ingresos-form-group">
+                <label for="proveedor" class="ingresos-label">Proveedor:</label>
+                <input type="text" id="proveedor" readonly autocomplete="off">
+            </div>
+            <div class="ingresos-form-group">
+                <label for="fechaSalida" class="ingresos-label">Fecha de Salida:</label>
+                <input type="date" id="fechaSalida" autocomplete="off">
+            </div>
+            <div class="ingresos-actions-menu">
+                <button id="actionsBtn"><i class="fas fa-angle-down"></i> Acciones</button>
+                <div id="actionsMenu" class="ingresos-dropdown-menu">
+                    <div class="menu-title"><i class="fas fa-angle-down"></i> Acciones</div>
+                    <a href="#" id="downloadTemplate">Formato de importación</a>
+                    <a href="#" id="importExcel">Importar Excel</a>
+                    <a href="#" id="downloadAll">Descargar todos los registros</a>
+                    <a href="#" id="downloadPage">Descargar hoja actual</a>
+                    <a href="#" id="downloadMes">Descargar mes</a>
+                    <a href="#" id="fixDates">Corregir formatos de fecha</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="ingresos-fields-container">
+            <div class="ingresos-form-group">
+                <label for="buscarNumeroFactura" class="ingresos-label">Buscar Número de Factura:</label>
+                <input type="text" id="buscarNumeroFactura" placeholder="Buscar por número de factura" autocomplete="off">
+            </div>
+            <div class="ingresos-form-group">
+                <label for="buscarProveedor" class="ingresos-label">Buscar Proveedor:</label>
+                <input type="text" id="buscarProveedor" placeholder="Buscar por proveedor" autocomplete="off">
+            </div>
+            <div class="ingresos-form-group">
+                <label for="buscarOrdenCompra" class="ingresos-label">Buscar Orden de Compra:</label>
+                <input type="text" id="buscarOrdenCompra" placeholder="Buscar por orden de compra" autocomplete="off">
+            </div>
+            <div class="ingresos-form-group">
+                <label for="buscarActa" class="ingresos-label">Buscar Acta:</label>
+                <input type="text" id="buscarActa" placeholder="Buscar por acta" autocomplete="off">
+            </div>
+            <div class="ingresos-form-group">
+                <label for="buscarSalidas" class="ingresos-label">Buscar Salidas:</label>
+                <input type="text" id="buscarSalidas" placeholder="Buscar por salidas" autocomplete="off">
+            </div>
+            <div class="ingresos-form-group">
+                <label for="fechaDesde" class="ingresos-label">Fecha Desde:</label>
+                <input type="date" id="fechaDesde" autocomplete="off">
+            </div>
+            <div class="ingresos-form-group">
+                <label for="fechaHasta" class="ingresos-label">Fecha Hasta:</label>
+                <input type="date" id="fechaHasta" autocomplete="off">
+            </div>
+            <div class="ingresos-form-group">
+                <label for="selectAno" class="ingresos-label">Año:</label>
+                <select id="selectAno" autocomplete="off"></select>
+            </div>
+            <div class="ingresos-form-group">
+                <label for="selectMes" class="ingresos-label">Mes:</label>
+                <select id="selectMes" autocomplete="off"></select>
+            </div>
+        </div>
+
+        <div class="ingresos-table-container">
+            <table id="ingresosTable" class="ingresos-table">
+                <thead>
+                    <tr>
+                        <th>Acciones</th>
+                        <th>Fecha de Ingreso</th>
+                        <th>Número de Factura</th>
+                        <th>Fecha de Factura</th>
+                        <th>Monto</th>
+                        <th>OC</th>
+                        <th>Fecha de OC</th>
+                        <th>Proveedor</th>
+                        <th>Acta</th>
+                        <th>Fecha de Salida</th>
+                        <th>Salida</th>
+                        <th>Usuario</th>
+                    </tr>
+                </thead>
+                <tbody id="ingresosBody">
+                </tbody>
+            </table>
+        </div>
+
+        <div class="ingresos-pagination" id="pagination">
+            <div class="ingresos-pagination-info" id="paginationInfo"></div>
+            <div class="ingresos-pagination-controls">
+                <button id="prevBtn">Anterior</button>
+                <div class="ingresos-page-numbers" id="pageNumbers"></div>
+                <button id="nextBtn">Siguiente</button>
+            </div>
+        </div>
+
+        <input type="file" id="fileUpload" style="display:none;" accept=".xlsx, .xls">
+
+        <div id="ingresos-loading" class="ingresos-loading">
+            <div class="ingresos-loading-spinner"></div>
+            <div class="ingresos-loading-text">Procesando...</div>
+        </div>
+
+        <div id="ingresos-import-progress" class="ingresos-import-progress">
+            <div class="ingresos-progress-bar-container">
+                <div id="progressBar" class="ingresos-progress-bar"></div>
+            </div>
+            <div id="progressText" class="ingresos-progress-text">Importando: 0%</div>
+        </div>
+
+        <div id="ingresos-toast" class="ingresos-toast"></div>
+
+        <!-- MODAL EDITAR -->
+        <div id="editModal" class="modal">
+            <div class="modal-content">
+                <span class="close" id="closeEditModal">&times;</span>
+                <h2>Editar Ingreso</h2>
+                <form id="editForm">
+                    <input type="hidden" id="editId" autocomplete="off">
+                    <div class="modal-form-group">
+                        <label for="editFechaIngreso">Fecha de Ingreso:</label>
+                        <input type="date" id="editFechaIngreso" required autocomplete="off">
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="editNumeroFactura">Número de Factura:</label>
+                        <input type="text" id="editNumeroFactura" required autocomplete="off">
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="editFechaFactura">Fecha de Factura:</label>
+                        <input type="date" id="editFechaFactura" autocomplete="off">
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="editMonto">Monto:</label>
+                        <input type="text" id="editMonto" autocomplete="off">
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="editOrdenCompra">Orden de Compra:</label>
+                        <input type="text" id="editOrdenCompra" autocomplete="off">
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="editFechaOc">Fecha de OC:</label>
+                        <input type="text" id="editFechaOc" readonly autocomplete="off">
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="editProveedor">Proveedor:</label>
+                        <input type="text" id="editProveedor" readonly autocomplete="off">
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="editActa">Acta:</label>
+                        <input type="text" id="editActa" autocomplete="off">
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="editFechaSalida">Fecha de Salida:</label>
+                        <input type="date" id="editFechaSalida" autocomplete="off">
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="editSalida">Salida:</label>
+                        <input type="text" id="editSalida" autocomplete="off">
+                    </div>
+                    <div class="modal-buttons">
+                        <button type="button" class="modal-btn modal-btn-secondary" id="cancelEdit">Cancelar</button>
+                        <button type="submit" class="modal-btn modal-btn-primary">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- MODAL ELIMINAR -->
+        <div id="deleteModal" class="modal">
+            <div class="modal-content">
+                <span class="close" id="closeDeleteModal">&times;</span>
+                <h2>Eliminar Ingreso</h2>
+                <p class="delete-modal-text" id="deleteText"></p>
+                <div class="modal-buttons">
+                    <button type="button" class="modal-btn modal-btn-secondary" id="cancelDelete">No</button>
+                    <button type="button" class="modal-btn modal-btn-danger" id="confirmDelete">Sí</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL HISTORIAL -->
+        <div id="historyModal" class="modal">
+            <div class="modal-content">
+                <span class="close" id="closeHistory">&times;</span>
+                <h2 id="historyTitle">HISTORIAL INGRESO</h2>
+                <hr>
+                <div id="historyContent"></div>
+                <div class="modal-buttons">
+                    <button type="button" class="modal-btn modal-btn-secondary" id="closeHistoryBtn">Cerrar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL DESCARGAR MES -->
+        <div id="downloadMesModal" class="modal">
+            <div class="modal-content">
+                <span class="close" id="closeDownloadMes">&times;</span>
+                <h2>Descargar por Mes</h2>
+                <div class="modal-form-group">
+                    <label for="selectDownloadAno">Año:</label>
+                    <select id="selectDownloadAno" autocomplete="off"></select>
+                </div>
+                <div class="modal-form-group">
+                    <label for="selectDownloadMes">Mes:</label>
+                    <select id="selectDownloadMes" autocomplete="off"></select>
+                </div>
+                <div class="modal-buttons">
+                    <button type="button" class="modal-btn modal-btn-secondary" id="cancelDownloadMes">Cancelar</button>
+                    <button type="button" class="modal-btn modal-btn-primary" id="confirmDownloadMes">Descargar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

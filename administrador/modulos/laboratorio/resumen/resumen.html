@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resumen de Facturas de Laboratorio</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+        import { getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+        import { getFirestore, collection, getDocs, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+        window.firebaseModules = { initializeApp, getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence, getFirestore, collection, getDocs, query, orderBy };
+    </script>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            overflow: hidden;
+            font-size: 12px;
+        }
+        .resumen-main-container {
+            width: 100%;
+            height: 100%;
+            background: white;
+            padding: 5px 20px 20px 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        .resumen-title {
+            text-align: start;
+            margin: 0 0 15px 0;
+            font-size: 18px;
+        }
+        .resumen-year-select {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .resumen-year-label {
+            font-size: 12px;
+            font-weight: bold;
+        }
+        #selectAno {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .resumen-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+            border: 1px solid #ddd;
+        }
+        .resumen-table th, .resumen-table td {
+            padding: 4px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        .resumen-table th {
+            background-color: #f2f2f2;
+            font-size: 11px;
+        }
+        .resumen-table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+        .resumen-loading {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 120px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            padding: 16px;
+            backdrop-filter: blur(8px);
+        }
+        .resumen-loading.show {
+            display: flex;
+        }
+        .resumen-loading-spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid #e3f2fd;
+            border-top: 3px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 8px;
+        }
+        .resumen-loading-text {
+            font-size: 12px;
+            color: #333;
+            font-weight: 500;
+            text-align: center;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .resumen-toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #d4edda;
+            color: #155724;
+            padding: 12px 20px;
+            border-radius: 6px;
+            border: 1px solid #c3e6cb;
+            font-size: 12px;
+            z-index: 1001;
+            max-width: 300px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            opacity: 0;
+            transform: translateX(100%);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .resumen-toast.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .resumen-toast.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .progress-bar-container {
+            width: 150px;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+            overflow: hidden;
+            position: relative;
+            height: 20px;
+        }
+        .progress-bar {
+            height: 100%;
+            transition: width 0.3s ease;
+            position: relative;
+        }
+        .progress-bar.green {
+            background-color: #28a745;
+        }
+        .progress-bar.red {
+            background-color: #dc3545;
+        }
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            font-size: 11px;
+            text-align: center;
+            width: 100%;
+        }
+        @media (max-width: 768px) {
+            .resumen-main-container {
+                padding: 5px 10px 10px 10px;
+            }
+            .resumen-title {
+                font-size: 16px;
+            }
+            .resumen-year-select {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .resumen-table {
+                font-size: 10px;
+            }
+            .resumen-toast {
+                top: 10px;
+                right: 10px;
+                left: 10px;
+                max-width: none;
+            }
+            .resumen-loading {
+                width: 100px;
+                height: 70px;
+                padding: 12px;
+            }
+            .resumen-loading-spinner {
+                width: 28px;
+                height: 28px;
+            }
+            .progress-bar-container {
+                width: 100px;
+            }
+            .progress-text {
+                font-size: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="resumen-main-container">
+        <h1 class="resumen-title">Facturas de Laboratorio <span id="selectedYear"></span></h1>
+        
+        <div class="resumen-year-select">
+            <label for="selectAno" class="resumen-year-label">Seleccionar Año:</label>
+            <select id="selectAno"></select>
+        </div>
+
+        <table class="resumen-table">
+            <thead>
+                <tr>
+                    <th>Mes</th>
+                    <th>Monto Total de Facturas</th>
+                    <th>Cantidad de Facturas</th>
+                    <th>Total de Salidas</th>
+                    <th>Progreso vs Meta</th>
+                </tr>
+            </thead>
+            <tbody id="resumenBody">
+            </tbody>
+        </table>
+
+        <div id="resumen-loading" class="resumen-loading">
+            <div class="resumen-loading-spinner"></div>
+            <div class="resumen-loading-text">Procesando...</div>
+        </div>
+
+        <div id="resumen-toast" class="resumen-toast"></div>
+    </div>
+
+    <script type="module">
+        const { initializeApp, getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence } = window.firebaseModules;
+        const { getFirestore, collection, getDocs, query, orderBy } = window.firebaseModules;
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
+            authDomain: "datara-salud.firebaseapp.com",
+            projectId: "datara-salud",
+            storageBucket: "datara-salud.firebasestorage.app",
+            messagingSenderId: "198886910481",
+            appId: "1:198886910481:web:abbc345203a423a6329fb0",
+            measurementId: "G-MLYVTZPPLD"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        setPersistence(auth, browserSessionPersistence);
+
+        let ingresos = [];
+        let anos = new Set();
+        const GOAL_AMOUNT = 50000000; // Meta de 50,000,000 CLP por mes
+
+        const meses = [
+            'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+            'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+        ];
+
+        function formatDateToDDMMYYYY(date) {
+            if (!date || isNaN(new Date(date))) return '';
+            const d = new Date(date);
+            const day = String(d.getDate()).padStart(2, '0');
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const year = d.getFullYear();
+            return `${day}-${month}-${year}`;
+        }
+
+        function parseDateDDMMYYYY(dateStr) {
+            if (!dateStr) return null;
+            if (typeof dateStr === 'object' && 'toDate' in dateStr) {
+                // Handle Firestore Timestamp
+                const date = dateStr.toDate();
+                return date && !isNaN(date) ? date : null;
+            }
+            const normalized = String(dateStr).replace(/[\/.]/g, '-');
+            const [day, month, year] = normalized.split('-').map(Number);
+            if (!day || !month || !year || isNaN(day) || isNaN(month) || isNaN(year)) return null;
+            return new Date(year, month - 1, day);
+        }
+
+        function formatNumberWithThousandsSeparator(number) {
+            if (!number) return '0';
+            const cleaned = String(number).replace(/[^\d]/g, '');
+            return cleaned ? Number(cleaned).toLocaleString('es-CL') : '0';
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const loading = document.getElementById('resumen-loading');
+            const toast = document.getElementById('resumen-toast');
+            const resumenBody = document.getElementById('resumenBody');
+            const selectAno = document.getElementById('selectAno');
+            const selectedYearSpan = document.getElementById('selectedYear');
+
+            window.showLoading = function() {
+                if (loading) loading.classList.add('show');
+            };
+
+            window.hideLoading = function() {
+                if (loading) loading.classList.remove('show');
+            };
+
+            function showToast(text, type = 'success') {
+                if (toast) {
+                    toast.textContent = text;
+                    toast.className = `resumen-toast ${type}`;
+                    toast.classList.add('show');
+                    setTimeout(() => {
+                        toast.classList.remove('show');
+                    }, 5000);
+                }
+            }
+
+            onAuthStateChanged(auth, async (user) => {
+                if (!user) {
+                    window.location.replace('../../../../../index.html');
+                    return;
+                }
+                window.currentUserData = { fullName: user.displayName || 'Usuario Invitado', username: user.email || 'invitado' };
+                await loadIngresos();
+                populateAnoSelect(selectAno);
+                selectAno.value = new Date().getFullYear().toString();
+                renderTable();
+            });
+
+            if (selectAno) {
+                selectAno.addEventListener('change', (e) => {
+                    renderTable();
+                });
+            }
+
+            async function loadIngresos() {
+                showLoading();
+                try {
+                    const querySnapshot = await getDocs(collection(db, "ingresos_lab"));
+                    ingresos = [];
+                    anos = new Set();
+                    querySnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        let fechaIngreso = data.fechaIngreso;
+                        let fechaSalida = data.fechaSalida;
+
+                        // Convert Timestamp to DD-MM-YYYY string if necessary
+                        if (fechaIngreso && typeof fechaIngreso === 'object' && 'toDate' in fechaIngreso) {
+                            fechaIngreso = formatDateToDDMMYYYY(fechaIngreso.toDate());
+                            console.warn(`Documento ${doc.id} tiene fechaIngreso como Timestamp: ${data.fechaIngreso}. Convertido a: ${fechaIngreso}`);
+                        }
+                        if (fechaSalida && typeof fechaSalida === 'object' && 'toDate' in fechaSalida) {
+                            fechaSalida = formatDateToDDMMYYYY(fechaSalida.toDate());
+                            console.warn(`Documento ${doc.id} tiene fechaSalida como Timestamp: ${data.fechaSalida}. Convertido a: ${fechaSalida}`);
+                        }
+
+                        if (!fechaIngreso || typeof fechaIngreso !== 'string' || !parseDateDDMMYYYY(fechaIngreso)) {
+                            console.warn(`Documento ${doc.id} tiene fechaIngreso inválida: ${data.fechaIngreso}. Se omite.`);
+                            return;
+                        }
+
+                        const ingreso = {
+                            ...data,
+                            fechaIngreso,
+                            fechaSalida: fechaSalida || ''
+                        };
+                        ingresos.push(ingreso);
+                        const fechaIngresoDate = parseDateDDMMYYYY(fechaIngreso);
+                        if (fechaIngresoDate && !isNaN(fechaIngresoDate)) {
+                            const ano = fechaIngresoDate.getFullYear();
+                            anos.add(ano);
+                        }
+                    });
+                    console.log('Ingresos cargados:', ingresos);
+                    hideLoading();
+                    showToast('Ingresos cargados correctamente. Si algunos registros no aparecen, use la opción "Corregir formatos de fecha" en la página de Ingresos.', 'info');
+                } catch (error) {
+                    hideLoading();
+                    showToast('Error al cargar los ingresos: ' + error.message, 'error');
+                    console.error('Error en loadIngresos:', error);
+                }
+            }
+
+            function populateAnoSelect(select) {
+                select.innerHTML = '';
+                Array.from(anos).sort((a, b) => b - a).forEach(ano => {
+                    const option = document.createElement('option');
+                    option.value = ano;
+                    option.textContent = ano;
+                    select.appendChild(option);
+                });
+            }
+
+            function renderTable() {
+                const selectedYear = selectAno.value;
+                selectedYearSpan.textContent = selectedYear ? selectedYear : new Date().getFullYear();
+                if (resumenBody) {
+                    resumenBody.innerHTML = '';
+                    meses.forEach((mes, index) => {
+                        const { montoTotalIngreso, cantidadFacturas, montoTotalSalida } = calculateSummaryForMonth(selectedYear, index + 1);
+                        const percentage = (montoTotalIngreso / GOAL_AMOUNT) * 100;
+                        const barColor = percentage >= 100 ? 'red' : 'green';
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${mes}</td>
+                            <td>${formatNumberWithThousandsSeparator(montoTotalIngreso)}</td>
+                            <td>${cantidadFacturas}</td>
+                            <td>${formatNumberWithThousandsSeparator(montoTotalSalida)}</td>
+                            <td>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar ${barColor}" style="width: ${Math.min(percentage, 100)}%"></div>
+                                    <div class="progress-text">${Math.round(percentage)}%</div>
+                                </div>
+                            </td>
+                        `;
+                        resumenBody.appendChild(row);
+                    });
+                }
+            }
+
+            function calculateSummaryForMonth(year, month) {
+                let montoTotalIngreso = 0;
+                let cantidadFacturas = 0;
+                let montoTotalSalida = 0;
+
+                ingresos.forEach(ingreso => {
+                    const fechaIngresoDate = parseDateDDMMYYYY(ingreso.fechaIngreso);
+                    const fechaSalidaDate = parseDateDDMMYYYY(ingreso.fechaSalida);
+                    const monto = parseInt(String(ingreso.monto || '0').replace(/[^\d]/g, ''), 10);
+
+                    if (fechaIngresoDate && !isNaN(fechaIngresoDate) && fechaIngresoDate.getFullYear() == year && (fechaIngresoDate.getMonth() + 1) == month) {
+                        montoTotalIngreso += monto;
+                        cantidadFacturas++;
+                    }
+
+                    if (fechaSalidaDate && !isNaN(fechaSalidaDate) && fechaSalidaDate.getFullYear() == year && (fechaSalidaDate.getMonth() + 1) == month) {
+                        montoTotalSalida += monto;
+                    }
+                });
+
+                return { montoTotalIngreso, cantidadFacturas, montoTotalSalida };
+            }
+        });
+    </script>
+</body>
+</html>

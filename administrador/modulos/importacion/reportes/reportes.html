@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Importación de Reportes</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+        import { getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+        import { getFirestore, collection, addDoc, getDocs, query, where, doc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+        window.firebaseModules = { initializeApp, getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence, getFirestore, collection, addDoc, getDocs, query, where, doc, updateDoc };
+    </script>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            overflow: hidden;
+            font-size: 12px;
+        }
+        .reportes-main-container {
+            width: 100%;
+            height: 100%;
+            background: white;
+            padding: 5px 20px 20px 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        .reportes-title {
+            text-align: start;
+            margin: 0 0 15px 0;
+            font-size: 18px;
+        }
+        .reportes-fields-container {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+        .reportes-search-section {
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
+            flex: 1;
+        }
+        .reportes-form-group {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 4px;
+            flex: 1;
+            min-width: 0;
+            max-width: 200px;
+        }
+        .reportes-label {
+            font-size: 10px;
+            font-weight: bold;
+            color: #333;
+            white-space: nowrap;
+        }
+        #buscarAdmision, #buscarPaciente, #buscarRut, #buscarDescripcion, #buscarPrimerCirujano, #selectAno, #selectMes, #selectDia {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 11px;
+            box-sizing: border-box;
+        }
+        #buscarAdmision:focus, #buscarPaciente:focus, #buscarRut:focus, #buscarDescripcion:focus, #buscarPrimerCirujano:focus, #selectAno:focus, #selectMes:focus, #selectDia:focus {
+            box-shadow: 0 0 12px rgba(0, 123, 255, 0.5);
+            outline: none;
+        }
+        .reportes-actions-menu {
+            position: relative;
+            text-align: right;
+        }
+        #actionsBtn {
+            background: none;
+            border: none;
+            color: #007bff;
+            cursor: pointer;
+            font-size: 12px;
+            padding: 8px 16px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        #actionsBtn:hover {
+            color: #0056b3;
+            text-decoration: underline;
+        }
+        .reportes-dropdown-menu {
+            display: none;
+            position: absolute;
+            left: calc(-250px + 20px);
+            top: 100%;
+            background-color: white;
+            min-width: 250px;
+            box-shadow: 2px 8px 16px rgba(0,0,0,0.2);
+            z-index: 1;
+            border-radius: 4px;
+            overflow: hidden;
+            flex-direction: column;
+        }
+        .reportes-dropdown-menu .menu-title {
+            color: #333;
+            padding: 12px 16px;
+            font-size: 12px;
+            font-weight: bold;
+            background-color: #f2f2f2;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .reportes-dropdown-menu a {
+            color: black;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            font-size: 12px;
+            text-align: left;
+            overflow-wrap: break-word;
+        }
+        .reportes-dropdown-menu a:hover {
+            background-color: #f1f1f1;
+        }
+        .reportes-table-container {
+            width: 100%;
+            overflow-x: auto;
+            margin-bottom: 20px;
+        }
+        .reportes-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+            border: 1px solid #ddd;
+            table-layout: fixed;
+        }
+        .reportes-table th, .reportes-table td {
+            padding: 4px;
+            text-align: left;
+            border: 1px solid #ddd;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .reportes-table th {
+            background-color: #f2f2f2;
+            font-size: 11px;
+            cursor: col-resize;
+            position: relative;
+        }
+        .reportes-table th::after {
+            content: '';
+            position: absolute;
+            right: -5px;
+            top: 0;
+            width: 10px;
+            height: 100%;
+            cursor: col-resize;
+        }
+        .reportes-table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+        .reportes-table th:nth-child(1), .reportes-table td:nth-child(1) { width: 100px; min-width: 80px; max-width: 100px; }
+        .reportes-table th:nth-child(2), .reportes-table td:nth-child(2) { width: 80px; min-width: 60px; max-width: 80px; }
+        .reportes-table th:nth-child(3), .reportes-table td:nth-child(3) { width: 100px; min-width: 80px; max-width: 100px; }
+        .reportes-table th:nth-child(4), .reportes-table td:nth-child(4) { width: 120px; min-width: 80px; max-width: 120px; }
+        .reportes-table th:nth-child(5), .reportes-table td:nth-child(5) { width: 300px; min-width: 200px; max-width: 300px; }
+        .reportes-table th:nth-child(6), .reportes-table td:nth-child(6) { width: 120px; min-width: 80px; max-width: 120px; }
+        .reportes-table th:nth-child(7), .reportes-table td:nth-child(7) { width: 120px; min-width: 100px; max-width: 120px; }
+        .reportes-table th:nth-child(8), .reportes-table td:nth-child(8) { width: 200px; min-width: 150px; max-width: 200px; }
+        .reportes-table th:nth-child(9), .reportes-table td:nth-child(9) { width: 80px; min-width: 60px; max-width: 80px; }
+        .reportes-table th:nth-child(10), .reportes-table td:nth-child(10) { width: 100px; min-width: 80px; max-width: 100px; }
+        .reportes-table th:nth-child(11), .reportes-table td:nth-child(11) { width: 120px; min-width: 100px; max-width: 120px; }
+        .reportes-table th:nth-child(12), .reportes-table td:nth-child(12) { width: 100px; min-width: 80px; max-width: 100px; }
+        .reportes-table th:nth-child(13), .reportes-table td:nth-child(13) { width: 120px; min-width: 80px; max-width: 120px; }
+        .reportes-table th:nth-child(14), .reportes-table td:nth-child(14) { width: 120px; min-width: 100px; max-width: 120px; }
+        .reportes-table th:nth-child(15), .reportes-table td:nth-child(15) { width: 100px; min-width: 60px; max-width: 100px; }
+        .reportes-table th:nth-child(16), .reportes-table td:nth-child(16) { width: 200px; min-width: 150px; max-width: 200px; }
+        .resizing {
+            user-select: none;
+        }
+        .reportes-pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            flex-wrap: nowrap;
+        }
+        .reportes-pagination-info {
+            font-size: 11px;
+            flex: 1;
+            text-align: left;
+        }
+        .reportes-pagination-controls {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            flex-shrink: 0;
+        }
+        .reportes-pagination-controls button {
+            padding: 6px 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+        .reportes-pagination-controls button:hover:not(:disabled) {
+            background-color: #0056b3;
+        }
+        .reportes-pagination-controls button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .reportes-page-numbers {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+        .reportes-page-numbers button {
+            padding: 4px 8px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            font-size: 11px;
+            border-radius: 4px;
+        }
+        .reportes-page-numbers button.active {
+            background-color: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        .reportes-page-numbers button:hover:not(.active) {
+            background-color: #f0f0f0;
+        }
+        .reportes-page-numbers .reportes-dots {
+            padding: 4px;
+            cursor: default;
+            font-size: 11px;
+            line-height: 1.5;
+        }
+        #reportes-message {
+            margin-bottom: 20px;
+            padding: 8px;
+            border-radius: 4px;
+            display: none;
+            font-size: 11px;
+        }
+        .reportes-message-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .reportes-message-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .reportes-loading {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 120px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            padding: 16px;
+            backdrop-filter: blur(8px);
+        }
+        .reportes-loading.show {
+            display: flex;
+        }
+        .reportes-loading-spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid #e3f2fd;
+            border-top: 3px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 8px;
+        }
+        .reportes-loading-text {
+            font-size: 12px;
+            color: #333;
+            font-weight: 500;
+            text-align: center;
+        }
+        .reportes-import-progress {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            z-index: 1000;
+            padding: 20px;
+            backdrop-filter: blur(8px);
+        }
+        .reportes-import-progress.show {
+            display: block;
+        }
+        .reportes-progress-bar-container {
+            width: 100%;
+            height: 20px;
+            background-color: #e3f2fd;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        .reportes-progress-bar {
+            height: 100%;
+            background-color: #007bff;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        .reportes-progress-text {
+            font-size: 12px;
+            color: #333;
+            font-weight: 500;
+            text-align: center;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .reportes-toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #d4edda;
+            color: #155724;
+            padding: 12px 20px;
+            border-radius: 6px;
+            border: 1px solid #c3e6cb;
+            font-size: 12px;
+            z-index: 1001;
+            max-width: 300px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            opacity: 0;
+            transform: translateX(100%);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .reportes-toast.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .reportes-toast.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1002;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+        }
+        .modal-form-group {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 15px;
+        }
+        .modal-form-group label {
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .modal-form-group select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .modal-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .modal-btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        .modal-btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+        @media (max-width: 768px) {
+            .reportes-fields-container {
+                flex-direction: column;
+                gap: 20px;
+            }
+            .reportes-search-section {
+                flex-direction: column;
+                gap: 15px;
+            }
+            .reportes-form-group {
+                max-width: none;
+            }
+            .reportes-toast {
+                top: 10px;
+                right: 10px;
+                left: 10px;
+                max-width: none;
+            }
+            .reportes-loading {
+                width: 100px;
+                height: 70px;
+                padding: 12px;
+            }
+            .reportes-loading-spinner {
+                width: 28px;
+                height: 28px;
+            }
+            .reportes-import-progress {
+                width: 90%;
+                max-width: 280px;
+                padding: 15px;
+            }
+            .modal-content {
+                width: 90%;
+                margin: 20% auto;
+            }
+            .reportes-pagination {
+                flex-direction: row;
+                align-items: center;
+                gap: 10px;
+            }
+            .reportes-pagination-info {
+                font-size: 10px;
+            }
+            .reportes-pagination-controls button {
+                padding: 4px 8px;
+                font-size: 10px;
+            }
+            .reportes-page-numbers button {
+                padding: 3px 6px;
+                font-size: 10px;
+            }
+            .reportes-dropdown-menu {
+                min-width: 200px;
+                left: calc(-200px + 20px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="reportes-main-container">
+        <h1 class="reportes-title">Importación de Reportes</h1>
+        <div id="reportes-message"></div>
+        <div class="reportes-fields-container">
+            <div class="reportes-search-section">
+                <div class="reportes-form-group">
+                    <label for="buscarAdmision" class="reportes-label">Buscar Admisión:</label>
+                    <input type="text" id="buscarAdmision" placeholder="Buscar por admisión" autocomplete="off">
+                </div>
+                <div class="reportes-form-group">
+                    <label for="buscarPaciente" class="reportes-label">Buscar Paciente:</label>
+                    <input type="text" id="buscarPaciente" placeholder="Buscar por paciente" autocomplete="off">
+                </div>
+                <div class="reportes-form-group">
+                    <label for="buscarRut" class="reportes-label">Buscar Rut:</label>
+                    <input type="text" id="buscarRut" placeholder="Buscar por rut" autocomplete="off">
+                </div>
+                <div class="reportes-form-group">
+                    <label for="buscarDescripcion" class="reportes-label">Buscar Descripción:</label>
+                    <input type="text" id="buscarDescripcion" placeholder="Buscar por descripción" autocomplete="off">
+                </div>
+                <div class="reportes-form-group">
+                    <label for="buscarPrimerCirujano" class="reportes-label">Buscar 1° Cirujano:</label>
+                    <input type="text" id="buscarPrimerCirujano" placeholder="Buscar por 1° cirujano" autocomplete="off">
+                </div>
+                <div class="reportes-form-group">
+                    <label for="selectAno" class="reportes-label">Año:</label>
+                    <select id="selectAno"></select>
+                </div>
+                <div class="reportes-form-group">
+                    <label for="selectMes" class="reportes-label">Mes:</label>
+                    <select id="selectMes"></select>
+                </div>
+                <div class="reportes-form-group">
+                    <label for="selectDia" class="reportes-label">Día:</label>
+                    <select id="selectDia"></select>
+                </div>
+            </div>
+            <div class="reportes-actions-menu">
+                <button id="actionsBtn"><i class="fas fa-angle-down"></i> Acciones</button>
+                <div id="actionsMenu" class="reportes-dropdown-menu">
+                    <div class="menu-title"><i class="fas fa-angle-down"></i> Acciones</div>
+                    <a href="#" id="downloadTemplate">Formato de importación</a>
+                    <a href="#" id="importExcel">Importar Excel</a>
+                    <a href="#" id="downloadAll">Descargar todos los registros</a>
+                    <a href="#" id="downloadPage">Descargar página actual</a>
+                    <a href="#" id="downloadMes">Descargar mes</a>
+                </div>
+            </div>
+        </div>
+        <div class="reportes-table-container">
+            <table id="reportesTable" class="reportes-table">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Día</th>
+                        <th>Mes</th>
+                        <th>Cod. Artículo</th>
+                        <th>Descripción</th>
+                        <th>Admisión</th>
+                        <th>Rut</th>
+                        <th>Paciente</th>
+                        <th>Edad</th>
+                        <th>Previsión</th>
+                        <th>Isapre</th>
+                        <th>Convenio</th>
+                        <th>Cód. Arancel</th>
+                        <th>Arancel</th>
+                        <th>Cant. Art.</th>
+                        <th>1° Cirujano</th>
+                    </tr>
+                </thead>
+                <tbody id="reportesBody"></tbody>
+            </table>
+        </div>
+        <div class="reportes-pagination" id="pagination">
+            <div class="reportes-pagination-info" id="paginationInfo"></div>
+            <div class="reportes-pagination-controls">
+                <button id="prevBtn">Anterior</button>
+                <div class="reportes-page-numbers" id="pageNumbers"></div>
+                <button id="nextBtn">Siguiente</button>
+            </div>
+        </div>
+        <input type="file" id="fileUpload" style="display:none;" accept=".xlsx, .xls">
+        <div id="reportes-loading" class="reportes-loading">
+            <div class="reportes-loading-spinner"></div>
+            <div class="reportes-loading-text">Procesando...</div>
+        </div>
+        <div id="reportes-import-progress" class="reportes-import-progress">
+            <div class="reportes-progress-bar-container">
+                <div id="progressBar" class="reportes-progress-bar"></div>
+            </div>
+            <div id="progressText" class="reportes-progress-text">Importando: 0%</div>
+        </div>
+        <div id="reportes-toast" class="reportes-toast"></div>
+    </div>
+    <div id="downloadMesModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="closeDownloadMes">&times;</span>
+            <h2>Descargar por Mes</h2>
+            <div class="modal-form-group">
+                <label for="selectDownloadAno">Año:</label>
+                <select id="selectDownloadAno"></select>
+            </div>
+            <div class="modal-form-group">
+                <label for="selectDownloadMes">Mes:</label>
+                <select id="selectDownloadMes"></select>
+            </div>
+            <div class="modal-buttons">
+                <button type="button" class="modal-btn modal-btn-secondary" id="cancelDownloadMes">Cancelar</button>
+                <button type="button" class="modal-btn modal-btn-primary" id="confirmDownloadMes">Descargar</button>
+            </div>
+        </div>
+    </div>
+    <script type="module">
+        const { initializeApp, getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence, getFirestore, collection, addDoc, getDocs, query, where, doc, updateDoc } = window.firebaseModules;
+        const firebaseConfig = {
+            apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
+            authDomain: "datara-salud.firebaseapp.com",
+            projectId: "datara-salud",
+            storageBucket: "datara-salud.firebasestorage.app",
+            messagingSenderId: "198886910481",
+            appId: "1:198886910481:web:abbc345203a423a6329fb0",
+            measurementId: "G-MLYVTZPPLD"
+        };
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        setPersistence(auth, browserSessionPersistence);
+        let reportes = [];
+        let currentPage = 1;
+        const PAGE_SIZE = 10;
+        let searchAdmision = '';
+        let searchPaciente = '';
+        let searchRut = '';
+        let searchDescripcion = '';
+        let searchPrimerCirujano = '';
+        let selectedAno = new Date().getFullYear();
+        let selectedMes = '';
+        let selectedDia = '';
+        let anos = [];
+        let mesesPorAno = {};
+        let diasPorMesAno = {};
+        function formatDateToDDMMYYYY(date) {
+            if (!date || isNaN(new Date(date))) return '';
+            const d = new Date(date);
+            const day = String(d.getDate()).padStart(2, '0');
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const year = d.getFullYear();
+            return `${day}-${month}-${year}`;
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            const loading = document.getElementById('reportes-loading');
+            const importProgress = document.getElementById('reportes-import-progress');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            const toast = document.getElementById('reportes-toast');
+            const reportesBody = document.getElementById('reportesBody');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const pageNumbers = document.getElementById('pageNumbers');
+            const paginationInfo = document.getElementById('paginationInfo');
+            const buscarAdmisionInput = document.getElementById('buscarAdmision');
+            const buscarPacienteInput = document.getElementById('buscarPaciente');
+            const buscarRutInput = document.getElementById('buscarRut');
+            const buscarDescripcionInput = document.getElementById('buscarDescripcion');
+            const buscarPrimerCirujanoInput = document.getElementById('buscarPrimerCirujano');
+            const selectAno = document.getElementById('selectAno');
+            const selectMes = document.getElementById('selectMes');
+            const selectDia = document.getElementById('selectDia');
+            const downloadMesModal = document.getElementById('downloadMesModal');
+            const closeDownloadMes = document.getElementById('closeDownloadMes');
+            const cancelDownloadMes = document.getElementById('cancelDownloadMes');
+            const confirmDownloadMes = document.getElementById('confirmDownloadMes');
+            const selectDownloadAno = document.getElementById('selectDownloadAno');
+            const selectDownloadMes = document.getElementById('selectDownloadMes');
+            const actionsBtn = document.getElementById('actionsBtn');
+            const actionsMenu = document.getElementById('actionsMenu');
+            const downloadTemplate = document.getElementById('downloadTemplate');
+            const importExcel = document.getElementById('importExcel');
+            const downloadAll = document.getElementById('downloadAll');
+            const downloadPage = document.getElementById('downloadPage');
+            const downloadMes = document.getElementById('downloadMes');
+            const fileUpload = document.getElementById('fileUpload');
+            window.showLoading = function() {
+                if (loading) loading.classList.add('show');
+            };
+            window.hideLoading = function() {
+                if (loading) loading.classList.remove('show');
+            };
+            function showImportProgress(percent) {
+                if (importProgress && progressBar && progressText) {
+                    importProgress.classList.add('show');
+                    progressBar.style.width = `${percent}%`;
+                    progressText.textContent = `Importando: ${Math.round(percent)}%`;
+                }
+            }
+            function hideImportProgress() {
+                if (importProgress) {
+                    importProgress.classList.remove('show');
+                    progressBar.style.width = '0%';
+                    progressText.textContent = 'Importando: 0%';
+                }
+            }
+            function showToast(text, type = 'success') {
+                if (toast) {
+                    toast.textContent = text;
+                    toast.className = `reportes-toast ${type}`;
+                    toast.classList.add('show');
+                    setTimeout(() => {
+                        toast.classList.remove('show');
+                    }, 5000);
+                }
+            }
+            async function getReporteByUniqueKey(admision, codArticulo) {
+                if (!admision || !codArticulo) return null;
+                const q = query(
+                    collection(db, "reportes"),
+                    where("admision", "==", admision.trim()),
+                    where("codArticulo", "==", codArticulo.trim())
+                );
+                const querySnapshot = await getDocs(q);
+                if (!querySnapshot.empty) {
+                    const doc = querySnapshot.docs[0];
+                    return { id: doc.id, ...doc.data() };
+                }
+                return null;
+            }
+            function openDownloadMesModal() {
+                populateAnoSelect(selectDownloadAno);
+                selectDownloadAno.value = selectedAno;
+                populateMesSelect(selectDownloadMes, selectDownloadAno.value);
+                downloadMesModal.style.display = 'block';
+            }
+            function closeDownloadMesModalHandler() {
+                downloadMesModal.style.display = 'none';
+            }
+            closeDownloadMes.addEventListener('click', closeDownloadMesModalHandler);
+            cancelDownloadMes.addEventListener('click', closeDownloadMesModalHandler);
+            window.addEventListener('click', (e) => {
+                if (e.target === downloadMesModal) closeDownloadMesModalHandler();
+            });
+            confirmDownloadMes.addEventListener('click', async () => {
+                const ano = selectDownloadAno.value;
+                const mes = selectDownloadMes.value;
+                if (ano && mes) {
+                    showLoading();
+                    try {
+                        const data = await getReportesByMes(ano, mes);
+                        exportToExcel(data.map(r => ({
+                            fecha: formatDateToDDMMYYYY(r.fecha),
+                            dia: r.dia,
+                            mes: r.mes,
+                            codArticulo: r.codArticulo,
+                            descripcion: r.descripcion,
+                            admision: r.admision,
+                            rut: r.rut,
+                            paciente: r.paciente,
+                            edad: r.edad,
+                            prevision: r.prevision,
+                            isapre: r.isapre,
+                            convenio: r.convenio,
+                            codArancel: r.codArancel,
+                            arancel: r.arancel,
+                            cantidadArticulo: r.cantidadArticulo,
+                            primerCirujano: r.primerCirujano
+                        })), `reportes_${ano}_${mes}`);
+                        hideLoading();
+                        closeDownloadMesModalHandler();
+                    } catch (error) {
+                        hideLoading();
+                        showToast('Error al descargar el mes: ' + error.message, 'error');
+                    }
+                } else {
+                    showToast('Por favor, selecciona año y mes.', 'error');
+                }
+            });
+            onAuthStateChanged(auth, async (user) => {
+                if (!user) {
+                    window.location.replace('../../../../../../index.html');
+                    return;
+                }
+                window.currentUserData = { fullName: user.displayName || 'Usuario Invitado', username: user.email || 'invitado' };
+                await loadReportes();
+                populateAnoSelect(selectAno);
+                selectAno.value = selectedAno;
+                populateMesSelect(selectMes, selectedAno);
+                populateDiaSelect(selectDia, selectedAno, selectedMes);
+                enableColumnResizing();
+            });
+            if (buscarAdmisionInput) {
+                buscarAdmisionInput.addEventListener('input', (e) => {
+                    searchAdmision = e.target.value.trim();
+                    currentPage = 1;
+                    renderTable();
+                });
+            }
+            if (buscarPacienteInput) {
+                buscarPacienteInput.addEventListener('input', (e) => {
+                    searchPaciente = e.target.value.trim();
+                    currentPage = 1;
+                    renderTable();
+                });
+            }
+            if (buscarRutInput) {
+                buscarRutInput.addEventListener('input', (e) => {
+                    searchRut = e.target.value.trim();
+                    currentPage = 1;
+                    renderTable();
+                });
+            }
+            if (buscarDescripcionInput) {
+                buscarDescripcionInput.addEventListener('input', (e) => {
+                    searchDescripcion = e.target.value.trim();
+                    currentPage = 1;
+                    renderTable();
+                });
+            }
+            if (buscarPrimerCirujanoInput) {
+                buscarPrimerCirujanoInput.addEventListener('input', (e) => {
+                    searchPrimerCirujano = e.target.value.trim();
+                    currentPage = 1;
+                    renderTable();
+                });
+            }
+            if (selectAno) {
+                selectAno.addEventListener('change', (e) => {
+                    selectedAno = e.target.value;
+                    selectedMes = '';
+                    selectedDia = '';
+                    populateMesSelect(selectMes, selectedAno);
+                    populateDiaSelect(selectDia, selectedAno, selectedMes);
+                    currentPage = 1;
+                    renderTable();
+                });
+            }
+            if (selectMes) {
+                selectMes.addEventListener('change', (e) => {
+                    selectedMes = e.target.value;
+                    selectedDia = '';
+                    populateDiaSelect(selectDia, selectedAno, selectedMes);
+                    currentPage = 1;
+                    renderTable();
+                });
+            }
+            if (selectDia) {
+                selectDia.addEventListener('change', (e) => {
+                    selectedDia = e.target.value;
+                    currentPage = 1;
+                    renderTable();
+                });
+            }
+            if (selectDownloadAno) {
+                selectDownloadAno.addEventListener('change', (e) => {
+                    populateMesSelect(selectDownloadMes, e.target.value);
+                });
+            }
+            async function loadReportes() {
+                showLoading();
+                try {
+                    const querySnapshot = await getDocs(collection(db, "reportes"));
+                    reportes = [];
+                    anos = new Set();
+                    mesesPorAno = {};
+                    diasPorMesAno = {};
+                    querySnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        reportes.push({ id: doc.id, ...data });
+                        const fechaDate = new Date(data.fecha);
+                        if (!isNaN(fechaDate)) {
+                            const ano = fechaDate.getFullYear();
+                            const mes = data.mes || fechaDate.toLocaleString('es-CL', { month: 'long' });
+                            const dia = data.dia || fechaDate.toLocaleString('es-CL', { weekday: 'long' });
+                            anos.add(ano);
+                            if (!mesesPorAno[ano]) mesesPorAno[ano] = new Set();
+                            mesesPorAno[ano].add(mes);
+                            if (!diasPorMesAno[ano]) diasPorMesAno[ano] = {};
+                            if (!diasPorMesAno[ano][mes]) diasPorMesAno[ano][mes] = new Set();
+                            if (dia) diasPorMesAno[ano][mes].add(dia);
+                        }
+                    });
+                    renderTable();
+                    hideLoading();
+                } catch (error) {
+                    hideLoading();
+                    showToast('Error al cargar los reportes: ' + error.message, 'error');
+                }
+            }
+            function populateAnoSelect(select) {
+                select.innerHTML = '<option value="">Todos</option>';
+                Array.from(anos).sort((a, b) => b - a).forEach(ano => {
+                    const option = document.createElement('option');
+                    option.value = ano;
+                    option.textContent = ano;
+                    select.appendChild(option);
+                });
+            }
+            function populateMesSelect(select, ano) {
+                select.innerHTML = '<option value="">Todos</option>';
+                if (ano && mesesPorAno[ano]) {
+                    Array.from(mesesPorAno[ano]).sort((a, b) => new Date(Date.parse('01 ' + a + ' 2000')) - new Date(Date.parse('01 ' + b + ' 2000'))).forEach(mes => {
+                        const option = document.createElement('option');
+                        option.value = mes;
+                        option.textContent = mes;
+                        select.appendChild(option);
+                    });
+                }
+            }
+            function populateDiaSelect(select, ano, mes) {
+                select.innerHTML = '<option value="">Todos</option>';
+                if (ano && mes && diasPorMesAno[ano] && diasPorMesAno[ano][mes]) {
+                    Array.from(diasPorMesAno[ano][mes]).sort().forEach(dia => {
+                        const option = document.createElement('option');
+                        option.value = dia;
+                        option.textContent = dia;
+                        select.appendChild(option);
+                    });
+                }
+            }
+            actionsBtn.addEventListener('click', () => {
+                actionsMenu.style.display = actionsMenu.style.display === 'block' ? 'none' : 'block';
+            });
+            window.addEventListener('click', (e) => {
+                if (!actionsBtn.contains(e.target) && !actionsMenu.contains(e.target)) {
+                    actionsMenu.style.display = 'none';
+                }
+            });
+            downloadTemplate.addEventListener('click', (e) => {
+                e.preventDefault();
+                downloadImportTemplate();
+                actionsMenu.style.display = 'none';
+            });
+            importExcel.addEventListener('click', (e) => {
+                e.preventDefault();
+                fileUpload.click();
+                actionsMenu.style.display = 'none';
+            });
+            downloadAll.addEventListener('click', (e) => {
+                e.preventDefault();
+                exportToExcel(reportes.map(r => ({
+                    fecha: formatDateToDDMMYYYY(r.fecha),
+                    dia: r.dia,
+                    mes: r.mes,
+                    codArticulo: r.codArticulo,
+                    descripcion: r.descripcion,
+                    admision: r.admision,
+                    rut: r.rut,
+                    paciente: r.paciente,
+                    edad: r.edad,
+                    prevision: r.prevision,
+                    isapre: r.isapre,
+                    convenio: r.convenio,
+                    codArancel: r.codArancel,
+                    arancel: r.arancel,
+                    cantidadArticulo: r.cantidadArticulo,
+                    primerCirujano: r.primerCirujano
+                })), 'todos_reportes');
+                actionsMenu.style.display = 'none';
+            });
+            downloadPage.addEventListener('click', (e) => {
+                e.preventDefault();
+                const filtered = getFilteredReportes();
+                const start = (currentPage - 1) * PAGE_SIZE;
+                const end = start + PAGE_SIZE;
+                const pageData = filtered.slice(start, end).map(r => ({
+                    fecha: formatDateToDDMMYYYY(r.fecha),
+                    dia: r.dia,
+                    mes: r.mes,
+                    codArticulo: r.codArticulo,
+                    descripcion: r.descripcion,
+                    admision: r.admision,
+                    rut: r.rut,
+                    paciente: r.paciente,
+                    edad: r.edad,
+                    prevision: r.prevision,
+                    isapre: r.isapre,
+                    convenio: r.convenio,
+                    codArancel: r.codArancel,
+                    arancel: r.arancel,
+                    cantidadArticulo: r.cantidadArticulo,
+                    primerCirujano: r.primerCirujano
+                }));
+                exportToExcel(pageData, 'pagina_actual_reportes');
+                actionsMenu.style.display = 'none';
+            });
+            downloadMes.addEventListener('click', (e) => {
+                e.preventDefault();
+                openDownloadMesModal();
+                actionsMenu.style.display = 'none';
+            });
+            fileUpload.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    await importFromExcel(file);
+                    fileUpload.value = '';
+                }
+            });
+            function exportToExcel(data, filename) {
+                const ws = XLSX.utils.json_to_sheet(data, {
+                    dateNF: 'dd-mm-yyyy',
+                    cellDates: true
+                });
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Reportes");
+                XLSX.writeFile(wb, filename + '.xlsx');
+            }
+            function downloadImportTemplate() {
+                const ws = XLSX.utils.aoa_to_sheet([[
+                    "Fecha", "Día", "Mes", "Cod. Artículo", "Descripción", "Admisión", "Rut", "Paciente", "Edad", "Previsión", "Isapre", "Convenio", "Cód. Arancel", "Arancel", "Cant. Art.", "1° Cirujano"
+                ], [
+                    "01-10-2025", "Lunes", "Octubre", "ART001", "Consulta médica", "ADM001", "12345678-9", "Juan Pérez", "30", "Fonasa", "Isapre A", "Convenio 1", "ARN001", "50000", "1", "Dr. García"
+                ]]);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Template");
+                XLSX.writeFile(wb, 'template_reportes.xlsx');
+            }
+            async function importFromExcel(file) {
+                try {
+                    const reader = new FileReader();
+                    reader.onload = async (e) => {
+                        const data = new Uint8Array(e.target.result);
+                        const wb = XLSX.read(data, {type: 'array', cellDates: true, dateNF: 'dd-mm-yyyy'});
+                        const ws = wb.Sheets[wb.SheetNames[0]];
+                        const json = XLSX.utils.sheet_to_json(ws, {
+                            header: ["fecha", "dia", "mes", "codArticulo", "descripcion", "admision", "rut", "paciente", "edad", "prevision", "isapre", "convenio", "codArancel", "arancel", "cantidadArticulo", "primerCirujano"],
+                            range: 1,
+                            defval: '',
+                            raw: false,
+                            dateNF: 'dd-mm-yyyy'
+                        });
+                        let addedCount = 0;
+                        let updatedCount = 0;
+                        let skippedCount = 0;
+                        const totalRows = json.length;
+                        showImportProgress(0);
+                        for (let i = 0; i < json.length; i++) {
+                            const row = json[i];
+                            let fecha = row.fecha;
+                            if (typeof fecha === 'number') {
+                                fecha = formatDateToDDMMYYYY(XLSX.SSF.parse_date_code(fecha));
+                            }
+                            if (fecha && isNaN(new Date(fecha))) {
+                                showToast(`Fila ${i + 2}: Fecha no válida`, 'error');
+                                skippedCount++;
+                                continue;
+                            }
+                            const processedRow = {
+                                fecha: fecha ? formatDateToDDMMYYYY(new Date(fecha)) : '',
+                                dia: String(row.dia || '').trim(),
+                                mes: String(row.mes || '').trim(),
+                                codArticulo: String(row.codArticulo || '').trim(),
+                                descripcion: String(row.descripcion || '').trim(),
+                                admision: String(row.admision || '').trim(),
+                                rut: String(row.rut || '').trim(),
+                                paciente: String(row.paciente || '').trim(),
+                                edad: String(row.edad || '').trim(),
+                                prevision: String(row.prevision || '').trim(),
+                                isapre: String(row.isapre || '').trim(),
+                                convenio: String(row.convenio || '').trim(),
+                                codArancel: String(row.codArancel || '').trim(),
+                                arancel: String(row.arancel || '').trim(),
+                                cantidadArticulo: String(row.cantidadArticulo || '').trim(),
+                                primerCirujano: String(row.primerCirujano || '').trim()
+                            };
+                            if (processedRow.admision && processedRow.codArticulo && processedRow.fecha) {
+                                const existing = await getReporteByUniqueKey(processedRow.admision, processedRow.codArticulo);
+                                if (existing) {
+                                    const hasChanges = Object.keys(processedRow).some(key => 
+                                        key === 'fecha' 
+                                        ? processedRow[key] !== formatDateToDDMMYYYY(existing[key])
+                                        : processedRow[key] !== String(existing[key] || '').trim()
+                                    );
+                                    if (hasChanges) {
+                                        await updateDoc(doc(db, "reportes", existing.id), {
+                                            ...processedRow,
+                                            createdAt: new Date()
+                                        });
+                                        updatedCount++;
+                                    } else {
+                                        showToast(`Fila ${i + 2}: Registro duplicado sin cambios`, 'error');
+                                        skippedCount++;
+                                    }
+                                } else {
+                                    await addDoc(collection(db, "reportes"), {
+                                        ...processedRow,
+                                        createdAt: new Date()
+                                    });
+                                    addedCount++;
+                                }
+                            } else {
+                                showToast(`Fila ${i + 2}: Faltan admisión, código artículo o fecha`, 'error');
+                                skippedCount++;
+                            }
+                            const progress = ((i + 1) / totalRows) * 100;
+                            showImportProgress(progress);
+                        }
+                        hideImportProgress();
+                        showToast(`Importación completada: ${addedCount} nuevos, ${updatedCount} actualizados, ${skippedCount} omitidos.`, 'success');
+                        await loadReportes();
+                        populateAnoSelect(selectAno);
+                        populateAnoSelect(selectDownloadAno);
+                    };
+                    reader.readAsArrayBuffer(file);
+                } catch (error) {
+                    hideImportProgress();
+                    showToast('Error al importar el archivo: ' + error.message, 'error');
+                }
+            }
+            async function getReportesByMes(ano, mes) {
+                return reportes.filter(r => {
+                    const fechaDate = new Date(r.fecha);
+                    return fechaDate.getFullYear() == ano && fechaDate.toLocaleString('es-CL', { month: 'long' }) === mes;
+                });
+            }
+            function getFilteredReportes() {
+                return reportes.filter(reporte => 
+                    String(reporte.admision || '').toLowerCase().includes(searchAdmision.toLowerCase()) &&
+                    String(reporte.paciente || '').toLowerCase().includes(searchPaciente.toLowerCase()) &&
+                    String(reporte.rut || '').toLowerCase().includes(searchRut.toLowerCase()) &&
+                    String(reporte.descripcion || '').toLowerCase().includes(searchDescripcion.toLowerCase()) &&
+                    String(reporte.primerCirujano || '').toLowerCase().includes(searchPrimerCirujano.toLowerCase()) &&
+                    (!selectedAno || new Date(reporte.fecha).getFullYear() == selectedAno) &&
+                    (!selectedMes || new Date(reporte.fecha).toLocaleString('es-CL', { month: 'long' }) === selectedMes) &&
+                    (!selectedDia || String(reporte.dia || '').toLowerCase() === selectedDia.toLowerCase())
+                );
+            }
+            function renderTable() {
+                const filteredReportes = getFilteredReportes();
+                const start = (currentPage - 1) * PAGE_SIZE;
+                const end = start + PAGE_SIZE;
+                const pageReportes = filteredReportes.sort((a, b) => a.admision.localeCompare(b.admision)).slice(start, end);
+                if (reportesBody) {
+                    reportesBody.innerHTML = '';
+                    pageReportes.forEach(reporte => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${formatDateToDDMMYYYY(reporte.fecha) || ''}</td>
+                            <td>${reporte.dia || ''}</td>
+                            <td>${reporte.mes || ''}</td>
+                            <td>${reporte.codArticulo || ''}</td>
+                            <td>${reporte.descripcion || ''}</td>
+                            <td>${reporte.admision || ''}</td>
+                            <td>${reporte.rut || ''}</td>
+                            <td>${reporte.paciente || ''}</td>
+                            <td>${reporte.edad || ''}</td>
+                            <td>${reporte.prevision || ''}</td>
+                            <td>${reporte.isapre || ''}</td>
+                            <td>${reporte.convenio || ''}</td>
+                            <td>${reporte.codArancel || ''}</td>
+                            <td>${reporte.arancel || ''}</td>
+                            <td>${reporte.cantidadArticulo || ''}</td>
+                            <td>${reporte.primerCirujano || ''}</td>
+                        `;
+                        reportesBody.appendChild(row);
+                    });
+                }
+                updatePagination(filteredReportes.length);
+                enableColumnResizing();
+            }
+            function updatePagination(total) {
+                const totalPages = Math.ceil(total / PAGE_SIZE);
+                const startPage = Math.max(1, currentPage - 2);
+                const endPage = Math.min(totalPages, startPage + 4);
+                const startRecord = (currentPage - 1) * PAGE_SIZE + 1;
+                const endRecord = Math.min(currentPage * PAGE_SIZE, total);
+                const recordsThisPage = endRecord - startRecord + 1;
+                if (paginationInfo) paginationInfo.textContent = `Página ${currentPage} de ${totalPages} | ${recordsThisPage} registros en esta página de ${total}`;
+                if (prevBtn) prevBtn.disabled = currentPage === 1;
+                if (nextBtn) nextBtn.disabled = currentPage === totalPages;
+                if (pageNumbers) {
+                    pageNumbers.innerHTML = '';
+                    for (let i = startPage; i <= endPage; i++) {
+                        if (i > startPage && i <= endPage - 1 && endPage - startPage > 3) {
+                            const dots = document.createElement('span');
+                            dots.textContent = '...';
+                            dots.className = 'reportes-dots';
+                            pageNumbers.appendChild(dots);
+                            continue;
+                        }
+                        const btn = document.createElement('button');
+                        btn.textContent = i;
+                        btn.className = i === currentPage ? 'active' : '';
+                        btn.addEventListener('click', () => goToPage(i));
+                        pageNumbers.appendChild(btn);
+                    }
+                }
+            }
+            function goToPage(page) {
+                currentPage = page;
+                renderTable();
+            }
+            if (prevBtn) {
+                prevBtn.addEventListener('click', () => {
+                    if (currentPage > 1) {
+                        currentPage--;
+                        renderTable();
+                    }
+                });
+            }
+            if (nextBtn) {
+                nextBtn.addEventListener('click', () => {
+                    const totalPages = Math.ceil(getFilteredReportes().length / PAGE_SIZE);
+                    if (currentPage < totalPages) {
+                        currentPage++;
+                        renderTable();
+                    }
+                });
+            }
+            function enableColumnResizing() {
+                const table = document.getElementById('reportesTable');
+                const headers = table.querySelectorAll('th');
+                headers.forEach((header, index) => {
+                    header.addEventListener('mousedown', (e) => {
+                        const rect = header.getBoundingClientRect();
+                        if (e.clientX > rect.right - 10) {
+                            e.preventDefault();
+                            document.body.classList.add('resizing');
+                            const startX = e.clientX;
+                            const startWidth = header.offsetWidth;
+                            const minWidth = parseInt(getComputedStyle(header).minWidth) || 50;
+                            const maxWidth = 2000;
+                            header.style.maxWidth = 'none';
+                            const cells = table.querySelectorAll(`td:nth-child(${index + 1})`);
+                            cells.forEach(cell => {
+                                cell.style.maxWidth = 'none';
+                            });
+                            const onMouseMove = (moveEvent) => {
+                                let newWidth = startWidth + (moveEvent.clientX - startX);
+                                newWidth = Math.max(minWidth, Math.min(newWidth, maxWidth));
+                                header.style.width = `${newWidth}px`;
+                                cells.forEach(cell => {
+                                    cell.style.width = `${newWidth}px`;
+                                });
+                            };
+                            const onMouseUp = () => {
+                                document.body.classList.remove('resizing');
+                                document.removeEventListener('mousemove', onMouseMove);
+                                document.removeEventListener('mouseup', onMouseUp);
+                                document.removeEventListener('mouseleave', onMouseUp);
+                            };
+                            document.addEventListener('mousemove', onMouseMove);
+                            document.addEventListener('mouseup', onMouseUp);
+                            document.addEventListener('mouseleave', onMouseUp);
+                        }
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+</html>

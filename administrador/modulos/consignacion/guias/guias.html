@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Guías - Datara Salud</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="guias.css">
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="guias-main-container">
+        <h1 class="guias-title">Gestión de Guías</h1>
+        <div class="guias-search-import-row">
+            <div class="guias-form-group">
+                <label for="buscarFolio" class="guias-label">Buscar por Folio</label>
+                <input type="text" id="buscarFolio" placeholder="Ingrese folio">
+            </div>
+            <div class="guias-form-group">
+                <label for="buscarEmpresa" class="guias-label">Buscar por Empresa</label>
+                <input type="text" id="buscarEmpresa" placeholder="Ingrese empresa">
+            </div>
+            <div class="guias-form-group">
+                <label for="buscarFecha" class="guias-label">Buscar por Fecha</label>
+                <input type="date" id="buscarFecha">
+            </div>
+            <div class="guias-import-group">
+                <label class="guias-label">Importar Guías</label>
+                <div class="guias-import-row">
+                    <input type="file" id="fileUpload" accept=".xml" multiple style="display: none;">
+                    <button id="importBtn" class="modal-btn modal-btn-primary">
+                        <i class="fas fa-upload"></i> Importar XML
+                    </button>
+                </div>
+            </div>
+            <div class="guias-actions-menu">
+                <button id="actionsBtn"><i class="fas fa-cog"></i> Acciones</button>
+                <div id="actionsMenu" class="guias-dropdown-menu">
+                    <div class="menu-title">Opciones de Exportación</div>
+                    <a href="#" id="downloadAll">Descargar todas las guías</a>
+                    <a href="#" id="downloadPage">Descargar página actual</a>
+                </div>
+            </div>
+        </div>
+        <div id="guias-message"></div>
+        <div class="guias-table-container">
+            <table class="guias-table">
+                <thead>
+                    <tr>
+                        <th>Acciones</th>
+                        <th>Empresa</th>
+                        <th>Folio</th>
+                        <th>Fecha Emisión</th>
+                        <th>Folio Referencia</th>
+                    </tr>
+                </thead>
+                <tbody id="guiasBody"></tbody>
+            </table>
+        </div>
+        <div class="guias-pagination">
+            <span id="paginationInfo"></span>
+            <div class="guias-pagination-controls">
+                <button id="prevBtn">Anterior</button>
+                <div id="pageNumbers" class="guias-page-numbers"></div>
+                <button id="nextBtn">Siguiente</button>
+            </div>
+        </div>
+        <div id="guias-toast-container"></div>
+        <div id="guias-loading" class="guias-loading">
+            <div class="guias-loading-spinner"></div>
+            <span class="guias-loading-text">Cargando...</span>
+        </div>
+        <div id="guias-import-progress" class="guias-import-progress">
+            <div class="guias-progress-bar-container">
+                <div id="progressBar" class="guias-progress-bar"></div>
+            </div>
+            <span id="progressText" class="guias-progress-text">Importando: 0%</span>
+        </div>
+        <div id="viewModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="modalTitle">Detalles de la Guía</h2>
+                    <span class="close" id="closeViewModal">&times;</span>
+                </div>
+                <div class="modal-content-body">
+                    <div class="guias-guide-content" id="viewContent"></div>
+                    <div class="modal-buttons">
+                        <button id="closeViewBtn" class="modal-btn modal-btn-secondary">Cerrar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script type="module" src="guias.js"></script>
+</body>
+</html>

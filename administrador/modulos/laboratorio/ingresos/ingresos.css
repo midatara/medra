@@ -1,0 +1,606 @@
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    overflow: hidden;
+    font-size: 12px;
+}
+
+.ingresos-main-container {
+    width: 100%;
+    height: 100%;
+    background: white;
+    padding: 5px 20px 20px 20px;
+    box-sizing: border-box;
+    overflow-y: auto;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.ingresos-title {
+    text-align: start;
+    margin: 0 0 15px 0;
+    font-size: 18px;
+}
+
+.ingresos-fields-container {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 20px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.ingresos-search-section {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    flex: 1;
+}
+
+.ingresos-form-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+    max-width: 200px;
+}
+
+.ingresos-label {
+    font-size: 10px;
+    font-weight: bold;
+    color: #333;
+    white-space: nowrap;
+}
+
+#fechaIngreso, #numeroFactura, #fechaFactura, #monto, #ordenCompra, #acta, #salida, #fechaOc, #proveedor, #fechaSalida, 
+#buscarNumeroFactura, #buscarProveedor, #buscarOrdenCompra, #buscarActa, #buscarSalidas, #fechaDesde, #fechaHasta, 
+#selectAno, #selectMes, #editFechaIngreso, #editNumeroFactura, #editFechaFactura, #editMonto, #editOrdenCompra, 
+#editActa, #editSalida, #editFechaOc, #editProveedor, #editFechaSalida, #selectDownloadAno, #selectDownloadMes {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 11px;
+    box-sizing: border-box;
+}
+
+#fechaIngreso:focus, #numeroFactura:focus, #fechaFactura:focus, #monto:focus, #ordenCompra:focus, #acta:focus, 
+#salida:focus, #fechaOc:focus, #proveedor:focus, #fechaSalida:focus, #buscarNumeroFactura:focus, #buscarProveedor:focus, 
+#buscarOrdenCompra:focus, #buscarActa:focus, #buscarSalidas:focus, #fechaDesde:focus, #fechaHasta:focus, 
+#selectAno:focus, #selectMes:focus, #editFechaIngreso:focus, #editNumeroFactura:focus, #editFechaFactura:focus, 
+#editMonto:focus, #editOrdenCompra:focus, #editActa:focus, #editSalida:focus, #editFechaOc:focus, #editProveedor:focus, 
+#editFechaSalida:focus, #selectDownloadAno:focus, #selectDownloadMes:focus {
+    box-shadow: 0 0 12px rgba(0, 123, 255, 0.5);
+    outline: none;
+}
+
+#fechaOc, #proveedor, #editFechaOc, #editProveedor {
+    background-color: #f8f9fa;
+    cursor: not-allowed;
+}
+
+.ingresos-actions-menu {
+    position: relative;
+    text-align: right;
+}
+
+#actionsBtn {
+    background: none;
+    border: none;
+    color: #007bff;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 8px 16px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+#actionsBtn:hover {
+    color: #0056b3;
+    text-decoration: underline;
+}
+
+.ingresos-dropdown-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 100%;
+    background-color: white;
+    min-width: 200px;
+    box-shadow: 2px 8px 16px rgba(0,0,0,0.2);
+    z-index: 20; /* Actualizado para asegurar que el menú esté por encima del encabezado de la tabla */
+    border-radius: 4px;
+    overflow: hidden;
+    flex-direction: column;
+}
+
+.ingresos-dropdown-menu a {
+    color: black;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.ingresos-dropdown-menu a:hover {
+    background-color: #f1f1f1;
+}
+
+.menu-title {
+    background-color: #f8f9fa;
+    padding: 12px 16px;
+    font-size: 12px;
+    font-weight: bold;
+    border-bottom: 1px solid #ddd;
+}
+
+.ingresos-table-container {
+    width: 100%;
+    max-height: 500px;
+    overflow-y: auto;
+    overflow-x: auto;
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    flex-grow: 1;
+}
+
+.ingresos-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+    table-layout: fixed;
+}
+
+.ingresos-table th, .ingresos-table td {
+    padding: 4px;
+    text-align: left;
+    border: 1px solid #ddd;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ingresos-table th {
+    background-color: #f2f2f2;
+    font-size: 11px;
+    cursor: col-resize;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.ingresos-table th::after {
+    content: '';
+    position: absolute;
+    right: -5px;
+    top: 0;
+    width: 10px;
+    height: 100%;
+    cursor: col-resize;
+}
+
+.ingresos-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.ingresos-table th:nth-child(1), .ingresos-table td:nth-child(1) { width: 120px; min-width: 100px; max-width: 120px; }
+.ingresos-table th:nth-child(2), .ingresos-table td:nth-child(2) { width: 120px; min-width: 100px; max-width: 120px; }
+.ingresos-table th:nth-child(3), .ingresos-table td:nth-child(3) { width: 100px; min-width: 80px; max-width: 100px; }
+.ingresos-table th:nth-child(4), .ingresos-table td:nth-child(4) { width: 100px; min-width: 80px; max-width: 100px; }
+.ingresos-table th:nth-child(5), .ingresos-table td:nth-child(5) { width: 100px; min-width: 80px; max-width: 100px; }
+.ingresos-table th:nth-child(6), .ingresos-table td:nth-child(6) { width: 100px; min-width: 80px; max-width: 100px; }
+.ingresos-table th:nth-child(7), .ingresos-table td:nth-child(7) { width: 100px; min-width: 80px; max-width: 100px; }
+.ingresos-table th:nth-child(8), .ingresos-table td:nth-child(8) { width: 150px; min-width: 120px; max-width: 150px; }
+.ingresos-table th:nth-child(9), .ingresos-table td:nth-child(9) { width: 100px; min-width: 80px; max-width: 100px; }
+.ingresos-table th:nth-child(10), .ingresos-table td:nth-child(10) { width: 100px; min-width: 80px; max-width: 100px; }
+.ingresos-table th:nth-child(11), .ingresos-table td:nth-child(11) { width: 100px; min-width: 80px; max-width: 100px; }
+.ingresos-table th:nth-child(12), .ingresos-table td:nth-child(12) { width: 150px; min-width: 120px; max-width: 150px; }
+
+.resizing {
+    user-select: none;
+}
+
+.ingresos-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.ingresos-actions button {
+    padding: 4px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ingresos-btn-edit {
+    background-color: #ffc107;
+    color: #000;
+}
+
+.ingresos-btn-edit:hover {
+    background-color: #e0a800;
+}
+
+.ingresos-btn-delete {
+    background-color: #dc3545;
+    color: white;
+}
+
+.ingresos-btn-delete:hover {
+    background-color: #c82333;
+}
+
+.ingresos-btn-history {
+    background-color: #17a2b8;
+    color: white;
+}
+
+.ingresos-btn-history:hover {
+    background-color: #138496;
+}
+
+.ingresos-pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    flex-wrap: nowrap;
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+}
+
+.ingresos-pagination-info {
+    font-size: 11px;
+    flex: 1;
+    text-align: left;
+}
+
+.ingresos-pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-shrink: 0;
+}
+
+.ingresos-pagination-controls button {
+    padding: 6px 10px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+}
+
+.ingresos-pagination-controls button:hover:not(:disabled) {
+    background-color: #0056b3;
+}
+
+.ingresos-pagination-controls button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+.ingresos-page-numbers {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+.ingresos-page-numbers button {
+    padding: 4px 8px;
+    border: 1px solid #ddd;
+    background: white;
+    cursor: pointer;
+    font-size: 11px;
+    border-radius: 4px;
+    color: #333; /* Agregado para asegurar que el texto de botones no activos sea visible */
+}
+
+.ingresos-page-numbers button.active {
+    background-color: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.ingresos-page-numbers button:hover:not(.active) {
+    background-color: #f0f0f0;
+    color: #333; /* Agregado para mantener el texto visible en hover */
+}
+
+.ingresos-page-numbers .ingresos-dots {
+    padding: 4px;
+    cursor: default;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+#ingresos-message {
+    margin-bottom: 20px;
+    padding: 8px;
+    border-radius: 4px;
+    display: none;
+    font-size: 11px;
+}
+
+.ingresos-message-error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.ingresos-message-success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.ingresos-loading {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 120px;
+    height: 80px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    padding: 16px;
+    backdrop-filter: blur(8px);
+}
+
+.ingresos-loading.show {
+    display: flex;
+}
+
+.ingresos-loading-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid #e3f2fd;
+    border-top: 3px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.ingresos-loading-text {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #333;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.ingresos-import-progress {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.95);
+    padding: 16px;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    z-index: 1000;
+    width: 300px;
+    text-align: center;
+}
+
+.ingresos-import-progress.show {
+    display: block;
+}
+
+.ingresos-progress-bar-container {
+    width: 100%;
+    background: #f0f0f0;
+    border-radius: 4px;
+    overflow: hidden;
+    height: 20px;
+    margin-bottom: 8px;
+}
+
+.ingresos-progress-bar {
+    width: 0%;
+    height: 100%;
+    background: #007bff;
+    transition: width 0.3s ease;
+}
+
+.ingresos-progress-text {
+    font-size: 12px;
+    color: #333;
+}
+
+.ingresos-toast {
+    visibility: hidden;
+    min-width: 250px;
+    background-color: #333;
+    color: white;
+    text-align: center;
+    border-radius: 4px;
+    padding: 12px;
+    position: fixed;
+    z-index: 1000;
+    bottom: 20px;
+    right: 20px;
+    font-size: 12px;
+}
+
+.ingresos-toast.show {
+    visibility: visible;
+    animation: fadein 0.5s, fadeout 0.5s 4.5s;
+}
+
+.ingresos-toast.success {
+    background-color: #28a745;
+}
+
+.ingresos-toast.error {
+    background-color: #dc3545;
+}
+
+@keyframes fadein {
+    from { bottom: 0; opacity: 0; }
+    to { bottom: 20px; opacity: 1; }
+}
+
+@keyframes fadeout {
+    from { bottom: 20px; opacity: 1; }
+    to { bottom: 0; opacity: 0; }
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    overflow: auto;
+}
+
+.modal-content {
+    background-color: white;
+    margin: 5% auto;
+    padding: 20px;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 600px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover,
+.close:focus {
+    color: #000;
+    text-decoration: none;
+}
+
+.modal h2 {
+    margin-top: 0;
+    font-size: 16px;
+    color: #333;
+}
+
+.modal-form-group {
+    margin-bottom: 12px;
+}
+
+.modal-form-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: bold;
+    margin-bottom: 4px;
+    color: #333;
+}
+
+.modal-form-group input,
+.modal-form-group select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 11px;
+    box-sizing: border-box;
+}
+
+.modal-form-group input:focus,
+.modal-form-group select:focus {
+    box-shadow: 0 0 12px rgba(0, 123, 255, 0.5);
+    outline: none;
+}
+
+.modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.modal-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.modal-btn-primary {
+    background-color: #007bff;
+    color: white;
+}
+
+.modal-btn-primary:hover {
+    background-color: #0056b3;
+}
+
+.modal-btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.modal-btn-secondary:hover {
+    background-color: #5a6268;
+}
+
+.modal-btn-danger {
+    background-color: #dc3545;
+    color: white;
+}
+
+.modal-btn-danger:hover {
+    background-color: #c82333;
+}
+
+.delete-modal-text {
+    font-size: 12px;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.history-entry {
+    font-size: 11px;
+    padding: 8px 0;
+    border-bottom: 1px solid #ddd;
+}
+
+.history-entry:last-child {
+    border-bottom: none;
+}

@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Referencias</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="referencias.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+        import { getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+        import { getFirestore, collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc, orderBy, getDoc, limit, startAfter, endBefore } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+        window.firebaseModules = { 
+            initializeApp, 
+            getAuth, 
+            onAuthStateChanged, 
+            setPersistence, 
+            browserSessionPersistence, 
+            getFirestore, 
+            collection, 
+            addDoc, 
+            getDocs, 
+            query, 
+            where, 
+            doc, 
+            updateDoc, 
+            deleteDoc, 
+            orderBy, 
+            getDoc, 
+            limit, 
+            startAfter, 
+            endBefore 
+        };
+    </script>
+    <script type="module" src="referencias.js"></script>
+</head>
+<body>
+    <div class="referencias-main-container">
+        <h1 class="referencias-title">Registro de Referencias</h1>
+
+        <div id="referencias-message"></div>
+
+        <div class="referencias-form-type">
+            <label><input type="radio" name="formType" value="newCode" checked> Crear nuevo código</label>
+            <label><input type="radio" name="formType" value="existingCode"> Usar código existente</label>
+        </div>
+
+        <div id="newCodeForm" class="referencias-fields-container">
+            <div class="referencias-form-group">
+                <label for="referencia" class="referencias-label">Referencia:</label>
+                <input type="text" id="referencia" autocomplete="off">
+            </div>
+            <div class="referencias-form-group">
+                <label for="detalles" class="referencias-label">Detalles:</label>
+                <input type="text" id="detalles" autocomplete="off">
+            </div>
+            <div class="referencias-form-group">
+                <label for="precioUnitario" class="referencias-label">Precio Unitario:</label>
+                <input type="text" id="precioUnitario" autocomplete="off">
+            </div>
+            <div class="referencias-form-group">
+                <label for="proveedor" class="referencias-label">Proveedor:</label>
+                <div class="referencias-autocomplete">
+                    <input type="text" id="proveedor" autocomplete="off">
+                    <span class="referencias-icon" id="proveedorIcon"><i class="fas fa-chevron-down"></i></span>
+                    <div class="referencias-autocomplete-list" id="proveedorList"></div>
+                </div>
+            </div>
+            <div class="referencias-form-group">
+                <label for="descripcion" class="referencias-label">Descripción:</label>
+                <input type="text" id="descripcion" readonly autocomplete="off">
+            </div>
+            <div class="referencias-form-group">
+                <label for="tipo" class="referencias-label">Tipo:</label>
+                <select id="tipo" autocomplete="off">
+                    <option value="IMPLANTES">IMPLANTES</option>
+                    <option value="INSUMO">INSUMO</option>
+                </select>
+            </div>
+            <div class="referencias-form-group">
+                <label for="atributo" class="referencias-label">Atributo:</label>
+                <select id="atributo" autocomplete="off">
+                    <option value="COTIZACION">COTIZACION</option>
+                    <option value="CONSIGNACION">CONSIGNACION</option>
+                </select>
+            </div>
+            <button id="ingresarNewCodeBtn" class="modal-btn modal-btn-primary">Ingresar</button>
+        </div>
+
+        <div id="existingCodeForm" class="referencias-fields-container" style="display: none;">
+            <div class="referencias-form-group">
+                <label for="existReferencia" class="referencias-label">Referencia:</label>
+                <input type="text" id="existReferencia" autocomplete="off">
+            </div>
+            <div class="referencias-form-group">
+                <label for="existDetalles" class="referencias-label">Detalles:</label>
+                <input type="text" id="existDetalles" autocomplete="off">
+            </div>
+            <div class="referencias-form-group">
+                <label for="existPrecioUnitario" class="referencias-label">Precio Unitario:</label>
+                <input type="text" id="existPrecioUnitario" autocomplete="off">
+            </div>
+            <div class="referencias-form-group">
+                <label for="existCodigo" class="referencias-label">Código:</label>
+                <input type="text" id="existCodigo" autocomplete="off">
+            </div>
+            <div class="referencias-form-group">
+                <label for="existProveedor" class="referencias-label">Proveedor:</label>
+                <div class="referencias-autocomplete">
+                    <input type="text" id="existProveedor" autocomplete="off">
+                    <span class="referencias-icon" id="existProveedorIcon"><i class="fas fa-chevron-down"></i></span>
+                    <div class="referencias-autocomplete-list" id="existProveedorList"></div>
+                </div>
+            </div>
+            <div class="referencias-form-group">
+                <label for="existDescripcion" class="referencias-label">Descripción:</label>
+                <input type="text" id="existDescripcion" autocomplete="off">
+            </div>
+            <div class="referencias-form-group">
+                <label for="existTipo" class="referencias-label">Tipo:</label>
+                <select id="existTipo" autocomplete="off">
+                    <option value="IMPLANTES">IMPLANTES</option>
+                    <option value="INSUMO">INSUMO</option>
+                </select>
+            </div>
+            <div class="referencias-form-group">
+                <label for="existAtributo" class="referencias-label">Atributo:</label>
+                <select id="existAtributo" autocomplete="off">
+                    <option value="COTIZACION">COTIZACION</option>
+                    <option value="CONSIGNACION">CONSIGNACION</option>
+                </select>
+            </div>
+            <button id="ingresarExistingCodeBtn" class="modal-btn modal-btn-primary">Ingresar</button>
+        </div>
+
+        <div class="referencias-fields-container">
+            <div class="referencias-form-group">
+                <label for="buscarReferencia" class="referencias-label">Buscar Referencia:</label>
+                <input type="text" id="buscarReferencia" placeholder="Buscar por referencia" autocomplete="off">
+            </div>
+            <div class="referencias-form-group">
+                <label for="buscarCodigo" class="referencias-label">Buscar Código:</label>
+                <input type="text" id="buscarCodigo" placeholder="Buscar por código" autocomplete="off">
+            </div>
+            <div class="referencias-form-group">
+                <label for="buscarDescripcion" class="referencias-label">Buscar Descripción:</label>
+                <input type="text" id="buscarDescripcion" placeholder="Buscar por descripción" autocomplete="off">
+            </div>
+            <div class="referencias-form-group">
+                <label for="buscarDetalles" class="referencias-label">Buscar Detalles:</label>
+                <input type="text" id="buscarDetalles" placeholder="Buscar por detalles" autocomplete="off">
+            </div>
+            <div class="referencias-form-group">
+                <label for="buscarProveedor" class="referencias-label">Buscar Proveedor:</label>
+                <input type="text" id="buscarProveedor" placeholder="Buscar por proveedor" autocomplete="off">
+            </div>
+            <div class="referencias-form-group">
+                <label for="buscarTipo" class="referencias-label">Buscar Tipo:</label>
+                <select id="buscarTipo" autocomplete="off">
+                    <option value="">Todos</option>
+                    <option value="IMPLANTES">IMPLANTES</option>
+                    <option value="INSUMO">INSUMO</option>
+                </select>
+            </div>
+            <div class="referencias-form-group">
+                <label for="buscarAtributo" class="referencias-label">Buscar Atributo:</label>
+                <select id="buscarAtributo" autocomplete="off">
+                    <option value="">Todos</option>
+                    <option value="COTIZACION">COTIZACION</option>
+                    <option value="CONSIGNACION">CONSIGNACION</option>
+                </select>
+            </div>
+            <div class="referencias-form-group">
+                <label><input type="checkbox" id="mostrarPendientes"> Mostrar solo códigos pendientes</label>
+            </div>
+            <div class="referencias-actions-menu">
+                <button id="actionsBtn"><i class="fas fa-angle-down"></i> Acciones</button>
+                <div id="actionsMenu" class="referencias-dropdown-menu">
+                    <div class="menu-title"><i class="fas fa-angle-down"></i> Acciones</div>
+                    <a href="#" id="downloadTemplate">Formato de importación</a>
+                    <a href="#" id="importExcel">Importar Excel</a>
+                    <a href="#" id="downloadAll">Descargar todos los registros</a>
+                    <a href="#" id="downloadPage">Descargar hoja actual</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="referencias-table-container">
+            <table id="referenciasTable" class="referencias-table">
+                <thead>
+                    <tr>
+                        <th>Acciones</th>
+                        <th>Referencia</th>
+                        <th>Detalles</th>
+                        <th>Precio Unitario</th>
+                        <th>Código</th>
+                        <th>Proveedor</th>
+                        <th>Descripción</th>
+                        <th>Tipo</th>
+                        <th>Atributo</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody id="referenciasBody">
+                </tbody>
+            </table>
+        </div>
+
+        <div class="referencias-pagination" id="pagination">
+            <div class="referencias-pagination-info" id="paginationInfo"></div>
+            <div class="referencias-pagination-controls">
+                <button id="prevBtn">Anterior</button>
+                <div class="referencias-page-numbers" id="pageNumbers"></div>
+                <button id="nextBtn">Siguiente</button>
+            </div>
+        </div>
+
+        <input type="file" id="fileUpload" style="display:none;" accept=".xlsx, .xls">
+
+        <div id="referencias-loading" class="referencias-loading">
+            <div class="referencias-loading-spinner"></div>
+            <div class="referencias-loading-text">Procesando...</div>
+        </div>
+
+        <div id="referencias-import-progress" class="referencias-import-progress">
+            <div class="referencias-progress-bar-container">
+                <div id="progressBar" class="referencias-progress-bar"></div>
+            </div>
+            <div id="progressText" class="referencias-progress-text">Importando: 0%</div>
+        </div>
+
+        <div id="referencias-toast-container" class="referencias-toast-container"></div>
+
+        <div id="editModal" class="modal">
+            <div class="modal-content">
+                <span class="close" id="closeEditModal">&times;</span>
+                <h2>Editar Referencia</h2>
+                <form id="editForm">
+                    <input type="hidden" id="editId" autocomplete="off">
+                    <div class="modal-form-group">
+                        <label for="editReferencia">Referencia:</label>
+                        <input type="text" id="editReferencia" required autocomplete="off">
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="editDetalles">Detalles:</label>
+                        <input type="text" id="editDetalles" required autocomplete="off">
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="editPrecioUnitario">Precio Unitario:</label>
+                        <input type="text" id="editPrecioUnitario" autocomplete="off">
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="editCodigo">Código:</label>
+                        <input type="text" id="editCodigo" autocomplete="off">
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="editProveedor">Proveedor:</label>
+                        <div class="referencias-autocomplete">
+                            <input type="text" id="editProveedor" autocomplete="off">
+                            <span class="referencias-icon" id="editProveedorIcon"><i class="fas fa-chevron-down"></i></span>
+                            <div class="referencias-autocomplete-list" id="editProveedorList"></div>
+                        </div>
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="editDescripcion">Descripción:</label>
+                        <input type="text" id="editDescripcion" autocomplete="off">
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="editTipo">Tipo:</label>
+                        <select id="editTipo" autocomplete="off">
+                            <option value="IMPLANTES">IMPLANTES</option>
+                            <option value="INSUMO">INSUMO</option>
+                        </select>
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="editAtributo">Atributo:</label>
+                        <select id="editAtributo" autocomplete="off">
+                            <option value="COTIZACION">COTIZACION</option>
+                            <option value="CONSIGNACION">CONSIGNACION</option>
+                        </select>
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="editEstado">Estado:</label>
+                        <select id="editEstado" autocomplete="off">
+                            <option value="ACTIVO">ACTIVO</option>
+                            <option value="INACTIVO">INACTIVO</option>
+                        </select>
+                    </div>
+                    <div class="modal-buttons">
+                        <button type="button" class="modal-btn modal-btn-secondary" id="cancelEdit">Cancelar</button>
+                        <button type="submit" class="modal-btn modal-btn-primary">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="deleteModal" class="modal">
+            <div class="modal-content">
+                <span class="close" id="closeDeleteModal">&times;</span>
+                <h2>Eliminar Referencia</h2>
+                <p class="delete-modal-text" id="deleteText"></p>
+                <div class="modal-buttons">
+                    <button type="button" class="modal-btn modal-btn-secondary" id="cancelDelete">No</button>
+                    <button type="button" class="modal-btn modal-btn-danger" id="confirmDelete">Sí</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="historyModal" class="modal">
+            <div class="modal-content">
+                <span class="close" id="closeHistory">&times;</span>
+                <h2 id="historyTitle">HISTORIAL REFERENCIA</h2>
+                <hr>
+                <div id="historyContent"></div>
+                <div class="modal-buttons">
+                    <button type="button" class="modal-btn modal-btn-secondary" id="closeHistoryBtn">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

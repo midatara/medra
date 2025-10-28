@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mantenedor de Implantes</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="mantenedor.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+        import { getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+        import { getFirestore, collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc, orderBy, getDoc, limit, startAfter, endBefore } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+        window.firebaseModules = { 
+            initializeApp, 
+            getAuth, 
+            onAuthStateChanged, 
+            setPersistence, 
+            browserSessionPersistence, 
+            getFirestore, 
+            collection, 
+            addDoc, 
+            getDocs, 
+            query, 
+            where, 
+            doc, 
+            updateDoc, 
+            deleteDoc, 
+            orderBy, 
+            getDoc, 
+            limit, 
+            startAfter, 
+            endBefore 
+        };
+    </script>
+    <script type="module" src="mantenedor.js"></script>
+</head>
+<body>
+    <div class="mantenedor-main-container">
+        <h1 class="mantenedor-title">Mantenedor de Implantes</h1>
+
+        <div id="mantenedor-message"></div>
+
+        <div id="mantenedorForm" class="mantenedor-fields-container">
+            <div class="mantenedor-form-group">
+                <label for="referencia" class="mantenedor-label">Referencia:</label>
+                <div class="mantenedor-autocomplete">
+                    <input type="text" id="referencia" autocomplete="off">
+                    <span class="mantenedor-icon" id="referenciaIcon"><i class="fas fa-chevron-down"></i></span>
+                    <div class="mantenedor-autocomplete-list" id="referenciaList"></div>
+                </div>
+            </div>
+            <div class="mantenedor-form-group">
+                <label for="descripcion" class="mantenedor-label">Descripción:</label>
+                <div class="mantenedor-autocomplete">
+                    <input type="text" id="descripcion" autocomplete="off">
+                    <span class="mantenedor-icon" id="descripcionIcon"><i class="fas fa-chevron-down"></i></span>
+                    <div class="mantenedor-autocomplete-list" id="descripcionList"></div>
+                </div>
+            </div>
+            <div class="mantenedor-form-group">
+                <label for="precio" class="mantenedor-label">Precio:</label>
+                <input type="text" id="precio" readonly autocomplete="off">
+            </div>
+            <div class="mantenedor-form-group">
+                <label for="codigo" class="mantenedor-label">Código:</label>
+                <input type="text" id="codigo" readonly autocomplete="off">
+            </div>
+            <div class="mantenedor-form-group">
+                <label for="proveedor" class="mantenedor-label">Proveedor:</label>
+                <input type="text" id="proveedor" readonly autocomplete="off">
+            </div>
+            <div class="mantenedor-form-group">
+                <label for="tipo" class="mantenedor-label">Tipo:</label>
+                <input type="text" id="tipo" readonly autocomplete="off">
+            </div>
+            <div class="mantenedor-form-group">
+                <label for="atributo" class="mantenedor-label">Atributo:</label>
+                <input type="text" id="atributo" readonly autocomplete="off">
+            </div>
+            <button id="ingresarBtn" class="modal-btn modal-btn-primary">Ingresar</button>
+        </div>
+
+        <div class="mantenedor-fields-container">
+            <div class="mantenedor-form-group">
+                <label for="buscarReferencia" class="mantenedor-label">Buscar Referencia:</label>
+                <input type="text" id="buscarReferencia" placeholder="Buscar por referencia" autocomplete="off">
+            </div>
+            <div class="mantenedor-form-group">
+                <label for="buscarDescripcion" class="mantenedor-label">Buscar Descripción:</label>
+                <input type="text" id="buscarDescripcion" placeholder="Buscar por descripción" autocomplete="off">
+            </div>
+            <div class="mantenedor-form-group">
+                <label for="buscarProveedor" class="mantenedor-label">Buscar Proveedor:</label>
+                <input type="text" id="buscarProveedor" placeholder="Buscar por proveedor" autocomplete="off">
+            </div>
+            <div class="mantenedor-form-group">
+                <label for="buscarTipo" class="mantenedor-label">Buscar Tipo:</label>
+                <select id="buscarTipo" autocomplete="off">
+                    <option value="">Todos</option>
+                    <option value="IMPLANTES">IMPLANTES</option>
+                    <option value="INSUMO">INSUMO</option>
+                </select>
+            </div>
+            <div class="mantenedor-form-group">
+                <label for="buscarAtributo" class="mantenedor-label">Buscar Atributo:</label>
+                <select id="buscarAtributo" autocomplete="off">
+                    <option value="">Todos</option>
+                    <option value="COTIZACION">COTIZACION</option>
+                    <option value="CONSIGNACION">CONSIGNACION</option>
+                </select>
+            </div>
+            <div class="mantenedor-actions-menu">
+                <button id="actionsBtn"><i class="fas fa-angle-down"></i> Acciones</button>
+                <div id="actionsMenu" class="mantenedor-dropdown-menu">
+                    <div class="menu-title"><i class="fas fa-angle-down"></i> Acciones</div>
+                    <a href="#" id="downloadTemplate">Formato de importación</a>
+                    <a href="#" id="importExcel">Importar Excel</a>
+                    <a href="#" id="downloadAll">Descargar todos los registros</a>
+                    <a href="#" id="downloadPage">Descargar hoja actual</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="mantenedor-table-container">
+            <table id="mantenedorTable" class="mantenedor-table">
+                <thead>
+                    <tr>
+                        <th>Acciones</th>
+                        <th>Referencia</th>
+                        <th>Descripción</th>
+                        <th>Precio</th>
+                        <th>Cantidades</th>
+                        <th>Total</th>
+                        <th>Código</th>
+                        <th>Proveedor</th>
+                        <th>Tipo</th>
+                        <th>Atributo</th>
+                    </tr>
+                </thead>
+                <tbody id="mantenedorBody">
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mantenedor-pagination" id="pagination">
+            <div class="mantenedor-pagination-info" id="paginationInfo"></div>
+            <div class="mantenedor-pagination-controls">
+                <button id="prevBtn">Anterior</button>
+                <div class="mantenedor-page-numbers" id="pageNumbers"></div>
+                <button id="nextBtn">Siguiente</button>
+            </div>
+        </div>
+
+        <input type="file" id="fileUpload" style="display:none;" accept=".xlsx, .xls">
+
+        <div id="mantenedor-loading" class="mantenedor-loading">
+            <div class="mantenedor-loading-spinner"></div>
+            <div class="mantenedor-loading-text">Procesando...</div>
+        </div>
+
+        <div id="mantenedor-import-progress" class="mantenedor-import-progress">
+            <div class="mantenedor-progress-bar-container">
+                <div id="progressBar" class="mantenedor-progress-bar"></div>
+            </div>
+            <div id="progressText" class="mantenedor-progress-text">Importando: 0%</div>
+        </div>
+
+        <div id="mantenedor-toast-container" class="mantenedor-toast-container"></div>
+
+        <div id="editModal" class="modal">
+            <div class="modal-content">
+                <span class="close" id="closeEditModal">&times;</span>
+                <h2>Editar Registro</h2>
+                <form id="editForm">
+                    <input type="hidden" id="editId" autocomplete="off">
+                    <div class="modal-form-group">
+                        <label for="editReferencia">Referencia:</label>
+                        <div class="mantenedor-autocomplete">
+                            <input type="text" id="editReferencia" required autocomplete="off">
+                            <span class="mantenedor-icon" id="editReferenciaIcon"><i class="fas fa-chevron-down"></i></span>
+                            <div class="mantenedor-autocomplete-list" id="editReferenciaList"></div>
+                        </div>
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="editDescripcion">Descripción:</label>
+                        <div class="mantenedor-autocomplete">
+                            <input type="text" id="editDescripcion" required autocomplete="off">
+                            <span class="mantenedor-icon" id="editDescripcionIcon"><i class="fas fa-chevron-down"></i></span>
+                            <div class="mantenedor-autocomplete-list" id="editDescripcionList"></div>
+                        </div>
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="editPrecio">Precio:</label>
+                        <input type="text" id="editPrecio" readonly autocomplete="off">
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="editCodigo">Código:</label>
+                        <input type="text" id="editCodigo" readonly autocomplete="off">
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="editProveedor">Proveedor:</label>
+                        <input type="text" id="editProveedor" readonly autocomplete="off">
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="editTipo">Tipo:</label>
+                        <input type="text" id="editTipo" readonly autocomplete="off">
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="editAtributo">Atributo:</label>
+                        <input type="text" id="editAtributo" readonly autocomplete="off">
+                    </div>
+                    <div class="modal-buttons">
+                        <button type="button" class="modal-btn modal-btn-secondary" id="cancelEdit">Cancelar</button>
+                        <button type="submit" class="modal-btn modal-btn-primary">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="deleteModal" class="modal">
+            <div class="modal-content">
+                <span class="close" id="closeDeleteModal">&times;</span>
+                <h2>Eliminar Registro</h2>
+                <p class="delete-modal-text" id="deleteText"></p>
+                <div class="modal-buttons">
+                    <button type="button" class="modal-btn modal-btn-secondary" id="cancelDelete">No</button>
+                    <button type="button" class="modal-btn modal-btn-danger" id="confirmDelete">Sí</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="historyModal" class="modal">
+            <div class="modal-content">
+                <span class="close" id="closeHistory">&times;</span>
+                <h2 id="historyTitle">HISTORIAL REGISTRO</h2>
+                <hr>
+                <div id="historyContent"></div>
+                <div class="modal-buttons">
+                    <button type="button" class="modal-btn modal-btn-secondary" id="closeHistoryBtn">Cerrar</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="addSubRowModal" class="modal">
+            <div class="modal-content">
+                <span class="close" id="closeAddSubRowModal">&times;</span>
+                <h2>Agregar Subfila</h2>
+                <form id="addSubRowForm">
+                    <input type="hidden" id="addSubRowMainId" autocomplete="off">
+                    <div class="modal-form-group">
+                        <label for="addSubRowLote">Lote:</label>
+                        <input type="text" id="addSubRowLote" required autocomplete="off">
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="addSubRowFechaVencimiento">Fecha de Vencimiento:</label>
+                        <input type="date" id="addSubRowFechaVencimiento" required autocomplete="off">
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="addSubRowCantidad">Cantidad:</label>
+                        <input type="number" id="addSubRowCantidad" min="0" required autocomplete="off">
+                    </div>
+                    <div class="modal-buttons">
+                        <button type="button" class="modal-btn modal-btn-secondary" id="cancelAddSubRow">Cancelar</button>
+                        <button type="submit" class="modal-btn modal-btn-primary">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
