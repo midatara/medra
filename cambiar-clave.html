@@ -4,45 +4,124 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cambiar Clave - Medra</title>
-    <link rel="icon" href="img/logo-principal/favicon.ico">
+    <link rel="icon" href="img/logo-principal/favicon.ico" type="image/x-icon">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { margin: 0; font-family: Arial; text-align: center; background: white; }
-        .header { background: #3A5795; color: white; padding: 15px; font-weight: bold; font-size: 20px; }
-        .panel { width: 500px; margin: 50px auto; padding: 30px; border: 1px solid #ccc; border-radius: 5px; background: white; }
-        .form-group { margin-bottom: 15px; text-align: left; }
-        .input-wrapper { position: relative; }
-        .input-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #aaa; }
-        input { width: 100%; padding: 8px 8px 8px 45px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        .btn { width: 100%; padding: 10px; background: #0d83d1; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px; }
-        .btn:disabled { background: #ccc; cursor: not-allowed; }
-        #message { margin-top: 15px; padding: 10px; border-radius: 4px; display: none; }
-        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        .back-link { margin-top: 20px; display: block; color: #3A5795; font-size: 14px; text-decoration: none; }
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: white;
+        }
+        .header {
+            background-color: #3A5795;
+            color: white;
+            padding: 15px 0;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        .panel {
+            width: 500px;
+            margin: 50px auto;
+            padding: 30px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: white;
+        }
+        .panel h2 {
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px 10px 10px 40px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .input-wrapper {
+            position: relative;
+        }
+        .input-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #aaa;
+            font-size: 16px;
+            pointer-events: none;
+        }
+        .btn {
+            width: 100%;
+            padding: 10px;
+            background-color: #0d83d1;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .btn:hover:not(:disabled) {
+            background-color: #0c72b1;
+        }
+        .btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        #message {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 4px;
+            display: none;
+        }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .loading { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .back-link {
+            margin-top: 20px;
+            display: block;
+            color: #3A5795;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
-    <div class="header">Medra - Cambiar Clave</div>
+    <div class="header">Mi Datara - Medra</div>
     <div class="panel">
         <h2>Recuperar Acceso</h2>
-        <form id="emailForm">
+        <p>Ingresa tu correo electrónico y te enviaremos un enlace para restablecer tu clave.</p>
+        
+        <form id="resetForm">
             <div class="form-group">
-                <label>Correo Registrado</label>
+                <label for="email">Correo Electrónico</label>
                 <div class="input-wrapper">
                     <i class="fas fa-envelope input-icon"></i>
-                    <input type="email" id="email" placeholder="tucorreo@midatara.com" required>
+                    <input type="email" id="email" name="email" placeholder="tu@correo.com" required>
                 </div>
             </div>
-            <button type="submit" class="btn" id="btn" disabled>Enviar Enlace</button>
+            <button type="submit" class="btn" id="resetBtn">Enviar Enlace</button>
         </form>
+
         <div id="message"></div>
         <a href="index.html" class="back-link">Volver al inicio</a>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
-        import { getAuth, verifyPasswordResetCode } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
+        import { getAuth, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
@@ -50,58 +129,51 @@
             projectId: "datara-salud",
             storageBucket: "datara-salud.firebasestorage.app",
             messagingSenderId: "198886910481",
-            appId: "1:198886910481:web:abbc345203a423a6329fb0"
+            appId: "1:198886910481:web:abbc345203a423a6329fb0",
+            measurementId: "G-MLYVTZPPLD"
         };
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
 
-        const emailInput = document.getElementById('email');
-        const btn = document.getElementById('btn');
+        const form = document.getElementById('resetForm');
         const message = document.getElementById('message');
+        const resetBtn = document.getElementById('resetBtn');
 
-        emailInput.addEventListener('input', () => {
-            btn.disabled = !/^[\w.-]+@[\w.-]+\.\w+$/.test(emailInput.value);
-        });
-
-        document.getElementById('emailForm').addEventListener('submit', async (e) => {
+        form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const email = emailInput.value.trim();
+            const email = document.getElementById('email').value.trim();
 
-            btn.disabled = true;
-            btn.textContent = 'Generando...';
-            showMessage('Generando enlace seguro...', 'loading');
+            if (!email) {
+                showMessage('Por favor ingresa tu correo.', 'error');
+                return;
+            }
+
+            resetBtn.disabled = true;
+            resetBtn.textContent = 'Enviando...';
+            showMessage('Enviando enlace de recuperación...', 'loading');
 
             try {
-                // Generar oobCode con Firebase
-                const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${firebaseConfig.apiKey}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        requestType: "PASSWORD_RESET",
-                        email: email
-                    })
-                });
-
-                if (!response.ok) throw new Error('Correo no registrado');
-
-                // Extraer oobCode del correo (Firebase no lo devuelve directamente)
-                // Usamos un truco: redirigir a una URL temporal y capturar
-                const tempUrl = `https://medra.midatara.com/temp.html?email=${encodeURIComponent(email)}`;
-                await sendPasswordResetEmail(auth, email, { url: tempUrl });
-
-                showMessage(`Enlace enviado a <strong>${email}</strong>`, 'success');
-                setTimeout(() => location.href = 'index.html', 3000);
-
-            } catch (err) {
-                showMessage('Correo no registrado', 'error');
-                btn.disabled = false;
-                btn.textContent = 'Enviar Enlace';
+                await sendPasswordResetEmail(auth, email);
+                showMessage('¡Enlace enviado! Revisa tu correo (incluye spam).', 'success');
+                form.reset();
+            } catch (error) {
+                console.error('Error:', error);
+                let msg = 'Error al enviar el enlace.';
+                if (error.code === 'auth/user-not-found') {
+                    msg = 'No existe una cuenta con este correo.';
+                } else if (error.code === 'auth/invalid-email') {
+                    msg = 'Correo inválido.';
+                }
+                showMessage(msg, 'error');
+            } finally {
+                resetBtn.disabled = false;
+                resetBtn.textContent = 'Enviar Enlace';
             }
         });
 
         function showMessage(text, type) {
-            message.innerHTML = text;
+            message.textContent = text;
             message.className = type;
             message.style.display = 'block';
         }
