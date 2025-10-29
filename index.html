@@ -12,6 +12,9 @@
             font-family: Arial, sans-serif;
             text-align: center;
             background-color: white;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
         }
         .header {
             background-color: #3A5795;
@@ -27,6 +30,7 @@
             border: 1px solid #ccc;
             border-radius: 5px;
             background-color: white;
+            flex: 1;
         }
         .login-panel h2 {
             margin-bottom: 20px;
@@ -128,10 +132,28 @@
             color: #0c5460;
             border: 1px solid #bee5eb;
         }
+
+        /* Footer */
+        .footer {
+            background-color: #f8f9fa;
+            color: #6c757d;
+            font-size: 12px;
+            padding: 15px 20px;
+            text-align: center;
+            border-top: 1px solid #e9ecef;
+            margin-top: auto;
+        }
+        .footer a {
+            color: #3A5795;
+            text-decoration: none;
+        }
+        .footer a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
-    <div class="header">Mi Datara - Medra</div>
+    <div class="header">Medra</div>
     <div class="login-panel">
         <h2>Ingrese a Medra</h2>
         <form id="loginForm">
@@ -158,6 +180,11 @@
         </form>
         <div id="message"></div>
     </div>
+
+    <!-- Pie de página -->
+    <footer class="footer">
+        © 2025 Medra de Mi Datara · Real Agency | Transformando datos en realidades digitales | <a href="#">Contacto</a>
+    </footer>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
