@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,21 +8,100 @@
     <link rel="icon" href="img/logo-principal/favicon.ico">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { margin: 0; font-family: Arial; text-align: center; background: white; }
-        .header { background: #3A5795; color: white; padding: 15px; font-weight: bold; font-size: 20px; }
-        .panel { width: 500px; margin: 50px auto; padding: 30px; border: 1px solid #ccc; border-radius: 5px; background: white; }
-        .form-group { margin-bottom: 15px; text-align: left; }
-        .input-wrapper { position: relative; }
-        .input-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #aaa; }
-        input { width: 100%; padding: 8px 8px 8px 45px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        .btn { width: 100%; padding: 10px; background: #0d83d1; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px; }
-        .btn:disabled { background: #ccc; cursor: not-allowed; }
-        #message { margin-top: 15px; padding: 10px; border-radius: 4px; display: none; }
-        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        .back-link { margin-top: 20px; display: block; color: #3A5795; font-size: 14px; text-decoration: none; }
+        body {
+            margin: 0;
+            font-family: Arial;
+            text-align: center;
+            background: white;
+        }
+
+        .header {
+            background: #3A5795;
+            color: white;
+            padding: 15px;
+            font-weight: bold;
+            font-size: 20px;
+        }
+
+        .panel {
+            width: 500px;
+            margin: 50px auto;
+            padding: 30px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background: white;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #aaa;
+        }
+
+        input {
+            width: 100%;
+            padding: 8px 8px 8px 45px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 10px;
+            background: #0d83d1;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        #message {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .back-link {
+            margin-top: 20px;
+            display: block;
+            color: #3A5795;
+            font-size: 14px;
+            text-decoration: none;
+        }
     </style>
 </head>
+
 <body>
     <div class="header">Medra - Cambiar Clave</div>
     <div class="panel">
@@ -43,7 +123,6 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
         import { getAuth, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
-        import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
@@ -51,39 +130,29 @@
             projectId: "datara-salud",
             storageBucket: "datara-salud.firebasestorage.app",
             messagingSenderId: "198886910481",
-            appId: "1:198886910481:web:abbc345203a423a6329fb0",
-            measurementId: "G-MLYVTZPPLD"
+            appId: "1:198886910481:web:abbc345203a423a6329fb0"
         };
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        const db = getFirestore(app);
 
         const emailInput = document.getElementById('email');
         const btn = document.getElementById('btn');
         const message = document.getElementById('message');
 
-        // Habilitar botón
         emailInput.addEventListener('input', () => {
             btn.disabled = !/^[\w.-]+@[\w.-]+\.\w+$/.test(emailInput.value);
         });
 
-        // Enviar enlace
         document.getElementById('emailForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = emailInput.value.trim();
 
             btn.disabled = true;
             btn.textContent = 'Enviando...';
-            showMessage('Verificando...', 'loading');
+            showMessage('Enviando enlace...', 'loading');
 
             try {
-                // Verificar en Firestore
-                const q = query(collection(db, 'users'), where('email', '==', email));
-                const snap = await getDocs(q);
-                if (snap.empty) throw new Error('Correo no registrado');
-
-                // Enviar enlace desde noreply@midatara.com
                 await sendPasswordResetEmail(auth, email, {
                     url: 'https://midatara.com/index.html'
                 });
@@ -92,7 +161,13 @@
                 setTimeout(() => location.href = 'index.html', 3000);
 
             } catch (err) {
-                showMessage(err.message, 'error');
+                if (err.code === 'auth/user-not-found') {
+                    showMessage('Correo no registrado', 'error');
+                } else if (err.code === 'auth/unauthorized-continue-uri') {
+                    showMessage('Dominio no autorizado. Contacta al admin.', 'error');
+                } else {
+                    showMessage('Error: ' + err.message, 'error');
+                }
                 btn.disabled = false;
                 btn.textContent = 'Enviar Enlace';
             }
@@ -103,6 +178,12 @@
             message.className = type;
             message.style.display = 'block';
         }
+
+        // OCULTAR CONSOLA EN PRODUCCIÓN
+        if (window.location.hostname !== 'localhost') {
+            console.log = console.warn = console.error = () => { };
+        }
     </script>
 </body>
+
 </html>
