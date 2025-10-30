@@ -564,15 +564,14 @@ async function validateAdmisionCodigo(admision, codigo, excludeId = null) {
 
         if (querySnapshot.empty) return null;
 
-        // Si hay resultados, revisa si es el mismo registro (en edición)
         for (const doc of querySnapshot.docs) {
             if (excludeId && doc.id === excludeId) {
-                continue; // Es el mismo registro → permitido
+                continue; 
             }
             return { id: doc.id, ...doc.data() };
         }
 
-        return null; // No hay duplicados
+        return null; 
     } catch (error) {
         console.error('Error validando admision + código:', error);
         return null;
