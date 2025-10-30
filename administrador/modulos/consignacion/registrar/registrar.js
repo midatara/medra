@@ -819,7 +819,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadRegistros(filters) {
         window.showLoading('loadRegistros');
         try {
-            let q = query(collection(db, "registrar_consignacion"), orderBy("timestamp", "desc"));
+            let q = query(collection(db, "registrar_consignacion"), orderBy("timestamp", "asc"));
             const conditions = [];
 
             console.log('Filtros aplicados:', JSON.stringify(filters, null, 2));
