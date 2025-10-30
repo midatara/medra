@@ -83,6 +83,15 @@ function formatNumberWithThousandsSeparator(number) {
     return cleaned ? Number(cleaned).toLocaleString('es-CL') : '';
 }
 
+// NUEVA FUNCIÓN: Convierte YYYY-MM-DD → DD-MM-YYYY sin problema de zona horaria
+function inputDateToDDMMYYYY(inputValue) {
+    if (!inputValue) return '';
+    const [year, month, day] = inputValue.split('-').map(Number);
+    if (!year || !month || !day) return '';
+    const d = new Date(year, month - 1, day);
+    return formatDateToDDMMYYYY(d);
+}
+
 async function getOrdenByCodigo(codigo) {
     if (!codigo || typeof codigo !== 'string') return null;
     const q = query(collection(db, "ordenes"), where("codigo", "==", codigo.trim()));
@@ -384,26 +393,21 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target === historyModal) closeHistoryModalHandler();
     });
 
+    // === EDITAR INGRESO (CORREGIDO) ===
     editForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         if (!currentEditId) return;
 
-        const toDDMMYYYY = (inputValue) => {
-            if (!inputValue) return '';
-            const d = new Date(inputValue);
-            return formatDateToDDMMYYYY(d);
-        };
-
         const processedRow = {
-            fechaIngreso: toDDMMYYYY(document.getElementById('editFechaIngreso').value),
+            fechaIngreso: inputDateToDDMMYYYY(document.getElementById('editFechaIngreso').value),
             numeroFactura: document.getElementById('editNumeroFactura').value.trim(),
-            fechaFactura: toDDMMYYYY(document.getElementById('editFechaFactura').value),
+            fechaFactura: inputDateToDDMMYYYY(document.getElementById('editFechaFactura').value),
             monto: document.getElementById('editMonto').value.replace(/[^\d]/g, ''),
             oc: document.getElementById('editOrdenCompra').value.trim(),
             fechaOc: document.getElementById('editFechaOc').value,
             proveedor: document.getElementById('editProveedor').value,
             acta: document.getElementById('editActa').value.trim(),
-            fechaSalida: toDDMMYYYY(document.getElementById('editFechaSalida').value),
+            fechaSalida: inputDateToDDMMYYYY(document.getElementById('editFechaSalida').value),
             salida: document.getElementById('editSalida').value.trim(),
             fullName: window.currentUserData.fullName
         };
@@ -732,6 +736,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // === NUEVO INGRESO (CORREGIDO) ===
     if (ingresarBtn) {
         ingresarBtn.addEventListener('click', async (e) => {
             e.preventDefault();
@@ -745,15 +750,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const processedRow = {
-                fechaIngreso: formatDateToDDMMYYYY(fechaIngresoRaw),
+                fechaIngreso: inputDateToDDMMYYYY(fechaIngresoRaw),
                 numeroFactura,
-                fechaFactura: fechaFacturaInput.value ? formatDateToDDMMYYYY(fechaFacturaInput.value) : '',
+                fechaFactura: fechaFacturaInput.value ? inputDateToDDMMYYYY(fechaFacturaInput.value) : '',
                 monto: montoInput.value.replace(/[^\d]/g, ''),
                 oc: ordenCompraInput.value.trim(),
                 fechaOc: fechaOcInput.value,
                 proveedor: proveedorInput.value,
                 acta: actaInput.value.trim(),
-                fechaSalida: fechaSalidaInput.value ? formatDateToDDMMYYYY(fechaSalidaInput.value) : '',
+                fechaSalida: fechaSalidaInput.value ? inputDateToDDMMYYYY(fechaSalidaInput.value) : '',
                 salida: salidaInput.value.trim(),
                 fullName: window.currentUserData?.fullName || 'Usuario Invitado',
                 createdAt: new Date()
