@@ -350,6 +350,40 @@ function updateTotalItems(isEdit = false) {
     }
 }
 
+const editCantidadInput = document.getElementById('editCantidad');
+const editPrecioUnitarioInput = document.getElementById('editPrecioUnitario');
+const editTotalItemsInput = document.getElementById('editTotalItems');
+
+if (editCantidadInput && editPrecioUnitarioInput && editTotalItemsInput) {
+    const updateEditTotal = () => {
+        const cantidad = parseInt(editCantidadInput.value) || 0;
+        const precio = parseInt((editPrecioUnitarioInput.value || '').replace(/[^\d]/g, '')) || 0;
+        const total = cantidad * precio;
+        editTotalItemsInput.value = total ? formatNumberWithThousandsSeparator(total) : '';
+    };
+
+    editCantidadInput.addEventListener('input', updateEditTotal);
+    editPrecioUnitarioInput.addEventListener('input', updateEditTotal);
+    editPrecioUnitarioInput.addEventListener('blur', updateEditTotal);
+}
+
+const cantidadInput = document.getElementById('cantidad');
+const precioUnitarioInput = document.getElementById('precioUnitario');
+const totalItemsInput = document.getElementById('totalItems');
+
+if (cantidadInput && precioUnitarioInput && totalItemsInput) {
+    const updateTotal = () => {
+        const cantidad = parseInt(cantidadInput.value) || 0;
+        const precio = parseInt((precioUnitarioInput.value || '').replace(/[^\d]/g, '')) || 0;
+        const total = cantidad * precio;
+        totalItemsInput.value = total ? formatNumberWithThousandsSeparator(total) : '';
+    };
+
+    cantidadInput.addEventListener('input', updateTotal);
+    precioUnitarioInput.addEventListener('input', updateTotal);
+    precioUnitarioInput.addEventListener('blur', updateTotal); // para formato final
+}
+
 async function logAction(registroId, action, oldData = null, newData = null) {
     if (!window.currentUserData) return;
     try {
