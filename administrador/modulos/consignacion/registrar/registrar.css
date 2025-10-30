@@ -119,12 +119,12 @@ html, body {
 #editAdmision, #editPaciente, #editMedico, #editFechaCX, #editCodigo, #editDescripcion, #editCantidad,
 #editReferencia, #editProveedor, #editPrecioUnitario, #editAtributo, #editTotalItems {
     width: 100%;
-    padding: 8px;
+    padding: 4px 6px;
     border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 11px;
     box-sizing: border-box;
-    height: 32px;
+    height: 28px;
     line-height: 16px;
 }
 
@@ -142,7 +142,7 @@ html, body {
 
 .medico-icon, .codigo-icon, .descripcion-icon {
     position: absolute;
-    right: 8px;
+    right: 6px;
     top: 50%;
     transform: translateY(-50%);
     color: #007bff;
