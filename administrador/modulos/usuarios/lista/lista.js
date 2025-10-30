@@ -73,6 +73,13 @@ function renderUserCard(user) {
     };
     const userIconSrc = iconMap[user.sex] || '../../../../img/user-n/favicon.ico';
 
+    const formatValue = (field, value) => {
+        if (field === 'sex' || field === 'module' || field === 'category') {
+            return value.charAt(0).toUpperCase() + value.slice(1);
+        }
+        return value;
+    };
+
     card.innerHTML = `
         <div class="card-header">
             <img src="../../../../img/logo-principal/favicon.ico" alt="Datara-Salud" class="company-icon">
@@ -81,13 +88,17 @@ function renderUserCard(user) {
         <div class="card-body">
             <img src="${userIconSrc}" alt="Icono" class="user-icon">
             <div class="user-info">
-                <h3>${user.fullName}</h3>
-                <p><strong>Usuario:</strong> ${user.username}</p>
-                <p><strong>Email:</strong> ${user.email}</p>
+                <div class="field-display"><strong>Nombre Completo:</strong> <span>${user.fullName}</span> <div class="edit-icon">Edit</div></div>
+                <div class="field-display"><strong>Usuario:</strong> <span>${user.username}</span> <div class="edit-icon">Edit</div></div>
+                <div class="field-display"><strong>Email:</strong> <span>${user.email}</span> <div class="edit-icon">Edit</div></div>
+                <div class="field-display"><strong>Fecha Nacimiento:</strong> <span>${user.birthDate}</span> <div class="edit-icon">Edit</div></div>
+                <div class="field-display"><strong>Sexo:</strong> <span>${formatValue('sex', user.sex)}</span> <div class="edit-icon">Edit</div></div>
+                <div class="field-display"><strong>Módulo:</strong> <span>${formatValue('module', user.module)}</span> <div class="edit-icon">Edit</div></div>
+                <div class="field-display"><strong>Categoría:</strong> <span>${formatValue('category', user.category)}</span> <div class="edit-icon">Edit</div></div>
             </div>
         </div>
         <div class="buttons-container">
-            <button class="edit-btn">Editar</button>
+            <button class="edit-btn">Editar Todo</button>
         </div>
     `;
 
@@ -107,38 +118,37 @@ function openEditModal(user) {
     const userIconSrc = iconMap[user.sex] || '../../../../img/user-n/favicon.ico';
 
     modalUserCard.innerHTML = `
-        <div style="text-align: center; margin-bottom: 16px;">
-            <img src="${userIconSrc}" alt="Usuario" style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid #ddd;">
-            <h3 style="margin: 10px 0 0; color: #3A5795;">${user.fullName}</h3>
+        <div style="text-align: center; margin-bottom: 20px;">
+            <img src="${userIconSrc}" alt="Usuario" style="width: 90px; height: 90px; border-radius: 50%; border: 3px solid #ddd;">
+            <h3 style="margin: 12px 0 0; color: #3A5795; font-size: 18px;">${user.fullName}</h3>
         </div>
-
-        ${createFieldRow('fullName', 'Nombre Completo', user.fullName, 'text')}
-        ${createFieldRow('username', 'Usuario', user.username, 'text')}
-        ${createFieldRow('email', 'Email', user.email, 'email')}
-        ${createFieldRow('birthDate', 'Fecha Nacimiento', user.birthDate, 'date')}
-        ${createFieldRow('sex', 'Sexo', user.sex.charAt(0).toUpperCase() + user.sex.slice(1), 'select', ['masculino', 'femenino', 'otro'])}
-        ${createFieldRow('module', 'Módulo', user.module, 'select', ['Salud', 'Album', 'Personal'])}
-        ${createFieldRow('category', 'Categoría', user.category, 'select', ['Administrador', 'Coordinadora', 'Corporativa', 'Operador', 'Laboratorio'])}
+        ${createModalField('fullName', 'Nombre Completo', user.fullName, 'text')}
+        ${createModalField('username', 'Usuario', user.username, 'text')}
+        ${createModalField('email', 'Email', user.email, 'email')}
+        ${createModalField('birthDate', 'Fecha Nacimiento', user.birthDate, 'date')}
+        ${createModalField('sex', 'Sexo', user.sex, 'select', ['masculino', 'femenino', 'otro'])}
+        ${createModalField('module', 'Módulo', user.module, 'select', ['Salud', 'Album', 'Personal'])}
+        ${createModalField('category', 'Categoría', user.category, 'select', ['Administrador', 'Coordinadora', 'Corporativa', 'Operador', 'Laboratorio'])}
     `;
 }
 
-function createFieldRow(field, label, value, type = 'text', options = []) {
+function createModalField(field, label, value, type, options = []) {
     const isSelect = type === 'select';
+    const displayValue = isSelect ? value.charAt(0).toUpperCase() + value.slice(1) : value;
     const inputHTML = isSelect
-        ? `<select class="field-input">${options.map(opt => `<option value="${opt}" ${opt === value ? 'selected' : ''}>${opt.charAt(0).toUpperCase() + opt.slice(1)}</option>`).join('')}</select>`
-        : `<input type="${type}" class="field-input" value="${value}" autocomplete="off">`;
+        ? `<select class="modal-input">${options.map(opt => `<option value="${opt}" ${opt === value ? 'selected' : ''}>${opt.charAt(0).toUpperCase() + opt.slice(1)}</option>`).join('')}</select>`
+        : `<input type="${type}" class="modal-input" value="${value}" autocomplete="off">`;
 
     return `
-        <div class="field-row" data-field="${field}">
-            <div class="field-label">${label}:</div>
-            <div class="field-value">${isSelect ? value.charAt(0).toUpperCase() + value.slice(1) : value}</div>
-            <div class="edit-icon">Edit</div>
-
-            <div class="field-input-container">
+        <div class="modal-field-row" data-field="${field}">
+            <div class="modal-field-label">${label}:</div>
+            <div class="modal-field-value">${displayValue}</div>
+            <div class="modal-edit-icon">Edit</div>
+            <div class="modal-input-container">
                 ${inputHTML}
-                <div class="field-actions">
-                    <button class="save-field" title="Guardar">Check</button>
-                    <button class="cancel-field" title="Cancelar">Cross</button>
+                <div class="modal-field-actions">
+                    <button class="modal-save-field">Check</button>
+                    <button class="modal-cancel-field">Cross</button>
                 </div>
             </div>
         </div>
@@ -146,29 +156,26 @@ function createFieldRow(field, label, value, type = 'text', options = []) {
 }
 
 modalUserCard.addEventListener('click', async (e) => {
-    const row = e.target.closest('.field-row');
+    const row = e.target.closest('.modal-field-row');
     if (!row) return;
 
     const field = row.dataset.field;
-    const valueEl = row.querySelector('.field-value');
-    const editIcon = row.querySelector('.edit-icon');
-    const inputContainer = row.querySelector('.field-input-container');
-    const saveBtn = row.querySelector('.save-field');
-    const cancelBtn = row.querySelector('.cancel-field');
-    const input = row.querySelector('.field-input');
+    const valueEl = row.querySelector('.modal-field-value');
+    const editIcon = row.querySelector('.modal-edit-icon');
+    const inputContainer = row.querySelector('.modal-input-container');
+    const input = row.querySelector('.modal-input');
 
-    if (e.target.classList.contains('edit-icon')) {
+    if (e.target.classList.contains('modal-edit-icon')) {
         valueEl.style.display = 'none';
         editIcon.style.display = 'none';
         inputContainer.style.display = 'flex';
         input.focus();
-        if (input.tagName === 'SELECT') input.focus();
     }
 
-    if (e.target.classList.contains('save-field')) {
+    if (e.target.classList.contains('modal-save-field')) {
         const newValue = input.value.trim();
         if (newValue === currentEditingUser[field]) {
-            exitEditMode(row);
+            exitModalEdit(row);
             return;
         }
 
@@ -178,7 +185,7 @@ modalUserCard.addEventListener('click', async (e) => {
             valueEl.textContent = field === 'sex' || field === 'module' || field === 'category'
                 ? newValue.charAt(0).toUpperCase() + newValue.slice(1)
                 : newValue;
-            exitEditMode(row);
+            exitModalEdit(row);
             showMessage('Campo actualizado', 'success');
             refreshUserCard(currentEditingUser);
         } catch (error) {
@@ -187,38 +194,30 @@ modalUserCard.addEventListener('click', async (e) => {
         }
     }
 
-    if (e.target.classList.contains('cancel-field')) {
-        exitEditMode(row);
+    if (e.target.classList.contains('modal-cancel-field')) {
+        exitModalEdit(row);
     }
 });
 
-function exitEditMode(row) {
-    row.querySelector('.field-value').style.display = 'block';
-    row.querySelector('.edit-icon').style.display = 'block';
-    row.querySelector('.field-input-container').style.display = 'none';
+function exitModalEdit(row) {
+    row.querySelector('.modal-field-value').style.display = 'block';
+    row.querySelector('.modal-edit-icon').style.display = 'block';
+    row.querySelector('.modal-input-container').style.display = 'none';
 }
 
 function refreshUserCard(user) {
-    const card = document.querySelector(`.user-card[data-user-id="${user.id}"]`);
-    if (card) {
-        usersList.removeChild(card);
+    const oldCard = document.querySelector(`.user-card[data-user-id="${user.id}"]`);
+    if (oldCard) {
+        const newCard = document.createElement('div');
         renderUserCard(user);
+        usersList.replaceChild(usersList.lastChild, oldCard);
     }
 }
 
-closeModal.addEventListener('click', () => {
-    modal.style.display = 'none';
-});
+closeModal.addEventListener('click', () => modal.style.display = 'none');
+window.addEventListener('click', (e) => { if (e.target === modal) modal.style.display = 'none'; });
 
-window.addEventListener('click', (e) => {
-    if (e.target === modal) {
-        modal.style.display = 'none';
-    }
-});
-
-searchInput.addEventListener('input', (e) => {
-    loadUsers(e.target.value);
-});
+searchInput.addEventListener('input', (e) => loadUsers(e.target.value));
 
 function showMessage(text, type) {
     let msg = document.getElementById('message-lista');
@@ -230,7 +229,7 @@ function showMessage(text, type) {
     msg.textContent = text;
     msg.className = type;
     msg.style.display = 'block';
-    setTimeout(() => { msg.style.display = 'none'; }, 3000);
+    setTimeout(() => msg.style.display = 'none', 3000);
 }
 
 loadUsers();
