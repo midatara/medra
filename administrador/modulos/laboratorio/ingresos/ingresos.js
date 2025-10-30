@@ -47,21 +47,21 @@ function parseDateDDMMYYYY(dateStr) {
     const normalized = String(dateStr).replace(/[\/.]/g, '-');
     const [day, month, year] = normalized.split('-').map(Number);
     if (!day || !month || !year || isNaN(day) || isNaN(month) || isNaN(year)) return null;
-    return new Date(Date.UTC(year, month - 1, day));
+    return new Date(year, month - 1, day);
 }
 
 function formatDateToDDMMYYYY(date) {
     if (!date || isNaN(new Date(date))) return '';
     const d = new Date(date);
-    const day = String(d.getUTCDate()).padStart(2, '0');
-    const month = String(d.getUTCMonth() + 1).padStart(2, '0');
-    const year = d.getUTCFullYear();
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
     return `${day}-${month}-${year}`;
 }
 
 function formatDateToYYYYMMDD(date) {
     if (!date || isNaN(new Date(date))) return '';
-    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const d = new Date(date);
     const day = String(d.getDate()).padStart(2, '0');
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const year = d.getFullYear();
@@ -287,7 +287,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // === openEditModal CORREGIDO ===
     window.openEditModal = function (id, ingreso) {
         currentEditId = id;
         currentEditOldData = { ...ingreso };
@@ -295,10 +294,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const toYYYYMMDD = (dateStr) => {
             if (!dateStr) return today;
             const parsed = parseDateDDMMYYYY(dateStr);
-            if (!parsed) return today;
-            // Crear fecha LOCAL para input date
-            const localDate = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
-            return formatDateToYYYYMMDD(localDate);
+            if (!parsed || isNaN(parsed)) return today;
+            return formatDateToYYYYMMDD(parsed);
         };
 
         document.getElementById('editId').value = id;
@@ -387,16 +384,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target === historyModal) closeHistoryModalHandler();
     });
 
-    // === editForm.submit CORREGIDO ===
     editForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         if (!currentEditId) return;
 
         const toDDMMYYYY = (inputValue) => {
             if (!inputValue) return '';
-            const date = new Date(inputValue + 'T00:00:00'); // Forzar hora 00:00 local
-            return formatDateToDDMMYYYY(date);
+            const d = new Date(inputValue);
+            return formatDateToDDMMYYYY(d);
         };
+
         const processedRow = {
             fechaIngreso: toDDMMYYYY(document.getElementById('editFechaIngreso').value),
             numeroFactura: document.getElementById('editNumeroFactura').value.trim(),
