@@ -131,7 +131,7 @@ function renderUserCard(user) {
     card.innerHTML = `
         <div class="card-header">
             <img src="../../../../img/logo-principal/favicon.ico" alt="Datara-Salud" class="company-icon">
-            <h2>Datara-Salud</h2>
+            <h2>Mi Datara - Medra</h2>
         </div>
         <div class="card-body">
             <img src="${userIconSrc}" alt="Icono de usuario" class="user-icon">
