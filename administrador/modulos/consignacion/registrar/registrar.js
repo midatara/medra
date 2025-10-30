@@ -763,13 +763,13 @@ document.addEventListener('DOMContentLoaded', () => {
     enforceUpperCase(upperCaseInputs.filter(Boolean));
 
     function clearForm() {
-        [admisionInput, pacienteInput, medicoInput, codigoInput, descripcionInput, 
-         cantidadInput, referenciaInput, proveedorInput, precioUnitarioInput, 
-         atributoInput, totalItemsInput].forEach(input => {
+        // SOLO limpiar los campos del producto (código, descripción, etc.)
+        [codigoInput, descripcionInput, cantidadInput, referenciaInput, 
+        proveedorInput, precioUnitarioInput, atributoInput, totalItemsInput].forEach(input => {
             if (input) input.value = '';
         });
-        fechaCXInput.value = '';
-        medicoDropdown.style.display = 'none';
+
+        // Cerrar dropdowns de autocompletado
         codigoDropdown.style.display = 'none';
         descripcionDropdown.style.display = 'none';
     }
@@ -1455,20 +1455,33 @@ document.addEventListener('DOMContentLoaded', () => {
             exportToExcel(registros, `consignaciones_pagina_${currentPage}_${new Date().toISOString().split('T')[0]}`);
         });
     }
-
+    
     if (limpiarBtn) {
         limpiarBtn.addEventListener('click', (e) => {
             e.preventDefault();
-            clearForm();
-            [buscarAdmisionInput, buscarPacienteInput, buscarMedicoInput, buscarDescripcionInput, buscarProveedorInput].forEach(input => {
+
+            // Limpiar TODOS los campos del formulario
+            [admisionInput, pacienteInput, medicoInput, fechaCXInput,
+            codigoInput, descripcionInput, cantidadInput, referenciaInput,
+            proveedorInput, precioUnitarioInput, atributoInput, totalItemsInput].forEach(input => {
                 if (input) input.value = '';
             });
+
+            // Limpiar filtros de búsqueda
+            [buscarAdmisionInput, buscarPacienteInput, buscarMedicoInput,
+            buscarDescripcionInput, buscarProveedorInput].forEach(input => {
+                if (input) input.value = '';
+            });
+
+            // Limpiar filtros de fecha
             [dateDay, dateWeek, dateMonth].forEach(radio => {
                 if (radio) radio.checked = false;
             });
             [fechaDiaInput, fechaDesdeInput, fechaHastaInput, mesSelect, anioSelect].forEach(input => {
                 if (input) input.value = '';
             });
+
+            // Reiniciar variables de filtro
             searchAdmision = '';
             searchPaciente = '';
             searchMedico = '';
@@ -1482,7 +1495,13 @@ document.addEventListener('DOMContentLoaded', () => {
             anio = null;
             currentPage = 1;
             lastVisible = null;
-            console.log('Form and filters cleared');
+
+            // Cerrar dropdowns
+            [medicoDropdown, codigoDropdown, descripcionDropdown].forEach(dropdown => {
+                if (dropdown) dropdown.style.display = 'none';
+            });
+
+            console.log('Todos los campos y filtros limpiados');
             debouncedLoadRegistros();
         });
     }
@@ -1553,7 +1572,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 showToast('Registro creado exitosamente.', 'success');
-                clearForm();
+
+                // Solo limpiar los campos del producto, mantener admisión, paciente, médico, fecha
+                [codigoInput, descripcionInput, cantidadInput, referenciaInput, 
+                proveedorInput, precioUnitarioInput, atributoInput, totalItemsInput].forEach(input => {
+                    if (input) input.value = '';
+                });
+
+                // Cerrar dropdowns
+                if (codigoDropdown) codigoDropdown.style.display = 'none';
+                if (descripcionDropdown) descripcionDropdown.style.display = 'none';
+
+                // Recargar la tabla
                 loadRegistros({
                     searchAdmision,
                     searchPaciente,
