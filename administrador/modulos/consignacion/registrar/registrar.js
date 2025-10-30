@@ -15,7 +15,7 @@ window.showLoading = function (caller = 'unknown') {
     }
     loadingCounter++;
     loading.classList.add('show');
-    setTimeout(() => {}, 10);
+    setTimeout(() => { }, 10);
 };
 
 window.hideLoading = function (caller = 'unknown') {
@@ -114,6 +114,8 @@ async function loadReferencias() {
             referencias.push({ id: doc.id, ...doc.data() });
         });
         referencias.sort((a, b) => (a.codigo || '').localeCompare(b.codigo || ''));
+
+        // RECONFIGURAR AUTOCOMPLETADO DESPUÉS DE CARGAR DATOS
         setupAutocomplete('codigo', 'codigoToggle', 'codigoDropdown', referencias, 'codigo');
         setupAutocomplete('descripcion', 'descripcionToggle', 'descripcionDropdown', referencias, 'descripcion');
         setupAutocomplete('editCodigo', 'editCodigoToggle', 'editCodigoDropdown', referencias, 'codigo');
@@ -749,7 +751,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function escapeHtml(text) {
-        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"' : '&quot;', "'": '&#039;' };
+        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
         return text?.replace(/[&<>"']/g, m => map[m]) || '';
     }
 
@@ -866,7 +868,7 @@ document.addEventListener('DOMContentLoaded', () => {
             anioSelect.addEventListener('change', (e) => { if (dateFilter === 'month') { anio = e.target.value; debouncedLoadRegistros(); } });
         }
     }
-    
+
     function setupAtributoFilter() {
         const atributoRadios = document.querySelectorAll('input[name="atributoFilter"]');
         const editAtributoRadios = document.querySelectorAll('input[name="editAtributoFilter"]');
@@ -922,7 +924,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const checkedRadio = document.querySelector('input[name="atributoFilter"]:checked');
         if (checkedRadio) {
             atributoFilter = checkedRadio.value;
-            loadReferencias(); // Carga inicial
+            loadReferencias(); // Esto carga referencias y configura autocompletado
         }
     }
 
@@ -1131,7 +1133,8 @@ document.addEventListener('DOMContentLoaded', () => {
             window.showLoading('saveEditBtn');
             try {
                 const docRef = doc(db, "registrar_consignacion", currentEditId);
-                const newData = { admision, paciente, medico, fechaCX, codigo, descripcion, cantidad, referencia, proveedor, precioUnitario, atributo, totalItems,
+                const newData = {
+                    admision, paciente, medico, fechaCX, codigo, descripcion, cantidad, referencia, proveedor, precioUnitario, atributo, totalItems,
                     userFullName: window.currentUserData?.fullName || 'Usuario Invitado',
                     userId: auth.currentUser?.uid || null,
                     timestamp: new Date()
