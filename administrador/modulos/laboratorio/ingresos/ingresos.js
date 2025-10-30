@@ -34,18 +34,8 @@ let selectedAno = '';
 let selectedMes = '';
 
 const monthMap = {
-    'enero': 1,
-    'febrero': 2,
-    'marzo': 3,
-    'abril': 4,
-    'mayo': 5,
-    'junio': 6,
-    'julio': 7,
-    'agosto': 8,
-    'septiembre': 9,
-    'octubre': 10,
-    'noviembre': 11,
-    'diciembre': 12
+    'enero': 1, 'febrero': 2, 'marzo': 3, 'abril': 4, 'mayo': 5, 'junio': 6,
+    'julio': 7, 'agosto': 8, 'septiembre': 9, 'octubre': 10, 'noviembre': 11, 'diciembre': 12
 };
 
 function parseDateDDMMYYYY(dateStr) {
@@ -72,9 +62,9 @@ function formatDateToDDMMYYYY(date) {
 function formatDateToYYYYMMDD(date) {
     if (!date || isNaN(new Date(date))) return '';
     const d = new Date(date);
-    const day = String(d.getUTCDate()).padStart(2, '0');
-    const month = String(d.getUTCMonth() + 1).padStart(2, '0');
-    const year = d.getUTCFullYear();
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
     return `${year}-${month}-${day}`;
 }
 
@@ -297,19 +287,26 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // === openEditModal CORREGIDO ===
     window.openEditModal = function (id, ingreso) {
         currentEditId = id;
         currentEditOldData = { ...ingreso };
+
+        const toYYYYMMDD = (dateStr) => {
+            const parsed = parseDateDDMMYYYY(dateStr);
+            return parsed ? formatDateToYYYYMMDD(parsed) : today;
+        };
+
         document.getElementById('editId').value = id;
-        document.getElementById('editFechaIngreso').value = ingreso.fechaIngreso ? formatDateToYYYYMMDD(parseDateDDMMYYYY(ingreso.fechaIngreso)) : today;
+        document.getElementById('editFechaIngreso').value = toYYYYMMDD(ingreso.fechaIngreso);
         document.getElementById('editNumeroFactura').value = ingreso.numeroFactura || '';
-        document.getElementById('editFechaFactura').value = ingreso.fechaFactura ? formatDateToYYYYMMDD(parseDateDDMMYYYY(ingreso.fechaFactura)) : today;
+        document.getElementById('editFechaFactura').value = toYYYYMMDD(ingreso.fechaFactura);
         document.getElementById('editMonto').value = ingreso.monto ? formatNumberWithThousandsSeparator(ingreso.monto) : '';
         document.getElementById('editOrdenCompra').value = ingreso.oc || '';
         document.getElementById('editFechaOc').value = ingreso.fechaOc || '';
         document.getElementById('editProveedor').value = ingreso.proveedor || '';
         document.getElementById('editActa').value = ingreso.acta || '';
-        document.getElementById('editFechaSalida').value = ingreso.fechaSalida ? formatDateToYYYYMMDD(parseDateDDMMYYYY(ingreso.fechaSalida)) : today;
+        document.getElementById('editFechaSalida').value = toYYYYMMDD(ingreso.fechaSalida);
         document.getElementById('editSalida').value = ingreso.salida || '';
         editModal.style.display = 'block';
     };
@@ -386,20 +383,27 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target === historyModal) closeHistoryModalHandler();
     });
 
+    // === editForm.submit CORREGIDO ===
     editForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         if (!currentEditId) return;
 
+        const toDDMMYYYY = (inputValue) => {
+            if (!inputValue) return '';
+            const date = new Date(inputValue); // input es YYYY-MM-DD
+            return isNaN(date) ? '' : formatDateToDDMMYYYY(date);
+        };
+
         const processedRow = {
-            fechaIngreso: document.getElementById('editFechaIngreso').value ? formatDateToDDMMYYYY(parseDateDDMMYYYY(document.getElementById('editFechaIngreso').value.replace(/-/g, '/'))) : '',
+            fechaIngreso: toDDMMYYYY(document.getElementById('editFechaIngreso').value),
             numeroFactura: document.getElementById('editNumeroFactura').value.trim(),
-            fechaFactura: document.getElementById('editFechaFactura').value ? formatDateToDDMMYYYY(parseDateDDMMYYYY(document.getElementById('editFechaFactura').value.replace(/-/g, '/'))) : '',
+            fechaFactura: toDDMMYYYY(document.getElementById('editFechaFactura').value),
             monto: document.getElementById('editMonto').value.replace(/[^\d]/g, ''),
             oc: document.getElementById('editOrdenCompra').value.trim(),
             fechaOc: document.getElementById('editFechaOc').value,
             proveedor: document.getElementById('editProveedor').value,
             acta: document.getElementById('editActa').value.trim(),
-            fechaSalida: document.getElementById('editFechaSalida').value ? formatDateToDDMMYYYY(parseDateDDMMYYYY(document.getElementById('editFechaSalida').value.replace(/-/g, '/'))) : '',
+            fechaSalida: toDDMMYYYY(document.getElementById('editFechaSalida').value),
             salida: document.getElementById('editSalida').value.trim(),
             fullName: window.currentUserData.fullName
         };
@@ -787,7 +791,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 setInitialPage();
                 renderTable();
 
-                // Limpiar los filtros de búsqueda
                 searchNumeroFactura = '';
                 searchProveedor = '';
                 searchOrdenCompra = '';
@@ -834,14 +837,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const currentYear = today.getFullYear();
         const currentMesAno = `${currentMonth} ${currentYear}`;
 
-        // Buscar si hay datos en el mes actual
         const currentMonthIndex = mesesDisponibles.indexOf(currentMesAno);
         if (currentMonthIndex !== -1) {
             currentPage = currentMonthIndex + 1;
             return;
         }
 
-        // Si no hay datos en el mes actual, buscar el mes anterior
         const previousMonthDate = new Date(today.getFullYear(), today.getMonth() - 1);
         const previousMonth = previousMonthDate.toLocaleString('es-CL', { month: 'long' });
         const previousYear = previousMonthDate.getFullYear();
@@ -852,7 +853,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Si no hay datos en el mes anterior, mostrar el último mes disponible
         currentPage = mesesDisponibles.length || 1;
     }
 
@@ -974,7 +974,6 @@ document.addEventListener('DOMContentLoaded', () => {
             );
         }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-        // Actualizar mesesDisponibles e ingresosPorMesAno según los filtros
         const tempIngresosPorMesAno = {};
         filtered.forEach(ingreso => {
             const fechaIngresoDate = parseDateDDMMYYYY(ingreso.fechaIngreso);
