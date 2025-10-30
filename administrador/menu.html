@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -90,7 +91,7 @@
         }
 
         .sidebar h2 {
-            margin: 0; 
+            margin: 0;
             color: #3A5795;
             font-weight: bold;
             font-size: 16px;
@@ -276,21 +277,21 @@
         .logo-title {
             display: flex;
             align-items: center;
-            gap: 10px; 
-            margin: 0 auto 10px auto; 
-            width: 100%; 
-            text-align: center; 
+            gap: 10px;
+            margin: 0 auto 10px auto;
+            width: 100%;
+            text-align: center;
             cursor: pointer;
         }
 
         .logo {
-            width: 30px; 
-            height: 30px; 
-            object-fit: contain; 
+            width: 30px;
+            height: 30px;
+            object-fit: contain;
         }
-
     </style>
 </head>
+
 <body>
     <div class="header">
         <h1>Mi Datara - Medra</h1>
@@ -310,24 +311,40 @@
                 <h2>Medra</h2>
             </div>
             <div class="main-menu">
-                <a href="#" data-submenu="implantes"><i class="fas fa-tooth"></i> <span class="menu-text">Implantes</span></a>
-                <a href="#" data-submenu="consignacion"><i class="fas fa-box"></i> <span class="menu-text">Consignación</span></a>
-                <a href="#" data-submenu="historico"><i class="fas fa-history"></i> <span class="menu-text">Histórico</span></a>
-                <a href="#" data-submenu="laboratorio"><i class="fas fa-flask"></i> <span class="menu-text">Laboratorio</span></a>
-                <a href="#" data-submenu="visualizador"><i class="fas fa-chart-line"></i> <span class="menu-text">Visualizador</span></a>
-                <a href="#" data-submenu="prestacion"><i class="fas fa-briefcase-medical"></i> <span class="menu-text">Prestación</span></a>
-                <a href="#" data-submenu="herramientas"><i class="fas fa-tools"></i> <span class="menu-text">Herramientas</span></a>
-                <a href="#" data-submenu="importacion"><i class="fas fa-file-import"></i> <span class="menu-text">Importación</span></a>
-                <a href="#" data-submenu="apuntes"><i class="fas fa-note-sticky"></i> <span class="menu-text">Apuntes</span></a>
-                <a href="#" data-submenu="migracion"><i class="fas fa-exchange-alt"></i> <span class="menu-text">Migración</span></a>
-                <a href="#" data-submenu="dashboard"><i class="fas fa-tachometer-alt"></i> <span class="menu-text">Dashboard</span></a>
-                <a href="#" data-submenu="archivos"><i class="fas fa-folder"></i> <span class="menu-text">Archivos</span></a>
-                <a href="#" data-submenu="usuarios"><i class="fas fa-users"></i> <span class="menu-text">Usuarios</span></a>
-                <a href="#" data-submenu="configuracion"><i class="fas fa-cog"></i> <span class="menu-text">Configuración</span></a>
-                <a href="#" data-submenu="cerrar-sesion"><i class="fas fa-sign-out-alt"></i> <span class="menu-text">Cerrar Sesión</span></a>
+                <a href="#" data-submenu="implantes"><i class="fas fa-tooth"></i> <span
+                        class="menu-text">Implantes</span></a>
+                <a href="#" data-submenu="consignacion"><i class="fas fa-box"></i> <span
+                        class="menu-text">Consignación</span></a>
+                <a href="#" data-submenu="historico"><i class="fas fa-history"></i> <span
+                        class="menu-text">Histórico</span></a>
+                <a href="#" data-submenu="laboratorio"><i class="fas fa-flask"></i> <span
+                        class="menu-text">Laboratorio</span></a>
+                <a href="#" data-submenu="visualizador"><i class="fas fa-chart-line"></i> <span
+                        class="menu-text">Visualizador</span></a>
+                <a href="#" data-submenu="prestacion"><i class="fas fa-briefcase-medical"></i> <span
+                        class="menu-text">Prestación</span></a>
+                <a href="#" data-submenu="herramientas"><i class="fas fa-tools"></i> <span
+                        class="menu-text">Herramientas</span></a>
+                <a href="#" data-submenu="importacion"><i class="fas fa-file-import"></i> <span
+                        class="menu-text">Importación</span></a>
+                <a href="#" data-submenu="apuntes"><i class="fas fa-note-sticky"></i> <span
+                        class="menu-text">Apuntes</span></a>
+                <a href="#" data-submenu="migracion"><i class="fas fa-exchange-alt"></i> <span
+                        class="menu-text">Migración</span></a>
+                <a href="#" data-submenu="dashboard"><i class="fas fa-tachometer-alt"></i> <span
+                        class="menu-text">Dashboard</span></a>
+                <a href="#" data-submenu="archivos"><i class="fas fa-folder"></i> <span
+                        class="menu-text">Archivos</span></a>
+                <a href="#" data-submenu="usuarios"><i class="fas fa-users"></i> <span
+                        class="menu-text">Usuarios</span></a>
+                <a href="#" data-submenu="configuracion"><i class="fas fa-cog"></i> <span
+                        class="menu-text">Configuración</span></a>
+                <a href="#" data-submenu="cerrar-sesion"><i class="fas fa-sign-out-alt"></i> <span
+                        class="menu-text">Cerrar Sesión</span></a>
             </div>
             <div class="submenu" style="display: none;">
-                <a href="#" class="back-link" data-tooltip="Volver"><i class="fas fa-arrow-left"></i> <span class="menu-text">Volver</span></a>
+                <a href="#" class="back-link" data-tooltip="Volver"><i class="fas fa-arrow-left"></i> <span
+                        class="menu-text">Volver</span></a>
                 <div class="submenu-content"></div>
             </div>
         </div>
@@ -604,23 +621,30 @@
             }
         }
 
-        document.querySelector('.logo-title').addEventListener('click', function() {
+        document.querySelector('.logo-title').addEventListener('click', function () {
             const content = document.querySelector('.content');
+            const mainMenu = document.querySelector('.main-menu');
+            const submenu = document.querySelector('.submenu');
+
             content.innerHTML = `
-                <div class="card">
-                    <h3>Estadísticas</h3>
-                    <p>CPU: 15% | Memoria: 3.2GB | Almacenamiento: 120GB</p>
-                </div>
-                <div class="card">
-                    <h3>Actividad Reciente</h3>
-                    <ul>
-                        <li>Archivo subido: Informe.pdf</li>
-                        <li>Usuario creado: juan@example.com</li>
-                        <li>Actualización del sistema realizada</li>
-                    </ul>
-                </div>
-            `;
+            <div class="card">
+                <h3>Estadísticas</h3>
+                <p>CPU: 15% | Memoria: 3.2GB | Almacenamiento: 120GB</p>
+            </div>
+            <div class="card">
+                <h3>Actividad Reciente</h3>
+                <ul>
+                    <li>Archivo subido: Informe.pdf</li>
+                    <li>Usuario creado: juan@example.com</li>
+                    <li>Actualización del sistema realizada</li>
+                </ul>
+            </div>
+        `;
+
+            mainMenu.style.display = 'block';
+            submenu.style.display = 'none';
         });
     </script>
 </body>
+
 </html>
