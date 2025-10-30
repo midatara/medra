@@ -866,17 +866,64 @@ document.addEventListener('DOMContentLoaded', () => {
             anioSelect.addEventListener('change', (e) => { if (dateFilter === 'month') { anio = e.target.value; debouncedLoadRegistros(); } });
         }
     }
-
+    
     function setupAtributoFilter() {
         const atributoRadios = document.querySelectorAll('input[name="atributoFilter"]');
         const editAtributoRadios = document.querySelectorAll('input[name="editAtributoFilter"]');
+
         const updateAtributoFilter = async (e) => {
-            atributoFilter = e.target.value;
-            window.showLoading('updateAtributoFilter');
-            try { await loadReferencias(); } finally { window.hideLoading('updateAtributoFilter'); }
+            const nuevoAtributo = e.target.value;
+
+            // Solo recargar si es diferente
+            if (atributoFilter !== nuevoAtributo) {
+                atributoFilter = nuevoAtributo;
+
+                // Limpiar campos de producto
+                const campos = ['codigo', 'descripcion', 'referencia', 'proveedor', 'precioUnitario', 'atributo', 'totalItems'];
+                campos.forEach(id => {
+                    const input = document.getElementById(id);
+                    if (input) input.value = '';
+                });
+
+                // Limpiar edición
+                const editCampos = ['editCodigo', 'editDescripcion', 'editReferencia', 'editProveedor', 'editPrecioUnitario', 'editAtributo', 'editTotalItems'];
+                editCampos.forEach(id => {
+                    const input = document.getElementById(id);
+                    if (input) input.value = '';
+                });
+
+                // Cerrar autocompletados
+                ['codigoDropdown', 'descripcionDropdown', 'editCodigoDropdown', 'editDescripcionDropdown'].forEach(id => {
+                    const dropdown = document.getElementById(id);
+                    if (dropdown) dropdown.style.display = 'none';
+                });
+
+                window.showLoading('updateAtributoFilter');
+                try {
+                    await loadReferencias();
+                } catch (error) {
+                    console.error('Error al cambiar atributo:', error);
+                    showToast('Error al cargar referencias para ' + nuevoAtributo, 'error');
+                } finally {
+                    window.hideLoading('updateAtributoFilter');
+                }
+            }
         };
-        atributoRadios.forEach(radio => radio.addEventListener('change', updateAtributoFilter));
-        editAtributoRadios.forEach(radio => radio.addEventListener('change', updateAtributoFilter));
+
+        atributoRadios.forEach(radio => {
+            radio.addEventListener('change', updateAtributoFilter);
+        });
+
+        editAtributoRadios.forEach(radio => {
+            radio.addEventListener('change', updateAtributoFilter);
+        });
+
+        // Inicializar con el valor actual
+        const checkedRadio = document.querySelector('input[name="atributoFilter"]:checked');
+        if (checkedRadio) {
+            atributoFilter = checkedRadio.value;
+            loadReferencias(); // Carga inicial
+        }
     }
 
     setupDateFilters();
