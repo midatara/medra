@@ -1,13 +1,46 @@
-if (!window.firebaseModules) {
-    console.error('window.firebaseModules no está definido. Asegúrate de que el script de Firebase se cargue primero en registrar.html.');
-    throw new Error('Firebase modules not loaded');
-}
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js';
+import { getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js';
+import { 
+    getFirestore, collection, addDoc, getDocs, query, where, doc, 
+    updateDoc, deleteDoc, orderBy, getDoc, limit, startAfter 
+} from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js';
 
-const { 
-    initializeApp, getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence, 
-    getFirestore, collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc, 
-    orderBy, getDoc, limit, startAfter, endBefore 
-} = window.firebaseModules;
+let loadingCounter = 0;
+
+const loading = document.getElementById('loading');
+
+window.showLoading = function (caller = 'unknown') {
+    if (!loading) {
+        console.warn(`Elemento con ID 'loading' no encontrado en el DOM (caller: ${caller})`);
+        return;
+    }
+    loadingCounter++;
+    console.log(`showLoading called by ${caller}, loadingCounter: ${loadingCounter}, classList: ${loading.classList}`);
+    loading.classList.add('show');
+    setTimeout(() => {
+        console.log(`showLoading post-add, classList: ${loading.classList}`);
+    }, 10);
+};
+
+window.hideLoading = function (caller = 'unknown') {
+    if (!loading) {
+        console.warn(`Elemento con ID 'loading' no encontrado en el DOM (caller: ${caller})`);
+        return;
+    }
+    loadingCounter--;
+    console.log(`hideLoading called by ${caller}, loadingCounter: ${loadingCounter}, classList: ${loading.classList}`);
+    if (loadingCounter <= 0) {
+        loadingCounter = 0; 
+        loading.classList.remove('show');
+        setTimeout(() => {
+            loading.classList.remove('show'); 
+            console.log(`hideLoading post-remove, classList: ${loading.classList}`);
+            if (loading.classList.contains('show')) {
+                console.error('Spinner sigue visible después de hideLoading, revisa CSS o conflictos en el DOM');
+            }
+        }, 300); 
+    }
+};
 
 const firebaseConfig = {
     apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
@@ -43,6 +76,8 @@ let fechaDesde = null;
 let fechaHasta = null;
 let mes = null;
 let anio = null;
+let atributoFilter = 'CONSIGNACION'; 
+let isLoadingReferencias = false;
 
 function formatNumberWithThousandsSeparator(number) {
     if (!number) return '';
@@ -50,7 +85,13 @@ function formatNumberWithThousandsSeparator(number) {
     return cleaned ? Number(cleaned).toLocaleString('es-CL') : '';
 }
 
+// Función para normalizar texto
+function normalizeText(text) {
+    return text?.trim().toUpperCase() || '';
+}
+
 async function loadMedicos() {
+    window.showLoading('loadMedicos');
     try {
         const querySnapshot = await getDocs(collection(db, "medicos"));
         medicos = [];
@@ -59,20 +100,42 @@ async function loadMedicos() {
         });
         medicos.sort((a, b) => a.nombre.localeCompare(b.nombre));
     } catch (error) {
+        console.error('Error en loadMedicos:', error);
         showToast('Error al cargar médicos: ' + error.message, 'error');
+    } finally {
+        window.hideLoading('loadMedicos');
     }
 }
 
 async function loadReferencias() {
+    if (isLoadingReferencias) {
+        console.log('loadReferencias skipped: already loading');
+        return;
+    }
+    isLoadingReferencias = true;
+    window.showLoading('loadReferencias');
+    console.log(`Cargando referencias para atributoFilter: ${atributoFilter}`);
     try {
-        const querySnapshot = await getDocs(collection(db, "referencias_implantes"));
+        const normalizedAtributoFilter = normalizeText(atributoFilter);
+        const querySnapshot = await getDocs(
+            query(collection(db, "referencias_implantes"), where("atributo", "==", normalizedAtributoFilter))
+        );
         referencias = [];
         querySnapshot.forEach((doc) => {
             referencias.push({ id: doc.id, ...doc.data() });
         });
-        referencias.sort((a, b) => a.codigo.localeCompare(b.codigo));
+        console.log(`Referencias cargadas (${normalizedAtributoFilter}):`, referencias);
+        referencias.sort((a, b) => (a.codigo || '').localeCompare(b.codigo || ''));
+        setupAutocomplete('codigo', 'codigoToggle', 'codigoDropdown', referencias, 'codigo');
+        setupAutocomplete('descripcion', 'descripcionToggle', 'descripcionDropdown', referencias, 'descripcion');
+        setupAutocomplete('editCodigo', 'editCodigoToggle', 'editCodigoDropdown', referencias, 'codigo');
+        setupAutocomplete('editDescripcion', 'editDescripcionToggle', 'editDescripcionDropdown', referencias, 'descripcion');
     } catch (error) {
+        console.error('Error en loadReferencias:', error);
         showToast('Error al cargar referencias: ' + error.message, 'error');
+    } finally {
+        isLoadingReferencias = false;
+        window.hideLoading('loadReferencias');
     }
 }
 
@@ -82,7 +145,8 @@ async function getReferenciaByDescripcion(descripcion) {
     try {
         const q = query(
             collection(db, "referencias_implantes"), 
-            where("descripcion", "==", descripcion.trim().toUpperCase())
+            where("descripcion", "==", normalizeText(descripcion)),
+            where("atributo", "==", atributoFilter)
         );
         const querySnapshot = await getDocs(q);
         
@@ -96,7 +160,7 @@ async function getReferenciaByDescripcion(descripcion) {
     }
 }
 
-function setupAutocomplete(inputId, iconId, listId, data, key, isDescripcion = false) {
+function setupAutocomplete(inputId, iconId, listId, data, key) {
     const input = document.getElementById(inputId);
     const icon = document.getElementById(iconId);
     const list = document.getElementById(listId);
@@ -108,19 +172,14 @@ function setupAutocomplete(inputId, iconId, listId, data, key, isDescripcion = f
 
     function showSuggestions(value) {
         list.innerHTML = '';
-        if (!value.trim()) {
-            list.style.display = 'none';
-            return;
-        }
+        list.style.display = 'none';
+        if (!value.trim()) return;
         
         const filtered = data.filter(item => 
-            item[key]?.toLowerCase().includes(value.toLowerCase())
+            item[key]?.toUpperCase().includes(normalizeText(value))
         );
         
-        if (filtered.length === 0) {
-            list.style.display = 'none';
-            return;
-        }
+        if (filtered.length === 0) return;
 
         filtered.slice(0, 10).forEach(item => {
             const div = document.createElement('div');
@@ -148,6 +207,19 @@ function setupAutocomplete(inputId, iconId, listId, data, key, isDescripcion = f
 
     function showAll() {
         list.innerHTML = '';
+        list.style.display = 'none';
+        if (isLoadingReferencias) {
+            return;
+        }
+        if (data.length === 0) {
+            console.warn(`No hay ${key}s disponibles para ${atributoFilter}`);
+            setTimeout(() => {
+                if (data.length === 0 && !isLoadingReferencias) {
+                    showToast(`No hay ${key}s disponibles para ${atributoFilter}`, 'error');
+                }
+            }, 500);
+            return;
+        }
         data.slice(0, 20).forEach(item => {
             const div = document.createElement('div');
             div.className = 'autocomplete-item';
@@ -188,10 +260,6 @@ function setupAutocomplete(inputId, iconId, listId, data, key, isDescripcion = f
         if (list.style.display === 'block') {
             list.style.display = 'none';
         } else {
-            if (data.length === 0) {
-                showToast('No hay datos de médicos disponibles', 'error');
-                return;
-            }
             showAll();
             input.focus();
         }
@@ -219,7 +287,7 @@ function setupAutocomplete(inputId, iconId, listId, data, key, isDescripcion = f
             e.preventDefault();
             currentIndex = Array.from(items).findIndex(item => item.classList.contains('highlighted'));
             if (currentIndex > 0) {
-                if (currentIndex >= 0) items[currentIndex].classList.remove('highlighted');
+                items[currentIndex].classList.remove('highlighted');
                 items[currentIndex - 1].classList.add('highlighted');
                 items[currentIndex - 1].scrollIntoView({ block: 'nearest' });
             }
@@ -228,10 +296,8 @@ function setupAutocomplete(inputId, iconId, listId, data, key, isDescripcion = f
             const highlighted = list.querySelector('.highlighted');
             if (highlighted) {
                 highlighted.click();
-            } else {
-                if (items.length > 0) {
-                    items[0].click();
-                }
+            } else if (items.length > 0) {
+                items[0].click();
             }
         } else if (e.key === 'Escape') {
             list.style.display = 'none';
@@ -249,7 +315,7 @@ function fillFields(item, inputId) {
     const precioUnitarioInput = isEdit ? document.getElementById('editPrecioUnitario') : document.getElementById('precioUnitario');
     const atributoInput = isEdit ? document.getElementById('editAtributo') : document.getElementById('atributo');
 
-    if (inputId.includes('Descripcion') || inputId.includes('descripcion')) {
+    if (inputId.includes('descripcion') || inputId.includes('Descripcion')) {
         if (codigoInput) codigoInput.value = item.codigo || '';
         if (descripcionInput) descripcionInput.value = item.descripcion || '';
         if (referenciaInput) referenciaInput.value = item.referencia || '';
@@ -258,8 +324,7 @@ function fillFields(item, inputId) {
             precioUnitarioInput.value = item.precioUnitario ? formatNumberWithThousandsSeparator(item.precioUnitario) : '';
         }
         if (atributoInput) atributoInput.value = item.atributo || '';
-    }
-    else if (inputId.includes('Codigo') || inputId.includes('codigo')) {
+    } else if (inputId.includes('codigo') || inputId.includes('Codigo')) {
         if (descripcionInput) descripcionInput.value = item.descripcion || '';
         if (referenciaInput) referenciaInput.value = item.referencia || '';
         if (proveedorInput) proveedorInput.value = item.proveedor || '';
@@ -280,7 +345,9 @@ function updateTotalItems(isEdit = false) {
     const cantidad = parseInt(cantidadInput?.value) || 0;
     const precioUnitario = parseInt((precioUnitarioInput?.value || '').replace(/[^\d]/g, '')) || 0;
     const total = cantidad * precioUnitario;
-    totalItemsInput.value = total ? formatNumberWithThousandsSeparator(total) : '';
+    if (totalItemsInput) {
+        totalItemsInput.value = total ? formatNumberWithThousandsSeparator(total) : '';
+    }
 }
 
 async function logAction(registroId, action, oldData = null, newData = null) {
@@ -330,66 +397,79 @@ function setupColumnResize() {
 
         const resizeHandle = document.createElement('div');
         resizeHandle.className = 'resize-handle';
-        resizeHandle.style.cssText = `
-            position: absolute;
-            right: 0;
-            top: 0;
-            bottom: 0;
-            width: 5px;
-            cursor: col-resize;
-            background: transparent;
-            z-index: 10;
-        `;
         header.appendChild(resizeHandle);
         header.style.position = 'relative';
 
         let isResizing = false;
         let startX, startWidth;
 
-        const startResize = (e) => {
+        resizeHandle.addEventListener('mousedown', (e) => {
             isResizing = true;
-            startX = e.pageX || (e.touches && e.touches[0].pageX);
-            startWidth = parseFloat(getComputedStyle(header).width);
+            startX = e.clientX;
+            startWidth = header.getBoundingClientRect().width;
             document.body.style.userSelect = 'none';
             resizeHandle.classList.add('active');
-            e.preventDefault();
-        };
+        });
 
-        const resize = (e) => {
+        document.addEventListener('mousemove', (e) => {
             if (!isResizing) return;
-            const clientX = e.pageX || (e.touches && e.touches[0].pageX);
-            if (!clientX) return;
-
-            const delta = clientX - startX;
-            const newWidth = Math.max(50, Math.min(400, startWidth + delta));
-
+            const delta = e.clientX - startX;
+            let newWidth = Math.max(initialWidths[index], Math.min(initialWidths[index] * 2, startWidth + delta));
+            
             header.style.width = `${newWidth}px`;
             header.style.minWidth = `${newWidth}px`;
-
+            header.style.maxWidth = `${newWidth * 2}px`;
+            
             const cells = document.querySelectorAll(`.registrar-table td:nth-child(${index + 1})`);
             cells.forEach(cell => {
                 cell.style.width = `${newWidth}px`;
                 cell.style.minWidth = `${newWidth}px`;
+                cell.style.maxWidth = `${newWidth * 2}px`;
             });
+        });
 
-            resizeHandle.style.left = `${newWidth - 5}px`;
-        };
-
-        const stopResize = () => {
+        document.addEventListener('mouseup', () => {
             if (isResizing) {
                 isResizing = false;
                 document.body.style.userSelect = '';
                 resizeHandle.classList.remove('active');
             }
-        };
+        });
 
-        resizeHandle.addEventListener('mousedown', startResize);
-        resizeHandle.addEventListener('touchstart', startResize, { passive: false });
-        
-        document.addEventListener('mousemove', resize);
-        document.addEventListener('touchmove', resize, { passive: false });
-        document.addEventListener('mouseup', stopResize);
-        document.addEventListener('touchend', stopResize);
+        resizeHandle.addEventListener('touchstart', (e) => {
+            isResizing = true;
+            startX = e.touches[0].clientX;
+            startWidth = header.getBoundingClientRect().width;
+            document.body.style.userSelect = 'none';
+            resizeHandle.classList.add('active');
+            e.preventDefault();
+        });
+
+        document.addEventListener('touchmove', (e) => {
+            if (!isResizing) return;
+            const delta = e.touches[0].clientX - startX;
+            let newWidth = Math.max(initialWidths[index], Math.min(initialWidths[index] * 2, startWidth + delta));
+            
+            header.style.width = `${newWidth}px`;
+            header.style.minWidth = `${newWidth}px`;
+            header.style.maxWidth = `${newWidth * 2}px`;
+            
+            const cells = document.querySelectorAll(`.registrar-table td:nth-child(${index + 1})`);
+            cells.forEach(cell => {
+                cell.style.width = `${newWidth}px`;
+                cell.style.minWidth = `${newWidth}px`;
+                cell.style.maxWidth = `${newWidth * 2}px`;
+            });
+            e.preventDefault();
+        });
+
+        document.addEventListener('touchend', () => {
+            if (isResizing) {
+                isResizing = false;
+                document.body.style.userSelect = '';
+                resizeHandle.classList.remove('active');
+            }
+        });
     });
 }
 
@@ -397,7 +477,9 @@ function debounce(func, wait) {
     let timeout;
     return function (...args) {
         clearTimeout(timeout);
-        timeout = setTimeout(() => func.apply(this, args), wait);
+        timeout = setTimeout(() => {
+            func.apply(this, args);
+        }, wait);
     };
 }
 
@@ -438,7 +520,7 @@ async function validateAdmision(admision, excludeId = null) {
     try {
         const q = query(
             collection(db, "registrar_consignacion"), 
-            where("admision", "==", admision.trim().toUpperCase())
+            where("admision", "==", normalizeText(admision))
         );
         const querySnapshot = await getDocs(q);
         
@@ -459,8 +541,9 @@ async function getProductoByCodigo(codigo) {
     
     try {
         const q = query(
-            collection(db, "productos"), 
-            where("codigo", "==", codigo.trim().toUpperCase())
+            collection(db, "referencias_implantes"), 
+            where("codigo", "==", normalizeText(codigo)),
+            where("atributo", "==", atributoFilter)
         );
         const querySnapshot = await getDocs(q);
         
@@ -483,8 +566,50 @@ function parseFechaCX(fecha) {
     return new Date(fecha);
 }
 
+function exportToExcel(data, filename) {
+    const headers = [
+        'Admisión', 'Paciente', 'Médico', 'Fecha CX', 'Código', 'Descripción', 
+        'Cantidad', 'Referencia', 'Proveedor', 'Precio Unitario', 'Atributo', 'Total'
+    ];
+    
+    const rows = data.map(registro => [
+        registro.admision || '',
+        registro.paciente || '',
+        registro.medico || '',
+        registro.fechaCX ? registro.fechaCX.toLocaleDateString('es-CL') : '',
+        registro.codigo || '',
+        registro.descripcion || '',
+        registro.cantidad || '',
+        registro.referencia || '',
+        registro.proveedor || '',
+        formatNumberWithThousandsSeparator(registro.precioUnitario) || '',
+        registro.atributo || '',
+        formatNumberWithThousandsSeparator(registro.totalItems) || ''
+    ]);
+
+    const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${filename}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-    const loading = document.getElementById('loading');
+    if (loading) {
+        loading.classList.remove('show');
+        console.log('DOMContentLoaded: Spinner inicializado como oculto, classList:', loading.classList);
+    } else {
+        console.warn('DOMContentLoaded: Elemento con ID "loading" no encontrado en el DOM');
+    }
+
     const registrarTable = document.getElementById('registrarTable');
     const registrarBody = registrarTable?.querySelector('tbody');
     const prevPage = document.getElementById('prevPage');
@@ -588,7 +713,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     e.target.value = e.target.value.toUpperCase();
                 });
                 input.addEventListener('change', (e) => {
-                    e.target.value = e.target.value.toUpperCase().trim();
+                    e.target.value = normalizeText(e.target.value);
                 });
             }
         });
@@ -598,7 +723,8 @@ document.addEventListener('DOMContentLoaded', () => {
         admisionInput, pacienteInput, medicoInput, codigoInput, descripcionInput, 
         referenciaInput, proveedorInput, atributoInput,
         editAdmisionInput, editPacienteInput, editMedicoInput, editCodigoInput, 
-        editDescripcionInput, editReferenciaInput, editProveedorInput, editAtributoInput
+        editDescripcionInput, editReferenciaInput, editProveedorInput, editAtributoInput,
+        buscarAdmisionInput, buscarPacienteInput, buscarMedicoInput, buscarDescripcionInput, buscarProveedorInput
     ];
     enforceUpperCase(upperCaseInputs.filter(Boolean));
 
@@ -610,22 +736,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         fechaCXInput.value = '';
         medicoDropdown.style.display = 'none';
-        editMedicoDropdown.style.display = 'none';
+        codigoDropdown.style.display = 'none';
+        descripcionDropdown.style.display = 'none';
     }
-
-    window.showLoading = function () {
-        if (loading) {
-            loading.classList.add('show');
-            document.body.style.overflow = 'hidden';
-        }
-    };
-
-    window.hideLoading = function () {
-        if (loading) {
-            loading.classList.remove('show');
-            document.body.style.overflow = '';
-        }
-    };
 
     function closeModal(modal) {
         if (modal) {
@@ -635,6 +748,8 @@ document.addEventListener('DOMContentLoaded', () => {
             currentEditId = null;
             currentEditOldData = null;
             editMedicoDropdown.style.display = 'none';
+            editCodigoDropdown.style.display = 'none';
+            editDescripcionDropdown.style.display = 'none';
         } else if (modal === deleteModal) {
             currentDeleteId = null;
             currentDeleteAdmision = null;
@@ -659,42 +774,53 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cancelEditBtn) cancelEditBtn.addEventListener('click', () => closeModal(editModal));
     if (cancelDeleteBtn) cancelDeleteBtn.addEventListener('click', () => closeModal(deleteModal));
 
-    async function loadRegistros() {
-        window.showLoading();
+    async function loadRegistros(filters) {
+        window.showLoading('loadRegistros');
         try {
             let q = query(collection(db, "registrar_consignacion"), orderBy("fechaCX", "asc"));
             const conditions = [];
 
-            if (searchAdmision) {
-                conditions.push(where("admision", ">=", searchAdmision));
-                conditions.push(where("admision", "<=", searchAdmision + '\uf8ff'));
+            console.log('Filtros aplicados:', JSON.stringify(filters, null, 2));
+
+            if (filters.searchAdmision) {
+                const normalizedAdmision = normalizeText(filters.searchAdmision);
+                conditions.push(where("admision", ">=", normalizedAdmision));
+                conditions.push(where("admision", "<=", normalizedAdmision + '\uf8ff'));
             }
-            if (searchPaciente) {
-                conditions.push(where("paciente", ">=", searchPaciente));
-                conditions.push(where("paciente", "<=", searchPaciente + '\uf8ff'));
+            if (filters.searchPaciente) {
+                const normalizedPaciente = normalizeText(filters.searchPaciente);
+                conditions.push(where("paciente", ">=", normalizedPaciente));
+                conditions.push(where("paciente", "<=", normalizedPaciente + '\uf8ff'));
             }
-            if (searchMedico) {
-                conditions.push(where("medico", ">=", searchMedico));
-                conditions.push(where("medico", "<=", searchMedico + '\uf8ff'));
+            if (filters.searchMedico) {
+                const normalizedMedico = normalizeText(filters.searchMedico);
+                conditions.push(where("medico", ">=", normalizedMedico));
+                conditions.push(where("medico", "<=", normalizedMedico + '\uf8ff'));
             }
-            if (searchProveedor) {
-                conditions.push(where("proveedor", ">=", searchProveedor));
-                conditions.push(where("proveedor", "<=", searchProveedor + '\uf8ff'));
+            if (filters.searchProveedor) {
+                const normalizedProveedor = normalizeText(filters.searchProveedor);
+                conditions.push(where("proveedor", ">=", normalizedProveedor));
+                conditions.push(where("proveedor", "<=", normalizedProveedor + '\uf8ff'));
+            }
+            if (filters.searchDescripcion) {
+                const normalizedDescripcion = normalizeText(filters.searchDescripcion);
+                conditions.push(where("descripcion", ">=", normalizedDescripcion));
+                conditions.push(where("descripcion", "<=", normalizedDescripcion + '\uf8ff'));
             }
 
-            if (dateFilter === 'day' && fechaDia) {
-                const start = new Date(fechaDia);
+            if (filters.dateFilter === 'day' && filters.fechaDia) {
+                const start = new Date(filters.fechaDia);
                 const end = new Date(start);
                 end.setDate(end.getDate() + 1);
                 end.setHours(0, 0, 0, 0);
                 conditions.push(where("fechaCX", ">=", start));
                 conditions.push(where("fechaCX", "<", end));
-            } else if (dateFilter === 'week' && fechaDesde && fechaHasta) {
-                conditions.push(where("fechaCX", ">=", new Date(fechaDesde)));
-                conditions.push(where("fechaCX", "<=", new Date(fechaHasta)));
-            } else if (dateFilter === 'month' && mes && anio) {
-                const start = new Date(parseInt(anio), parseInt(mes) - 1, 1);
-                const end = new Date(parseInt(anio), parseInt(mes), 0);
+            } else if (filters.dateFilter === 'week' && filters.fechaDesde && filters.fechaHasta) {
+                conditions.push(where("fechaCX", ">=", new Date(filters.fechaDesde)));
+                conditions.push(where("fechaCX", "<=", new Date(filters.fechaHasta)));
+            } else if (filters.dateFilter === 'month' && filters.mes && filters.anio) {
+                const start = new Date(parseInt(filters.anio), parseInt(filters.mes) - 1, 1);
+                const end = new Date(parseInt(filters.anio), parseInt(filters.mes), 0);
                 conditions.push(where("fechaCX", ">=", start));
                 conditions.push(where("fechaCX", "<=", end));
             }
@@ -715,12 +841,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 tempRegistros.push(registro);
             });
 
-            if (searchDescripcion) {
-                tempRegistros = tempRegistros.filter(reg => 
-                    reg.descripcion?.toUpperCase().includes(searchDescripcion.toUpperCase())
-                );
-            }
-
             registros = tempRegistros;
 
             if (querySnapshot.docs.length > 0) {
@@ -731,61 +851,78 @@ document.addEventListener('DOMContentLoaded', () => {
                 firstVisible = null;
             }
 
-            totalRecords = await getTotalRecordsCount();
+            totalRecords = await getTotalRecordsCount(filters);
+
+            console.log(`Registros cargados: ${registros.length}, Total estimado: ${totalRecords}`);
 
             renderTable();
         } catch (error) {
-            console.error('Error loading registros:', error);
-            showToast('Error al cargar los registros: ' + error.message, 'error');
+            console.error('Error en loadRegistros:', error);
+            if (error.code === 'failed-precondition' && error.message.includes('index')) {
+                showToast('Se requiere un índice en Firestore. Revisa la consola para crear el índice.', 'error');
+            } else {
+                showToast('Error al cargar los registros: ' + error.message, 'error');
+            }
         } finally {
-            window.hideLoading();
+            window.hideLoading('loadRegistros');
         }
     }
 
-    async function getTotalRecordsCount() {
+    async function getTotalRecordsCount(filters) {
         try {
             let countQuery = query(collection(db, "registrar_consignacion"));
             
-            if (searchAdmision) {
+            if (filters.searchAdmision) {
+                const normalizedAdmision = normalizeText(filters.searchAdmision);
                 countQuery = query(countQuery,
-                    where("admision", ">=", searchAdmision),
-                    where("admision", "<=", searchAdmision + '\uf8ff')
+                    where("admision", ">=", normalizedAdmision),
+                    where("admision", "<=", normalizedAdmision + '\uf8ff')
                 );
             }
-            if (searchPaciente) {
+            if (filters.searchPaciente) {
+                const normalizedPaciente = normalizeText(filters.searchPaciente);
                 countQuery = query(countQuery,
-                    where("paciente", ">=", searchPaciente),
-                    where("paciente", "<=", searchPaciente + '\uf8ff')
+                    where("paciente", ">=", normalizedPaciente),
+                    where("paciente", "<=", normalizedPaciente + '\uf8ff')
                 );
             }
-            if (searchMedico) {
+            if (filters.searchMedico) {
+                const normalizedMedico = normalizeText(filters.searchMedico);
                 countQuery = query(countQuery,
-                    where("medico", ">=", searchMedico),
-                    where("medico", "<=", searchMedico + '\uf8ff')
+                    where("medico", ">=", normalizedMedico),
+                    where("medico", "<=", normalizedMedico + '\uf8ff')
                 );
             }
-            if (searchProveedor) {
+            if (filters.searchProveedor) {
+                const normalizedProveedor = normalizeText(filters.searchProveedor);
                 countQuery = query(countQuery,
-                    where("proveedor", ">=", searchProveedor),
-                    where("proveedor", "<=", searchProveedor + '\uf8ff')
+                    where("proveedor", ">=", normalizedProveedor),
+                    where("proveedor", "<=", normalizedProveedor + '\uf8ff')
                 );
             }
-            if (dateFilter === 'day' && fechaDia) {
-                const start = new Date(fechaDia);
+            if (filters.searchDescripcion) {
+                const normalizedDescripcion = normalizeText(filters.searchDescripcion);
+                countQuery = query(countQuery,
+                    where("descripcion", ">=", normalizedDescripcion),
+                    where("descripcion", "<=", normalizedDescripcion + '\uf8ff')
+                );
+            }
+            if (filters.dateFilter === 'day' && filters.fechaDia) {
+                const start = new Date(filters.fechaDia);
                 const end = new Date(start);
                 end.setDate(end.getDate() + 1);
                 countQuery = query(countQuery,
                     where("fechaCX", ">=", start),
                     where("fechaCX", "<", end)
                 );
-            } else if (dateFilter === 'week' && fechaDesde && fechaHasta) {
+            } else if (filters.dateFilter === 'week' && filters.fechaDesde && filters.fechaHasta) {
                 countQuery = query(countQuery,
-                    where("fechaCX", ">=", new Date(fechaDesde)),
-                    where("fechaCX", "<=", new Date(fechaHasta))
+                    where("fechaCX", ">=", new Date(filters.fechaDesde)),
+                    where("fechaCX", "<=", new Date(filters.fechaHasta))
                 );
-            } else if (dateFilter === 'month' && mes && anio) {
-                const start = new Date(parseInt(anio), parseInt(mes) - 1, 1);
-                const end = new Date(parseInt(anio), parseInt(mes), 0);
+            } else if (filters.dateFilter === 'month' && filters.mes && filters.anio) {
+                const start = new Date(parseInt(filters.anio), parseInt(filters.mes) - 1, 1);
+                const end = new Date(parseInt(filters.anio), parseInt(filters.mes), 0);
                 countQuery = query(countQuery,
                     where("fechaCX", ">=", start),
                     where("fechaCX", "<=", end)
@@ -793,7 +930,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const countSnapshot = await getDocs(countQuery);
-            return searchDescripcion ? registros.length : countSnapshot.size;
+            return countSnapshot.size;
         } catch (error) {
             console.error('Error counting records:', error);
             return 0;
@@ -939,14 +1076,38 @@ document.addEventListener('DOMContentLoaded', () => {
         if (page < 1 || page > Math.ceil(totalRecords / PAGE_SIZE)) return;
         
         currentPage = page;
-        loadRegistros();
+        loadRegistros({
+            searchAdmision,
+            searchPaciente,
+            searchMedico,
+            searchDescripcion,
+            searchProveedor,
+            dateFilter,
+            fechaDia,
+            fechaDesde,
+            fechaHasta,
+            mes,
+            anio
+        });
     }
 
     if (prevPage) {
         prevPage.addEventListener('click', () => {
             if (currentPage > 1) {
                 currentPage--;
-                loadRegistros();
+                loadRegistros({
+                    searchAdmision,
+                    searchPaciente,
+                    searchMedico,
+                    searchDescripcion,
+                    searchProveedor,
+                    dateFilter,
+                    fechaDia,
+                    fechaDesde,
+                    fechaHasta,
+                    mes,
+                    anio
+                });
             }
         });
     }
@@ -956,16 +1117,53 @@ document.addEventListener('DOMContentLoaded', () => {
             const totalPages = Math.ceil(totalRecords / PAGE_SIZE);
             if (currentPage < totalPages) {
                 currentPage++;
-                loadRegistros();
+                loadRegistros({
+                    searchAdmision,
+                    searchPaciente,
+                    searchMedico,
+                    searchDescripcion,
+                    searchProveedor,
+                    dateFilter,
+                    fechaDia,
+                    fechaDesde,
+                    fechaHasta,
+                    mes,
+                    anio
+                });
             }
         });
     }
 
     const debouncedLoadRegistros = debounce(() => {
+        console.log('debouncedLoadRegistros triggered with filters:', {
+            searchAdmision,
+            searchPaciente,
+            searchMedico,
+            searchDescripcion,
+            searchProveedor,
+            dateFilter,
+            fechaDia,
+            fechaDesde,
+            fechaHasta,
+            mes,
+            anio
+        });
         currentPage = 1;
         lastVisible = null;
-        loadRegistros();
-    }, 500);
+        loadRegistros({
+            searchAdmision,
+            searchPaciente,
+            searchMedico,
+            searchDescripcion,
+            searchProveedor,
+            dateFilter,
+            fechaDia,
+            fechaDesde,
+            fechaHasta,
+            mes,
+            anio
+        });
+    }, 150); // Reducido de 300ms a 150ms para una respuesta más rápida
 
     const searchInputs = [
         { input: buscarAdmisionInput, filter: 'searchAdmision' },
@@ -978,9 +1176,20 @@ document.addEventListener('DOMContentLoaded', () => {
     searchInputs.forEach(({ input, filter }) => {
         if (input) {
             input.addEventListener('input', (e) => {
-                window[filter] = e.target.value.trim().toUpperCase();
+                const value = normalizeText(e.target.value);
+                console.log(`Input ${filter} changed to: "${value}"`);
+                window[filter] = value;
                 debouncedLoadRegistros();
             });
+            input.addEventListener('change', (e) => {
+                const value = normalizeText(e.target.value);
+                e.target.value = value;
+                window[filter] = value;
+                console.log(`Input ${filter} changed (on change) to: "${value}"`);
+                debouncedLoadRegistros();
+            });
+        } else {
+            console.warn(`Input ${filter} no encontrado en el DOM`);
         }
     });
 
@@ -992,6 +1201,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (fechaDiaInput?.value) {
                         fechaDia = fechaDiaInput.value;
                     }
+                    console.log('Date filter changed to day:', fechaDia);
                     debouncedLoadRegistros();
                 }
             });
@@ -1003,6 +1213,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     dateFilter = 'week';
                     fechaDesde = fechaDesdeInput?.value || '';
                     fechaHasta = fechaHastaInput?.value || '';
+                    console.log('Date filter changed to week:', { fechaDesde, fechaHasta });
                     debouncedLoadRegistros();
                 }
             });
@@ -1014,6 +1225,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     dateFilter = 'month';
                     mes = mesSelect?.value || '';
                     anio = anioSelect?.value || '';
+                    console.log('Date filter changed to month:', { mes, anio });
                     debouncedLoadRegistros();
                 }
             });
@@ -1023,6 +1235,7 @@ document.addEventListener('DOMContentLoaded', () => {
             fechaDiaInput.addEventListener('change', (e) => {
                 if (dateFilter === 'day') {
                     fechaDia = e.target.value;
+                    console.log('FechaDia changed:', fechaDia);
                     debouncedLoadRegistros();
                 }
             });
@@ -1032,6 +1245,7 @@ document.addEventListener('DOMContentLoaded', () => {
             fechaDesdeInput.addEventListener('change', (e) => {
                 if (dateFilter === 'week') {
                     fechaDesde = e.target.value;
+                    console.log('FechaDesde changed:', fechaDesde);
                     debouncedLoadRegistros();
                 }
             });
@@ -1041,6 +1255,7 @@ document.addEventListener('DOMContentLoaded', () => {
             fechaHastaInput.addEventListener('change', (e) => {
                 if (dateFilter === 'week') {
                     fechaHasta = e.target.value;
+                    console.log('FechaHasta changed:', fechaHasta);
                     debouncedLoadRegistros();
                 }
             });
@@ -1050,6 +1265,7 @@ document.addEventListener('DOMContentLoaded', () => {
             mesSelect.addEventListener('change', (e) => {
                 if (dateFilter === 'month') {
                     mes = e.target.value;
+                    console.log('Mes changed:', mes);
                     debouncedLoadRegistros();
                 }
             });
@@ -1069,13 +1285,39 @@ document.addEventListener('DOMContentLoaded', () => {
             anioSelect.addEventListener('change', (e) => {
                 if (dateFilter === 'month') {
                     anio = e.target.value;
+                    console.log('Anio changed:', anio);
                     debouncedLoadRegistros();
                 }
             });
         }
     }
 
+    function setupAtributoFilter() {
+        const atributoRadios = document.querySelectorAll('input[name="atributoFilter"]');
+        const editAtributoRadios = document.querySelectorAll('input[name="editAtributoFilter"]');
+
+        const updateAtributoFilter = async (e) => {
+            atributoFilter = e.target.value;
+            console.log('AtributoFilter changed:', atributoFilter);
+            window.showLoading('updateAtributoFilter');
+            try {
+                await loadReferencias();
+            } finally {
+                window.hideLoading('updateAtributoFilter');
+            }
+        };
+
+        atributoRadios.forEach(radio => {
+            radio.addEventListener('change', updateAtributoFilter);
+        });
+
+        editAtributoRadios.forEach(radio => {
+            radio.addEventListener('change', updateAtributoFilter);
+        });
+    }
+
     setupDateFilters();
+    setupAtributoFilter();
 
     if (actionsBtn && actionsMenu) {
         actionsBtn.addEventListener('click', (e) => {
@@ -1095,14 +1337,64 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             e.stopPropagation();
             
-            window.showLoading();
+            window.showLoading('downloadAll');
             try {
                 let allQuery = query(collection(db, "registrar_consignacion"), orderBy("fechaCX", "asc"));
                 
                 if (searchAdmision) {
+                    const normalizedAdmision = normalizeText(searchAdmision);
                     allQuery = query(allQuery,
-                        where("admision", ">=", searchAdmision),
-                        where("admision", "<=", searchAdmision + '\uf8ff')
+                        where("admision", ">=", normalizedAdmision),
+                        where("admision", "<=", normalizedAdmision + '\uf8ff')
+                    );
+                }
+                if (searchPaciente) {
+                    const normalizedPaciente = normalizeText(searchPaciente);
+                    allQuery = query(allQuery,
+                        where("paciente", ">=", normalizedPaciente),
+                        where("paciente", "<=", normalizedPaciente + '\uf8ff')
+                    );
+                }
+                if (searchMedico) {
+                    const normalizedMedico = normalizeText(searchMedico);
+                    allQuery = query(allQuery,
+                        where("medico", ">=", normalizedMedico),
+                        where("medico", "<=", normalizedMedico + '\uf8ff')
+                    );
+                }
+                if (searchProveedor) {
+                    const normalizedProveedor = normalizeText(searchProveedor);
+                    allQuery = query(allQuery,
+                        where("proveedor", ">=", normalizedProveedor),
+                        where("proveedor", "<=", normalizedProveedor + '\uf8ff')
+                    );
+                }
+                if (searchDescripcion) {
+                    const normalizedDescripcion = normalizeText(searchDescripcion);
+                    allQuery = query(allQuery,
+                        where("descripcion", ">=", normalizedDescripcion),
+                        where("descripcion", "<=", normalizedDescripcion + '\uf8ff')
+                    );
+                }
+                if (dateFilter === 'day' && fechaDia) {
+                    const start = new Date(fechaDia);
+                    const end = new Date(start);
+                    end.setDate(end.getDate() + 1);
+                    allQuery = query(allQuery,
+                        where("fechaCX", ">=", start),
+                        where("fechaCX", "<", end)
+                    );
+                } else if (dateFilter === 'week' && fechaDesde && fechaHasta) {
+                    allQuery = query(allQuery,
+                        where("fechaCX", ">=", new Date(fechaDesde)),
+                        where("fechaCX", "<=", new Date(fechaHasta))
+                    );
+                } else if (dateFilter === 'month' && mes && anio) {
+                    const start = new Date(parseInt(anio), parseInt(mes) - 1, 1);
+                    const end = new Date(parseInt(anio), parseInt(mes), 0);
+                    allQuery = query(allQuery,
+                        where("fechaCX", ">=", start),
+                        where("fechaCX", "<=", end)
                     );
                 }
 
@@ -1113,13 +1405,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 exportToExcel(allRegistros, `consignaciones_completas_${new Date().toISOString().split('T')[0]}`);
-                showToast('📊 Todos los registros exportados exitosamente', 'success');
             } catch (error) {
-                console.error('Error exporting all:', error);
-                showToast('❌ Error al exportar todos los registros', 'error');
+                console.error('Error downloading all records:', error);
+                showToast('Error al descargar todos los registros: ' + error.message, 'error');
             } finally {
-                window.hideLoading();
-                if (actionsMenu) actionsMenu.style.display = 'none';
+                window.hideLoading('downloadAll');
             }
         });
     }
@@ -1128,148 +1418,7 @@ document.addEventListener('DOMContentLoaded', () => {
         downloadCurrent.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            
             exportToExcel(registros, `consignaciones_pagina_${currentPage}_${new Date().toISOString().split('T')[0]}`);
-            showToast('📊 Página actual exportada exitosamente', 'success');
-            if (actionsMenu) actionsMenu.style.display = 'none';
-        });
-    }
-
-    function exportToExcel(data, filename) {
-        if (typeof XLSX === 'undefined') {
-            showToast('❌ Librería ExcelJS no cargada', 'error');
-            return;
-        }
-
-        const headers = [
-            'Admisión', 'Paciente', 'Médico', 'Fecha CX', 'Código', 
-            'Descripción', 'Cantidad', 'Referencia', 'Proveedor', 
-            'Precio Unitario', 'Atributo', 'Total Items'
-        ];
-
-        const exportData = data.map(reg => [
-            reg.admision || '',
-            reg.paciente || '',
-            reg.medico || '',
-            reg.fechaCX ? reg.fechaCX.toLocaleDateString('es-CL') : '',
-            reg.codigo || '',
-            reg.descripcion || '',
-            reg.cantidad || '',
-            reg.referencia || '',
-            reg.proveedor || '',
-            formatNumberWithThousandsSeparator(reg.precioUnitario),
-            reg.atributo || '',
-            formatNumberWithThousandsSeparator(reg.totalItems)
-        ]);
-
-        const ws = XLSX.utils.aoa_to_sheet([headers, ...exportData]);
-        
-        const colWidths = headers.map((header, i) => {
-            const maxLength = Math.max(
-                header.length,
-                ...exportData.map(row => (row[i] || '').toString().length)
-            );
-            return { wch: Math.min(Math.max(maxLength + 2, 10), 50) };
-        });
-        ws['!cols'] = colWidths;
-
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Consignaciones');
-        
-        XLSX.writeFile(wb, filename + '.xlsx');
-    }
-
-    if (registrarBtn) {
-        registrarBtn.addEventListener('click', async () => {
-            const admision = admisionInput?.value?.trim().toUpperCase();
-            const paciente = pacienteInput?.value?.trim().toUpperCase();
-            const medico = medicoInput?.value?.trim();
-            const fechaCX = fechaCXInput?.value ? new Date(fechaCXInput.value) : null;
-            const codigo = codigoInput?.value?.trim().toUpperCase();
-            const descripcion = descripcionInput?.value?.trim().toUpperCase();
-            const cantidad = parseInt(cantidadInput?.value) || 0;
-            const referencia = referenciaInput?.value?.trim().toUpperCase() || '';
-            const proveedor = proveedorInput?.value?.trim().toUpperCase() || '';
-            const precioUnitario = parseInt(precioUnitarioInput?.value?.replace(/[^\d]/g, '')) || 0;
-            const atributo = atributoInput?.value?.trim().toUpperCase() || '';
-            const totalItems = parseInt(totalItemsInput?.value?.replace(/[^\d]/g, '')) || 0;
-
-            if (!admision || !paciente || !medico || !fechaCX || (!codigo && !descripcion) || !cantidad || cantidad <= 0) {
-                showToast('❌ Completa todos los campos obligatorios', 'error');
-                return;
-            }
-
-            const existing = await validateAdmision(admision);
-            if (existing) {
-                showToast(`❌ La admisión ${admision} ya existe`, 'error');
-                admisionInput.focus();
-                return;
-            }
-
-            window.showLoading();
-            try {
-                let finalCodigo = codigo;
-                let finalDescripcion = descripcion;
-                let finalReferencia = referencia;
-                let finalProveedor = proveedor;
-                let finalPrecioUnitario = precioUnitario;
-                let finalAtributo = atributo;
-                let finalTotalItems = totalItems;
-
-                if (codigo) {
-                    const producto = await getProductoByCodigo(codigo);
-                    if (producto) {
-                        finalPrecioUnitario = producto.precioUnitario || precioUnitario;
-                        finalReferencia = producto.referencia || referencia;
-                        finalProveedor = producto.proveedor || proveedor;
-                        finalAtributo = producto.atributo || atributo;
-                        finalDescripcion = producto.descripcion || descripcion;
-                    }
-                } else if (descripcion) {
-                    const refData = await getReferenciaByDescripcion(descripcion);
-                    if (refData) {
-                        finalPrecioUnitario = refData.precioUnitario || precioUnitario;
-                        finalReferencia = refData.referencia || referencia;
-                        finalProveedor = refData.proveedor || proveedor;
-                        finalAtributo = refData.atributo || atributo;
-                        finalCodigo = refData.codigo || codigo;
-                    }
-                }
-
-                finalTotalItems = cantidad * finalPrecioUnitario;
-
-                const registroData = {
-                    admision,
-                    paciente,
-                    medico,
-                    fechaCX,
-                    codigo: finalCodigo || '',
-                    descripcion: finalDescripcion,
-                    cantidad,
-                    referencia: finalReferencia,
-                    proveedor: finalProveedor,
-                    precioUnitario: finalPrecioUnitario,
-                    atributo: finalAtributo,
-                    totalItems: finalTotalItems,
-                    createdAt: new Date(),
-                    updatedAt: new Date()
-                };
-
-                const docRef = await addDoc(collection(db, "registrar_consignacion"), registroData);
-                
-                await logAction(docRef.id, 'CREADO', null, registroData);
-
-                showToast('✅ Registro creado exitosamente', 'success');
-                clearForm();
-                currentPage = 1;
-                lastVisible = null;
-                await loadRegistros();
-            } catch (error) {
-                console.error('Error creating registro:', error);
-                showToast('❌ Error al crear registro: ' + error.message, 'error');
-            } finally {
-                window.hideLoading();
-            }
         });
     }
 
@@ -1277,7 +1426,119 @@ document.addEventListener('DOMContentLoaded', () => {
         limpiarBtn.addEventListener('click', (e) => {
             e.preventDefault();
             clearForm();
-            showToast('🧹 Formulario limpiado', 'success');
+            [buscarAdmisionInput, buscarPacienteInput, buscarMedicoInput, buscarDescripcionInput, buscarProveedorInput].forEach(input => {
+                if (input) input.value = '';
+            });
+            [dateDay, dateWeek, dateMonth].forEach(radio => {
+                if (radio) radio.checked = false;
+            });
+            [fechaDiaInput, fechaDesdeInput, fechaHastaInput, mesSelect, anioSelect].forEach(input => {
+                if (input) input.value = '';
+            });
+            searchAdmision = '';
+            searchPaciente = '';
+            searchMedico = '';
+            searchDescripcion = '';
+            searchProveedor = '';
+            dateFilter = null;
+            fechaDia = null;
+            fechaDesde = null;
+            fechaHasta = null;
+            mes = null;
+            anio = null;
+            currentPage = 1;
+            lastVisible = null;
+            console.log('Form and filters cleared');
+            debouncedLoadRegistros();
+        });
+    }
+
+    if (registrarBtn) {
+        registrarBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const admision = normalizeText(admisionInput?.value);
+            const paciente = normalizeText(pacienteInput?.value);
+            const medico = normalizeText(medicoInput?.value);
+            const fechaCX = fechaCXInput?.value ? new Date(fechaCXInput.value) : null;
+            const codigo = normalizeText(codigoInput?.value);
+            const descripcion = normalizeText(descripcionInput?.value);
+            const cantidad = parseInt(cantidadInput?.value) || 0;
+            const referencia = normalizeText(referenciaInput?.value);
+            const proveedor = normalizeText(proveedorInput?.value);
+            const precioUnitario = parseInt((precioUnitarioInput?.value || '').replace(/[^\d]/g, '')) || 0;
+            const atributo = normalizeText(atributoInput?.value);
+            const totalItems = parseInt((totalItemsInput?.value || '').replace(/[^\d]/g, '')) || 0;
+
+            if (!admision || !paciente || !medico || !fechaCX || !codigo || !descripcion || !cantidad || !referencia || !proveedor || !precioUnitario || !atributo) {
+                showToast('Por favor, completa todos los campos requeridos.', 'error');
+                return;
+            }
+
+            const existingAdmision = await validateAdmision(admision);
+            if (existingAdmision) {
+                showToast('El número de admisión ya existe.', 'error');
+                return;
+            }
+
+            const producto = await getProductoByCodigo(codigo);
+            if (!producto || producto.descripcion !== descripcion || producto.referencia !== referencia || producto.proveedor !== proveedor || producto.atributo !== atributo) {
+                showToast('Los datos del producto no coinciden con las referencias.', 'error');
+                return;
+            }
+
+            window.showLoading('registrarBtn');
+            try {
+                const docRef = await addDoc(collection(db, "registrar_consignacion"), {
+                    admision,
+                    paciente,
+                    medico,
+                    fechaCX,
+                    codigo,
+                    descripcion,
+                    cantidad,
+                    referencia,
+                    proveedor,
+                    precioUnitario,
+                    atributo,
+                    totalItems
+                });
+
+                await logAction(docRef.id, 'CREAR', null, {
+                    admision,
+                    paciente,
+                    medico,
+                    fechaCX,
+                    codigo,
+                    descripcion,
+                    cantidad,
+                    referencia,
+                    proveedor,
+                    precioUnitario,
+                    atributo,
+                    totalItems
+                });
+
+                showToast('Registro creado exitosamente.', 'success');
+                clearForm();
+                loadRegistros({
+                    searchAdmision,
+                    searchPaciente,
+                    searchMedico,
+                    searchDescripcion,
+                    searchProveedor,
+                    dateFilter,
+                    fechaDia,
+                    fechaDesde,
+                    fechaHasta,
+                    mes,
+                    anio
+                });
+            } catch (error) {
+                console.error('Error al registrar:', error);
+                showToast('Error al registrar: ' + error.message, 'error');
+            } finally {
+                window.hideLoading('registrarBtn');
+            }
         });
     }
 
@@ -1285,266 +1546,348 @@ document.addEventListener('DOMContentLoaded', () => {
         currentEditId = id;
         currentEditOldData = { ...registro };
 
-        if (editAdmisionInput) editAdmisionInput.value = registro.admision || '';
-        if (editPacienteInput) editPacienteInput.value = registro.paciente || '';
-        if (editMedicoInput) editMedicoInput.value = registro.medico || '';
-        if (editFechaCXInput) editFechaCXInput.value = registro.fechaCX ? registro.fechaCX.toISOString().split('T')[0] : '';
-        if (editCodigoInput) editCodigoInput.value = registro.codigo || '';
-        if (editDescripcionInput) editDescripcionInput.value = registro.descripcion || '';
-        if (editCantidadInput) editCantidadInput.value = registro.cantidad || '';
-        if (editReferenciaInput) editReferenciaInput.value = registro.referencia || '';
-        if (editProveedorInput) editProveedorInput.value = registro.proveedor || '';
-        if (editPrecioUnitarioInput) editPrecioUnitarioInput.value = registro.precioUnitario ? formatNumberWithThousandsSeparator(registro.precioUnitario) : '';
-        if (editAtributoInput) editAtributoInput.value = registro.atributo || '';
-        if (editTotalItemsInput) editTotalItemsInput.value = formatNumberWithThousandsSeparator(registro.totalItems);
+        editAdmisionInput.value = registro.admision || '';
+        editPacienteInput.value = registro.paciente || '';
+        editMedicoInput.value = registro.medico || '';
+        editFechaCXInput.value = registro.fechaCX ? registro.fechaCX.toISOString().split('T')[0] : '';
+        editCodigoInput.value = registro.codigo || '';
+        editDescripcionInput.value = registro.descripcion || '';
+        editCantidadInput.value = registro.cantidad || '';
+        editReferenciaInput.value = registro.referencia || '';
+        editProveedorInput.value = registro.proveedor || '';
+        editPrecioUnitarioInput.value = formatNumberWithThousandsSeparator(registro.precioUnitario) || '';
+        editAtributoInput.value = registro.atributo || '';
+        editTotalItemsInput.value = formatNumberWithThousandsSeparator(registro.totalItems) || '';
 
-        if (medicos.length > 0) {
-            setupAutocomplete('editMedico', 'editMedicoToggle', 'editMedicoDropdown', medicos, 'nombre');
-        }
-        if (referencias.length > 0) {
-            setupAutocomplete('editCodigo', 'editCodigoToggle', 'editCodigoDropdown', referencias, 'codigo');
-            setupAutocomplete('editDescripcion', 'editDescripcionToggle', 'editDescripcionDropdown', referencias, 'descripcion');
-        }
+        const editAtributoRadios = document.querySelectorAll('input[name="editAtributoFilter"]');
+        editAtributoRadios.forEach(radio => {
+            radio.checked = radio.value === registro.atributo;
+        });
 
-        if (editModal) editModal.style.display = 'block';
-    };
-
-    window.openDeleteModal = function(id, admision) {
-        currentDeleteId = id;
-        currentDeleteAdmision = admision;
-        
-        const deleteText = document.querySelector('.delete-modal-text') || document.getElementById('deleteText');
-        if (deleteText) {
-            deleteText.textContent = `¿Estás seguro de eliminar el registro de admisión "${admision}"?`;
-        }
-        
-        if (deleteModal) deleteModal.style.display = 'block';
-    };
-
-    window.openHistoryModal = async function(id, admision) {
-        window.showLoading();
-        try {
-            const q = query(
-                collection(db, "registrar_consignacion_historial"), 
-                where("registroId", "==", id), 
-                orderBy("timestamp", "desc"),
-                limit(50)
-            );
-            
-            const querySnapshot = await getDocs(q);
-            if (!historyContent) return;
-
-            historyContent.innerHTML = `
-                <div class="history-header">
-                    <h3>Historial de Admision: ${escapeHtml(admision)}</h3>
-                    <button class="btn-close-history" onclick="closeModal(document.getElementById('historyModal'))">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-            `;
-
-            if (querySnapshot.empty) {
-                historyContent.innerHTML += '<div class="no-history">No hay historial de cambios</div>';
-            } else {
-                historyContent.innerHTML += '<div class="history-list">';
-                querySnapshot.forEach((doc) => {
-                    const data = doc.data();
-                    const entry = document.createElement('div');
-                    entry.className = 'history-entry';
-                    entry.innerHTML = `
-                        <div class="history-header">
-                            <span class="action-badge ${data.action.toLowerCase()}">${data.action}</span>
-                            <span class="history-date">${data.timestamp?.toDate()?.toLocaleString('es-CL') || 'N/A'}</span>
-                        </div>
-                        <div class="history-user">Por: ${escapeHtml(data.userFullName || 'N/A')}</div>
-                        ${data.oldData || data.newData ? `
-                            <div class="history-changes">
-                                ${data.oldData ? `<div class="change-section"><strong>Antes:</strong> ${JSON.stringify(data.oldData, null, 2)}</div>` : ''}
-                                ${data.newData ? `<div class="change-section"><strong>Después:</strong> ${JSON.stringify(data.newData, null, 2)}</div>` : ''}
-                            </div>
-                        ` : ''}
-                    `;
-                    historyContent.appendChild(entry);
-                });
-                historyContent.innerHTML += '</div>';
-            }
-
-            if (historyModal) historyModal.style.display = 'block';
-        } catch (error) {
-            console.error('Error loading history:', error);
-            showToast('Error al cargar historial: ' + error.message, 'error');
-        } finally {
-            window.hideLoading();
-        }
+        editModal.style.display = 'block';
     };
 
     if (saveEditBtn) {
-        saveEditBtn.addEventListener('click', async () => {
-            if (!currentEditId) return;
-
-            const admision = editAdmisionInput?.value?.trim().toUpperCase();
-            const paciente = editPacienteInput?.value?.trim().toUpperCase();
-            const medico = editMedicoInput?.value?.trim();
+        saveEditBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const admision = normalizeText(editAdmisionInput?.value);
+            const paciente = normalizeText(editPacienteInput?.value);
+            const medico = normalizeText(editMedicoInput?.value);
             const fechaCX = editFechaCXInput?.value ? new Date(editFechaCXInput.value) : null;
-            const codigo = editCodigoInput?.value?.trim().toUpperCase();
-            const descripcion = editDescripcionInput?.value?.trim().toUpperCase();
+            const codigo = normalizeText(editCodigoInput?.value);
+            const descripcion = normalizeText(editDescripcionInput?.value);
             const cantidad = parseInt(editCantidadInput?.value) || 0;
-            const referencia = editReferenciaInput?.value?.trim().toUpperCase() || '';
-            const proveedor = editProveedorInput?.value?.trim().toUpperCase() || '';
-            const precioUnitario = parseInt(editPrecioUnitarioInput?.value?.replace(/[^\d]/g, '')) || 0;
-            const atributo = editAtributoInput?.value?.trim().toUpperCase() || '';
-            const totalItems = parseInt(editTotalItemsInput?.value?.replace(/[^\d]/g, '')) || 0;
+            const referencia = normalizeText(editReferenciaInput?.value);
+            const proveedor = normalizeText(editProveedorInput?.value);
+            const precioUnitario = parseInt((editPrecioUnitarioInput?.value || '').replace(/[^\d]/g, '')) || 0;
+            const atributo = normalizeText(editAtributoInput?.value);
+            const totalItems = parseInt((editTotalItemsInput?.value || '').replace(/[^\d]/g, '')) || 0;
 
-            if (!admision || !paciente || !medico || !fechaCX || (!codigo && !descripcion) || !cantidad || cantidad <= 0) {
-                showToast('❌ Completa todos los campos obligatorios', 'error');
+            if (!admision || !paciente || !medico || !fechaCX || !codigo || !descripcion || !cantidad || !referencia || !proveedor || !precioUnitario || !atributo) {
+                showToast('Por favor, completa todos los campos requeridos.', 'error');
                 return;
             }
 
-            const existing = await validateAdmision(admision, currentEditId);
-            if (existing) {
-                showToast(`❌ La admisión ${admision} ya existe en otro registro`, 'error');
+            const existingAdmision = await validateAdmision(admision, currentEditId);
+            if (existingAdmision) {
+                showToast('El número de admisión ya existe.', 'error');
                 return;
             }
 
-            window.showLoading();
+            const producto = await getProductoByCodigo(codigo);
+            if (!producto || producto.descripcion !== descripcion || producto.referencia !== referencia || producto.proveedor !== proveedor || producto.atributo !== atributo) {
+                showToast('Los datos del producto no coinciden con las referencias.', 'error');
+                return;
+            }
+
+            window.showLoading('saveEditBtn');
             try {
-                let finalCodigo = codigo;
-                let finalDescripcion = descripcion;
-                let finalReferencia = referencia;
-                let finalProveedor = proveedor;
-                let finalPrecioUnitario = precioUnitario;
-                let finalAtributo = atributo;
-                let finalTotalItems = totalItems;
-
-                if (codigo) {
-                    const producto = await getProductoByCodigo(codigo);
-                    if (producto) {
-                        finalPrecioUnitario = producto.precioUnitario || precioUnitario;
-                        finalReferencia = producto.referencia || referencia;
-                        finalProveedor = producto.proveedor || proveedor;
-                        finalAtributo = producto.atributo || atributo;
-                        finalDescripcion = producto.descripcion || descripcion;
-                    }
-                } else if (descripcion) {
-                    const refData = await getReferenciaByDescripcion(descripcion);
-                    if (refData) {
-                        finalPrecioUnitario = refData.precioUnitario || precioUnitario;
-                        finalReferencia = refData.referencia || referencia;
-                        finalProveedor = refData.proveedor || proveedor;
-                        finalAtributo = refData.atributo || atributo;
-                        finalCodigo = refData.codigo || codigo;
-                    }
-                }
-
-                finalTotalItems = cantidad * finalPrecioUnitario;
-
-                const updatedData = {
+                const docRef = doc(db, "registrar_consignacion", currentEditId);
+                const newData = {
                     admision,
                     paciente,
                     medico,
                     fechaCX,
-                    codigo: finalCodigo || '',
-                    descripcion: finalDescripcion,
+                    codigo,
+                    descripcion,
                     cantidad,
-                    referencia: finalReferencia,
-                    proveedor: finalProveedor,
-                    precioUnitario: finalPrecioUnitario,
-                    atributo: finalAtributo,
-                    totalItems: finalTotalItems,
-                    updatedAt: new Date()
+                    referencia,
+                    proveedor,
+                    precioUnitario,
+                    atributo,
+                    totalItems
                 };
 
-                await updateDoc(doc(db, "registrar_consignacion", currentEditId), updatedData);
-                await logAction(currentEditId, 'MODIFICADO', currentEditOldData, updatedData);
+                await updateDoc(docRef, newData);
+                await logAction(currentEditId, 'EDITAR', currentEditOldData, newData);
 
-                showToast('✅ Registro actualizado exitosamente', 'success');
+                showToast('Registro actualizado exitosamente.', 'success');
                 closeModal(editModal);
-                await loadRegistros();
+                loadRegistros({
+                    searchAdmision,
+                    searchPaciente,
+                    searchMedico,
+                    searchDescripcion,
+                    searchProveedor,
+                    dateFilter,
+                    fechaDia,
+                    fechaDesde,
+                    fechaHasta,
+                    mes,
+                    anio
+                });
             } catch (error) {
-                console.error('Error updating registro:', error);
-                showToast('❌ Error al actualizar registro: ' + error.message, 'error');
+                console.error('Error al actualizar:', error);
+                showToast('Error al actualizar: ' + error.message, 'error');
             } finally {
-                window.hideLoading();
+                window.hideLoading('saveEditBtn');
             }
         });
     }
+
+    window.openDeleteModal = function(id, admision) {
+        currentDeleteId = id;
+        currentDeleteAdmision = admision;
+        const deleteModalText = document.getElementById('deleteModalText');
+        if (deleteModalText) {
+            deleteModalText.textContent = `¿Estás seguro de que deseas eliminar el registro con admisión "${admision}"?`;
+        }
+        deleteModal.style.display = 'block';
+    };
 
     if (confirmDeleteBtn) {
-        confirmDeleteBtn.addEventListener('click', async () => {
-            if (!currentDeleteId) return;
-
-            window.showLoading();
+        confirmDeleteBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            window.showLoading('confirmDeleteBtn');
             try {
-                const registroRef = doc(db, "registrar_consignacion", currentDeleteId);
-                const registroSnap = await getDoc(registroRef);
-                const registroData = registroSnap.data();
-
-                await deleteDoc(registroRef);
-                await logAction(currentDeleteId, 'ELIMINADO', registroData, null);
-
-                showToast('✅ Registro eliminado exitosamente', 'success');
-                closeModal(deleteModal);
-                await loadRegistros();
+                const docRef = doc(db, "registrar_consignacion", currentDeleteId);
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    await logAction(currentDeleteId, 'ELIMINAR', docSnap.data());
+                    await deleteDoc(docRef);
+                    showToast(`Registro con admisión "${currentDeleteAdmision}" eliminado exitosamente.`, 'success');
+                    closeModal(deleteModal);
+                    loadRegistros({
+                        searchAdmision,
+                        searchPaciente,
+                        searchMedico,
+                        searchDescripcion,
+                        searchProveedor,
+                        dateFilter,
+                        fechaDia,
+                        fechaDesde,
+                        fechaHasta,
+                        mes,
+                        anio
+                    });
+                } else {
+                    showToast('El registro ya no existe.', 'error');
+                }
             } catch (error) {
-                console.error('Error deleting registro:', error);
-                showToast('❌ Error al eliminar registro: ' + error.message, 'error');
+                console.error('Error al eliminar:', error);
+                showToast('Error al eliminar: ' + error.message, 'error');
             } finally {
-                window.hideLoading();
+                window.hideLoading('confirmDeleteBtn');
             }
         });
     }
 
-    if (medicoToggle) {
-        medicoToggle.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
+    window.openHistoryModal = async function(id, admision) {
+        window.showLoading('openHistoryModal');
+        try {
+            const q = query(
+                collection(db, "registrar_consignacion_historial"),
+                where("registroId", "==", id),
+                orderBy("timestamp", "desc")
+            );
+            const querySnapshot = await getDocs(q);
+            
+            historyContent.innerHTML = '';
+            if (querySnapshot.empty) {
+                historyContent.innerHTML = '<p>No hay historial disponible para este registro.</p>';
+            } else {
+                querySnapshot.forEach(doc => {
+                    const data = doc.data();
+                    const entry = document.createElement('div');
+                    entry.className = 'history-entry';
+                    
+                    let details = `<strong>Acción:</strong> ${data.action}<br>`;
+                    details += `<strong>Usuario:</strong> ${data.userFullName} (${data.username})<br>`;
+                    details += `<strong>Fecha:</strong> ${data.timestamp.toDate().toLocaleString('es-CL')}<br>`;
+                    
+                    if (data.action === 'EDITAR') {
+                        details += '<strong>Cambios:</strong><br>';
+                        const oldData = data.oldData || {};
+                        const newData = data.newData || {};
+                        for (const key in newData) {
+                            if (oldData[key] !== newData[key]) {
+                                details += `${key}: "${oldData[key] || ''}" → "${newData[key] || ''}"<br>`;
+                            }
+                        }
+                    }
+                    
+                    entry.innerHTML = details;
+                    historyContent.appendChild(entry);
+                });
+            }
+            
+            const historyModalTitle = document.getElementById('historyModalTitle');
+            if (historyModalTitle) {
+                historyModalTitle.textContent = `Historial del Registro: ${admision}`;
+            }
+            historyModal.style.display = 'block';
+        } catch (error) {
+            console.error('Error al cargar historial:', error);
+            showToast('Error al cargar historial: ' + error.message, 'error');
+        } finally {
+            window.hideLoading('openHistoryModal');
+        }
+    };
+
+    function setupMedicoAutocomplete(inputId, iconId, listId) {
+        const input = document.getElementById(inputId);
+        const icon = document.getElementById(iconId);
+        const list = document.getElementById(listId);
+
+        if (!input || !icon || !list) {
+            console.warn(`Elementos no encontrados para medico autocomplete: ${inputId}`);
+            return;
+        }
+
+        function showMedicoSuggestions(value) {
+            list.innerHTML = '';
+            list.style.display = 'none';
+            if (!value.trim()) return;
+
+            const filtered = medicos.filter(medico => 
+                medico.nombre?.toUpperCase().includes(normalizeText(value))
+            );
+
+            if (filtered.length === 0) return;
+
+            filtered.slice(0, 10).forEach(medico => {
+                const div = document.createElement('div');
+                div.className = 'autocomplete-item';
+                div.textContent = medico.nombre;
+                div.title = medico.nombre;
+                div.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    input.value = medico.nombre;
+                    list.style.display = 'none';
+                    input.dispatchEvent(new Event('change'));
+                    input.focus();
+                });
+                list.appendChild(div);
+            });
+            list.style.display = 'block';
+            list.style.maxHeight = '200px';
+            list.style.overflowY = 'auto';
+        }
+
+        function showAllMedicos() {
+            list.innerHTML = '';
+            list.style.display = 'none';
             if (medicos.length === 0) {
-                showToast('No hay datos de médicos disponibles', 'error');
+                console.warn('No hay médicos disponibles');
+                showToast('No hay médicos disponibles', 'error');
                 return;
             }
-            medicoDropdown.style.display = medicoDropdown.style.display === 'block' ? 'none' : 'block';
-        });
-    }
+            medicos.slice(0, 20).forEach(medico => {
+                const div = document.createElement('div');
+                div.className = 'autocomplete-item';
+                div.textContent = medico.nombre;
+                div.title = medico.nombre;
+                div.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    input.value = medico.nombre;
+                    list.style.display = 'none';
+                    input.dispatchEvent(new Event('change'));
+                    input.focus();
+                });
+                list.appendChild(div);
+            });
+            list.style.display = 'block';
+            list.style.maxHeight = '200px';
+            list.style.overflowY = 'auto';
+        }
 
-    if (editMedicoToggle) {
-        editMedicoToggle.addEventListener('click', (e) => {
+        input.addEventListener('input', (e) => {
+            showMedicoSuggestions(e.target.value);
+        });
+
+        input.addEventListener('focus', () => {
+            if (input.value.trim()) {
+                showMedicoSuggestions(input.value);
+            }
+        });
+
+        icon.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            if (medicos.length === 0) {
-                showToast('No hay datos de médicos disponibles', 'error');
-                return;
+            if (list.style.display === 'block') {
+                list.style.display = 'none';
+            } else {
+                showAllMedicos();
+                input.focus();
             }
-            editMedicoDropdown.style.display = editMedicoDropdown.style.display === 'block' ? 'none' : 'block';
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!input.contains(e.target) && !icon.contains(e.target) && !list.contains(e.target)) {
+                list.style.display = 'none';
+            }
         });
     }
 
-    document.addEventListener('click', (e) => {
-        if (!medicoToggle?.contains(e.target) && !medicoDropdown?.contains(e.target)) {
-            medicoDropdown.style.display = 'none';
-        }
-        if (!editMedicoToggle?.contains(e.target) && !editMedicoDropdown?.contains(e.target)) {
-            editMedicoDropdown.style.display = 'none';
-        }
-    });
-
-    cantidadInput?.addEventListener('input', () => updateTotalItems(false));
-    editCantidadInput?.addEventListener('input', () => updateTotalItems(true));
-    precioUnitarioInput?.addEventListener('input', () => updateTotalItems(false));
-    editPrecioUnitarioInput?.addEventListener('input', () => updateTotalItems(true));
+    setupMedicoAutocomplete('medico', 'medicoToggle', 'medicoDropdown');
+    setupMedicoAutocomplete('editMedico', 'editMedicoToggle', 'editMedicoDropdown');
 
     async function initialize() {
-        await Promise.all([loadMedicos(), loadReferencias()]);
-        
-        if (medicos.length > 0) {
-            setupAutocomplete('medico', 'medicoToggle', 'medicoDropdown', medicos, 'nombre');
+        window.showLoading('initialize');
+        try {
+            await loadMedicos();
+            await loadReferencias();
+            await loadRegistros({
+                searchAdmision,
+                searchPaciente,
+                searchMedico,
+                searchDescripcion,
+                searchProveedor,
+                dateFilter,
+                fechaDia,
+                fechaDesde,
+                fechaHasta,
+                mes,
+                anio
+            });
+        } catch (error) {
+            console.error('Error en initialize:', error);
+            showToast('Error al inicializar la aplicación: ' + error.message, 'error');
+        } finally {
+            window.hideLoading('initialize');
         }
-        if (referencias.length > 0) {
-            setupAutocomplete('codigo', 'codigoToggle', 'codigoDropdown', referencias, 'codigo');
-            setupAutocomplete('descripcion', 'descripcionToggle', 'descripcionDropdown', referencias, 'descripcion');
-        }
-
-        await loadRegistros();
     }
 
-    initialize();
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            try {
+                const userDoc = await getDoc(doc(db, "users", user.uid));
+                if (userDoc.exists()) {
+                    window.currentUserData = userDoc.data();
+                    initialize();
+                } else {
+                    console.warn('No se encontraron datos de usuario');
+                    initialize();
+                }
+            } catch (error) {
+                console.error('Error fetching user data:', error);
+                initialize();
+            }
+        } else {
+            console.warn('No user is signed in');
+            initialize();
+        }
+    });
 });
