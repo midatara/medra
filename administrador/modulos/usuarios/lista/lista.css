@@ -188,7 +188,7 @@ body {
     }
 }
 
-/* Modal */
+/* ====================== MODAL ====================== */
 .modal {
     display: none;
     position: fixed;
@@ -244,7 +244,8 @@ body {
 .modal-field {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
+    gap: 8px;
     padding: 12px 0;
     border-bottom: 1px solid #f0f0f0;
     font-size: 15px;
@@ -257,14 +258,18 @@ body {
 .field-label {
     font-weight: 600;
     color: #333;
-    min-width: 150px;
+    min-width: 120px;
+    margin-right: 12px;
+    flex-shrink: 0;
 }
 
 .field-value {
-    flex: 1;
     color: #555;
-    text-align: right;
-    padding-right: 10px;
+    flex: 1;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .edit-pencil {
@@ -272,6 +277,7 @@ body {
     height: 18px;
     cursor: pointer;
     fill: #3A5795;
+    flex-shrink: 0;
 }
 
 .field-input-group {
@@ -308,14 +314,14 @@ body {
     justify-content: center;
 }
 
+.action-btn:hover {
+    background: #f0f0f0;
+}
+
 .save-icon {
     fill: #28a745;
 }
 
 .cancel-icon {
     fill: #dc3545;
-}
-
-.action-btn:hover {
-    background: #f0f0f0;
 }
