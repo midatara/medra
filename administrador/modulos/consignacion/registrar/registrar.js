@@ -85,7 +85,6 @@ function formatNumberWithThousandsSeparator(number) {
     return cleaned ? Number(cleaned).toLocaleString('es-CL') : '';
 }
 
-// Función para normalizar texto
 function normalizeText(text) {
     return text?.trim().toUpperCase() || '';
 }
@@ -381,7 +380,7 @@ if (cantidadInput && precioUnitarioInput && totalItemsInput) {
 
     cantidadInput.addEventListener('input', updateTotal);
     precioUnitarioInput.addEventListener('input', updateTotal);
-    precioUnitarioInput.addEventListener('blur', updateTotal); // para formato final
+    precioUnitarioInput.addEventListener('blur', updateTotal); 
 }
 
 async function logAction(registroId, action, oldData = null, newData = null) {
@@ -619,7 +618,7 @@ function exportToExcel(data, filename) {
         formatNumberWithThousandsSeparator(registro.precioUnitario) || '',
         registro.atributo || '',
         formatNumberWithThousandsSeparator(registro.totalItems) || '',
-        registro.userFullName || ''  // NUEVO
+        registro.userFullName || '' 
     ]);
 
     const csvContent = [
@@ -764,13 +763,11 @@ document.addEventListener('DOMContentLoaded', () => {
     enforceUpperCase(upperCaseInputs.filter(Boolean));
 
     function clearForm() {
-        // SOLO limpiar los campos del producto (código, descripción, etc.)
         [codigoInput, descripcionInput, cantidadInput, referenciaInput,
             proveedorInput, precioUnitarioInput, atributoInput, totalItemsInput].forEach(input => {
                 if (input) input.value = '';
             });
 
-        // Cerrar dropdowns de autocompletado
         codigoDropdown.style.display = 'none';
         descripcionDropdown.style.display = 'none';
     }
@@ -1199,7 +1196,7 @@ document.addEventListener('DOMContentLoaded', () => {
             mes,
             anio
         });
-    }, 150); // Reducido de 300ms a 150ms para una respuesta más rápida
+    }, 150); 
 
     const searchInputs = [
         { input: buscarAdmisionInput, filter: 'searchAdmision' },
@@ -1462,20 +1459,17 @@ document.addEventListener('DOMContentLoaded', () => {
         limpiarBtn.addEventListener('click', (e) => {
             e.preventDefault();
 
-            // Limpiar TODOS los campos del formulario
             [admisionInput, pacienteInput, medicoInput, fechaCXInput,
                 codigoInput, descripcionInput, cantidadInput, referenciaInput,
                 proveedorInput, precioUnitarioInput, atributoInput, totalItemsInput].forEach(input => {
                     if (input) input.value = '';
                 });
 
-            // Limpiar filtros de búsqueda
             [buscarAdmisionInput, buscarPacienteInput, buscarMedicoInput,
                 buscarDescripcionInput, buscarProveedorInput].forEach(input => {
                     if (input) input.value = '';
                 });
 
-            // Limpiar filtros de fecha
             [dateDay, dateWeek, dateMonth].forEach(radio => {
                 if (radio) radio.checked = false;
             });
@@ -1483,7 +1477,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (input) input.value = '';
             });
 
-            // Reiniciar variables de filtro
             searchAdmision = '';
             searchPaciente = '';
             searchMedico = '';
@@ -1498,7 +1491,6 @@ document.addEventListener('DOMContentLoaded', () => {
             currentPage = 1;
             lastVisible = null;
 
-            // Cerrar dropdowns
             [medicoDropdown, codigoDropdown, descripcionDropdown].forEach(dropdown => {
                 if (dropdown) dropdown.style.display = 'none';
             });
@@ -1556,8 +1548,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     precioUnitario,
                     atributo,
                     totalItems,
-                    userFullName: window.currentUserData?.fullName || 'Usuario Invitado',  // NUEVO
-                    userId: auth.currentUser?.uid || null  // Opcional: también guardar el ID
+                    userFullName: window.currentUserData?.fullName || 'Usuario Invitado',  
+                    userId: auth.currentUser?.uid || null  
                 });
 
                 await logAction(docRef.id, 'CREAR', null, {
@@ -1577,17 +1569,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 showToast('Registro creado exitosamente.', 'success');
 
-                // Solo limpiar los campos del producto, mantener admisión, paciente, médico, fecha
                 [codigoInput, descripcionInput, cantidadInput, referenciaInput,
                     proveedorInput, precioUnitarioInput, atributoInput, totalItemsInput].forEach(input => {
                         if (input) input.value = '';
                     });
 
-                // Cerrar dropdowns
                 if (codigoDropdown) codigoDropdown.style.display = 'none';
                 if (descripcionDropdown) descripcionDropdown.style.display = 'none';
 
-                // Recargar la tabla
                 loadRegistros({
                     searchAdmision,
                     searchPaciente,
@@ -1684,7 +1673,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     precioUnitario,
                     atributo,
                     totalItems,
-                    userFullName: window.currentUserData?.fullName || 'Usuario Invitado',  // ACTUALIZA al editar
+                    userFullName: window.currentUserData?.fullName || 'Usuario Invitado', 
                     userId: auth.currentUser?.uid || null
                 };
 
