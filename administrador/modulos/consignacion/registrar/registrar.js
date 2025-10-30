@@ -1,8 +1,8 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js';
 import { getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js';
-import { 
-    getFirestore, collection, addDoc, getDocs, query, where, doc, 
-    updateDoc, deleteDoc, orderBy, getDoc, limit, startAfter 
+import {
+    getFirestore, collection, addDoc, getDocs, query, where, doc,
+    updateDoc, deleteDoc, orderBy, getDoc, limit, startAfter
 } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js';
 
 let loadingCounter = 0;
@@ -30,15 +30,15 @@ window.hideLoading = function (caller = 'unknown') {
     loadingCounter--;
     console.log(`hideLoading called by ${caller}, loadingCounter: ${loadingCounter}, classList: ${loading.classList}`);
     if (loadingCounter <= 0) {
-        loadingCounter = 0; 
+        loadingCounter = 0;
         loading.classList.remove('show');
         setTimeout(() => {
-            loading.classList.remove('show'); 
+            loading.classList.remove('show');
             console.log(`hideLoading post-remove, classList: ${loading.classList}`);
             if (loading.classList.contains('show')) {
                 console.error('Spinner sigue visible después de hideLoading, revisa CSS o conflictos en el DOM');
             }
-        }, 300); 
+        }, 300);
     }
 };
 
@@ -76,7 +76,7 @@ let fechaDesde = null;
 let fechaHasta = null;
 let mes = null;
 let anio = null;
-let atributoFilter = 'CONSIGNACION'; 
+let atributoFilter = 'CONSIGNACION';
 let isLoadingReferencias = false;
 
 function formatNumberWithThousandsSeparator(number) {
@@ -141,17 +141,17 @@ async function loadReferencias() {
 
 async function getReferenciaByDescripcion(descripcion) {
     if (!descripcion?.trim()) return null;
-    
+
     try {
         const q = query(
-            collection(db, "referencias_implantes"), 
+            collection(db, "referencias_implantes"),
             where("descripcion", "==", normalizeText(descripcion)),
             where("atributo", "==", atributoFilter)
         );
         const querySnapshot = await getDocs(q);
-        
+
         if (querySnapshot.empty) return null;
-        
+
         const doc = querySnapshot.docs[0];
         return { id: doc.id, ...doc.data() };
     } catch (error) {
@@ -174,11 +174,11 @@ function setupAutocomplete(inputId, iconId, listId, data, key) {
         list.innerHTML = '';
         list.style.display = 'none';
         if (!value.trim()) return;
-        
-        const filtered = data.filter(item => 
+
+        const filtered = data.filter(item =>
             item[key]?.toUpperCase().includes(normalizeText(value))
         );
-        
+
         if (filtered.length === 0) return;
 
         filtered.slice(0, 10).forEach(item => {
@@ -189,12 +189,12 @@ function setupAutocomplete(inputId, iconId, listId, data, key) {
             div.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                
+
                 input.value = item[key];
                 list.style.display = 'none';
-                
+
                 fillFields(item, inputId);
-                
+
                 input.dispatchEvent(new Event('change'));
                 input.focus();
             });
@@ -228,12 +228,12 @@ function setupAutocomplete(inputId, iconId, listId, data, key) {
             div.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                
+
                 input.value = item[key];
                 list.style.display = 'none';
-                
+
                 fillFields(item, inputId);
-                
+
                 input.dispatchEvent(new Event('change'));
                 input.focus();
             });
@@ -274,7 +274,7 @@ function setupAutocomplete(inputId, iconId, listId, data, key) {
     list.addEventListener('keydown', (e) => {
         const items = list.querySelectorAll('.autocomplete-item');
         let currentIndex = -1;
-        
+
         if (e.key === 'ArrowDown') {
             e.preventDefault();
             currentIndex = Array.from(items).findIndex(item => item.classList.contains('highlighted'));
@@ -405,9 +405,9 @@ async function logAction(registroId, action, oldData = null, newData = null) {
 function setupColumnResize() {
     const table = document.querySelector('.registrar-table');
     const headers = document.querySelectorAll('.registrar-table th');
-    
+
     const initialWidths = [
-        70, 130, 200, 80, 100, 300, 80, 130, 150, 100, 80, 100, 65
+        70, 130, 200, 80, 100, 300, 80, 130, 150, 100, 80, 100, 130, 65
     ];
 
     headers.forEach((header, index) => {
@@ -415,7 +415,7 @@ function setupColumnResize() {
             header.style.width = `${initialWidths[index]}px`;
             header.style.minWidth = `${initialWidths[index]}px`;
             header.style.maxWidth = `${initialWidths[index] * 2}px`;
-            
+
             const cells = document.querySelectorAll(`.registrar-table td:nth-child(${index + 1})`);
             cells.forEach(cell => {
                 cell.style.width = `${initialWidths[index]}px`;
@@ -449,11 +449,11 @@ function setupColumnResize() {
             if (!isResizing) return;
             const delta = e.clientX - startX;
             let newWidth = Math.max(initialWidths[index], Math.min(initialWidths[index] * 2, startWidth + delta));
-            
+
             header.style.width = `${newWidth}px`;
             header.style.minWidth = `${newWidth}px`;
             header.style.maxWidth = `${newWidth * 2}px`;
-            
+
             const cells = document.querySelectorAll(`.registrar-table td:nth-child(${index + 1})`);
             cells.forEach(cell => {
                 cell.style.width = `${newWidth}px`;
@@ -483,11 +483,11 @@ function setupColumnResize() {
             if (!isResizing) return;
             const delta = e.touches[0].clientX - startX;
             let newWidth = Math.max(initialWidths[index], Math.min(initialWidths[index] * 2, startWidth + delta));
-            
+
             header.style.width = `${newWidth}px`;
             header.style.minWidth = `${newWidth}px`;
             header.style.maxWidth = `${newWidth * 2}px`;
-            
+
             const cells = document.querySelectorAll(`.registrar-table td:nth-child(${index + 1})`);
             cells.forEach(cell => {
                 cell.style.width = `${newWidth}px`;
@@ -533,7 +533,7 @@ function showToast(text, type = 'success') {
         <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle'}"></i>
         ${text}
     `;
-    
+
     toastContainer.appendChild(toast);
 
     setTimeout(() => toast.classList.add('show'), 100);
@@ -550,19 +550,19 @@ function showToast(text, type = 'success') {
 
 async function validateAdmision(admision, excludeId = null) {
     if (!admision?.trim()) return null;
-    
+
     try {
         const q = query(
-            collection(db, "registrar_consignacion"), 
+            collection(db, "registrar_consignacion"),
             where("admision", "==", normalizeText(admision))
         );
         const querySnapshot = await getDocs(q);
-        
+
         if (querySnapshot.empty) return null;
-        
+
         const doc = querySnapshot.docs[0];
         if (excludeId && doc.id === excludeId) return null;
-        
+
         return { id: doc.id, ...doc.data() };
     } catch (error) {
         console.error('Error validating admision:', error);
@@ -572,17 +572,17 @@ async function validateAdmision(admision, excludeId = null) {
 
 async function getProductoByCodigo(codigo) {
     if (!codigo?.trim()) return null;
-    
+
     try {
         const q = query(
-            collection(db, "referencias_implantes"), 
+            collection(db, "referencias_implantes"),
             where("codigo", "==", normalizeText(codigo)),
             where("atributo", "==", atributoFilter)
         );
         const querySnapshot = await getDocs(q);
-        
+
         if (querySnapshot.empty) return null;
-        
+
         const doc = querySnapshot.docs[0];
         return { id: doc.id, ...doc.data() };
     } catch (error) {
@@ -602,10 +602,10 @@ function parseFechaCX(fecha) {
 
 function exportToExcel(data, filename) {
     const headers = [
-        'Admisión', 'Paciente', 'Médico', 'Fecha CX', 'Código', 'Descripción', 
-        'Cantidad', 'Referencia', 'Proveedor', 'Precio Unitario', 'Atributo', 'Total'
+        'Admisión', 'Paciente', 'Médico', 'Fecha CX', 'Código', 'Descripción',
+        'Cantidad', 'Referencia', 'Proveedor', 'Precio Unitario', 'Atributo', 'Total', 'Usuario'
     ];
-    
+
     const rows = data.map(registro => [
         registro.admision || '',
         registro.paciente || '',
@@ -618,7 +618,8 @@ function exportToExcel(data, filename) {
         registro.proveedor || '',
         formatNumberWithThousandsSeparator(registro.precioUnitario) || '',
         registro.atributo || '',
-        formatNumberWithThousandsSeparator(registro.totalItems) || ''
+        formatNumberWithThousandsSeparator(registro.totalItems) || '',
+        registro.userFullName || ''  // NUEVO
     ]);
 
     const csvContent = [
@@ -652,7 +653,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const paginationInfo = document.getElementById('paginationInfo');
     const registrarBtn = document.getElementById('registrarBtn');
     const limpiarBtn = document.getElementById('limpiarBtn');
-    
+
     const admisionInput = document.getElementById('admision');
     const pacienteInput = document.getElementById('paciente');
     const medicoInput = document.getElementById('medico');
@@ -689,7 +690,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const editModal = document.getElementById('editModal');
     const deleteModal = document.getElementById('deleteModal');
     const historyModal = document.getElementById('historyModal');
-    
+
     const editAdmisionInput = document.getElementById('editAdmision');
     const editPacienteInput = document.getElementById('editPaciente');
     const editMedicoInput = document.getElementById('editMedico');
@@ -754,9 +755,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const upperCaseInputs = [
-        admisionInput, pacienteInput, medicoInput, codigoInput, descripcionInput, 
+        admisionInput, pacienteInput, medicoInput, codigoInput, descripcionInput,
         referenciaInput, proveedorInput, atributoInput,
-        editAdmisionInput, editPacienteInput, editMedicoInput, editCodigoInput, 
+        editAdmisionInput, editPacienteInput, editMedicoInput, editCodigoInput,
         editDescripcionInput, editReferenciaInput, editProveedorInput, editAtributoInput,
         buscarAdmisionInput, buscarPacienteInput, buscarMedicoInput, buscarDescripcionInput, buscarProveedorInput
     ];
@@ -764,10 +765,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function clearForm() {
         // SOLO limpiar los campos del producto (código, descripción, etc.)
-        [codigoInput, descripcionInput, cantidadInput, referenciaInput, 
-        proveedorInput, precioUnitarioInput, atributoInput, totalItemsInput].forEach(input => {
-            if (input) input.value = '';
-        });
+        [codigoInput, descripcionInput, cantidadInput, referenciaInput,
+            proveedorInput, precioUnitarioInput, atributoInput, totalItemsInput].forEach(input => {
+                if (input) input.value = '';
+            });
 
         // Cerrar dropdowns de autocompletado
         codigoDropdown.style.display = 'none';
@@ -905,7 +906,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function getTotalRecordsCount(filters) {
         try {
             let countQuery = query(collection(db, "registrar_consignacion"));
-            
+
             if (filters.searchAdmision) {
                 const normalizedAdmision = normalizeText(filters.searchAdmision);
                 countQuery = query(countQuery,
@@ -975,7 +976,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!registrarBody) return;
 
         registrarBody.innerHTML = '';
-        
+
         if (registros.length === 0) {
             registrarBody.innerHTML = `
                 <tr>
@@ -989,7 +990,7 @@ document.addEventListener('DOMContentLoaded', () => {
             registros.forEach(registro => {
                 const row = document.createElement('tr');
                 row.className = 'registrar-row';
-                
+
                 row.innerHTML = `
                     <td class="registrar-cell admision">${escapeHtml(registro.admision || '')}</td>
                     <td class="registrar-cell paciente">${escapeHtml(registro.paciente || '')}</td>
@@ -1003,6 +1004,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td class="registrar-cell precio">${formatNumberWithThousandsSeparator(registro.precioUnitario)}</td>
                     <td class="registrar-cell atributo">${escapeHtml(registro.atributo || '')}</td>
                     <td class="registrar-cell total">${formatNumberWithThousandsSeparator(registro.totalItems)}</td>
+                    <td class="registrar-cell usuario">${escapeHtml(registro.userFullName || '—')}</td>
                     <td class="registrar-actions">
                         <div class="registrar-actions">
                             <button title="Editar registro" class="registrar-btn-edit" onclick="openEditModal('${registro.id}', ${JSON.stringify(registro).replace(/"/g, '&quot;')})">
@@ -1040,7 +1042,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const totalPages = Math.ceil(total / PAGE_SIZE);
         const startRecord = (currentPage - 1) * PAGE_SIZE + 1;
         const endRecord = Math.min(currentPage * PAGE_SIZE, total);
-        
+
         if (paginationInfo) {
             paginationInfo.innerHTML = `
                 <span class="pagination-info">
@@ -1054,7 +1056,7 @@ document.addEventListener('DOMContentLoaded', () => {
             prevPage.disabled = currentPage === 1;
             prevPage.innerHTML = '<i class="fas fa-chevron-left"></i>';
         }
-        
+
         if (nextPage) {
             nextPage.disabled = currentPage === totalPages || total === 0;
             nextPage.innerHTML = '<i class="fas fa-chevron-right"></i>';
@@ -1062,7 +1064,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (pageNumbers) {
             pageNumbers.innerHTML = '';
-            
+
             if (totalPages > 1) {
                 const firstBtn = document.createElement('button');
                 firstBtn.innerHTML = '1';
@@ -1073,7 +1075,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const startPage = Math.max(2, currentPage - 2);
             const endPage = Math.min(totalPages - 1, currentPage + 2);
-            
+
             if (startPage > 2) {
                 const dots = document.createElement('span');
                 dots.textContent = '...';
@@ -1108,7 +1110,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function goToPage(page) {
         if (page < 1 || page > Math.ceil(totalRecords / PAGE_SIZE)) return;
-        
+
         currentPage = page;
         loadRegistros({
             searchAdmision,
@@ -1370,11 +1372,11 @@ document.addEventListener('DOMContentLoaded', () => {
         downloadAll.addEventListener('click', async (e) => {
             e.preventDefault();
             e.stopPropagation();
-            
+
             window.showLoading('downloadAll');
             try {
                 let allQuery = query(collection(db, "registrar_consignacion"), orderBy("fechaCX", "asc"));
-                
+
                 if (searchAdmision) {
                     const normalizedAdmision = normalizeText(searchAdmision);
                     allQuery = query(allQuery,
@@ -1455,23 +1457,23 @@ document.addEventListener('DOMContentLoaded', () => {
             exportToExcel(registros, `consignaciones_pagina_${currentPage}_${new Date().toISOString().split('T')[0]}`);
         });
     }
-    
+
     if (limpiarBtn) {
         limpiarBtn.addEventListener('click', (e) => {
             e.preventDefault();
 
             // Limpiar TODOS los campos del formulario
             [admisionInput, pacienteInput, medicoInput, fechaCXInput,
-            codigoInput, descripcionInput, cantidadInput, referenciaInput,
-            proveedorInput, precioUnitarioInput, atributoInput, totalItemsInput].forEach(input => {
-                if (input) input.value = '';
-            });
+                codigoInput, descripcionInput, cantidadInput, referenciaInput,
+                proveedorInput, precioUnitarioInput, atributoInput, totalItemsInput].forEach(input => {
+                    if (input) input.value = '';
+                });
 
             // Limpiar filtros de búsqueda
             [buscarAdmisionInput, buscarPacienteInput, buscarMedicoInput,
-            buscarDescripcionInput, buscarProveedorInput].forEach(input => {
-                if (input) input.value = '';
-            });
+                buscarDescripcionInput, buscarProveedorInput].forEach(input => {
+                    if (input) input.value = '';
+                });
 
             // Limpiar filtros de fecha
             [dateDay, dateWeek, dateMonth].forEach(radio => {
@@ -1553,7 +1555,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     proveedor,
                     precioUnitario,
                     atributo,
-                    totalItems
+                    totalItems,
+                    userFullName: window.currentUserData?.fullName || 'Usuario Invitado',  // NUEVO
+                    userId: auth.currentUser?.uid || null  // Opcional: también guardar el ID
                 });
 
                 await logAction(docRef.id, 'CREAR', null, {
@@ -1574,10 +1578,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 showToast('Registro creado exitosamente.', 'success');
 
                 // Solo limpiar los campos del producto, mantener admisión, paciente, médico, fecha
-                [codigoInput, descripcionInput, cantidadInput, referenciaInput, 
-                proveedorInput, precioUnitarioInput, atributoInput, totalItemsInput].forEach(input => {
-                    if (input) input.value = '';
-                });
+                [codigoInput, descripcionInput, cantidadInput, referenciaInput,
+                    proveedorInput, precioUnitarioInput, atributoInput, totalItemsInput].forEach(input => {
+                        if (input) input.value = '';
+                    });
 
                 // Cerrar dropdowns
                 if (codigoDropdown) codigoDropdown.style.display = 'none';
@@ -1606,7 +1610,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    window.openEditModal = async function(id, registro) {
+    window.openEditModal = async function (id, registro) {
         currentEditId = id;
         currentEditOldData = { ...registro };
 
@@ -1679,7 +1683,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     proveedor,
                     precioUnitario,
                     atributo,
-                    totalItems
+                    totalItems,
+                    userFullName: window.currentUserData?.fullName || 'Usuario Invitado',  // ACTUALIZA al editar
+                    userId: auth.currentUser?.uid || null
                 };
 
                 await updateDoc(docRef, newData);
@@ -1709,7 +1715,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    window.openDeleteModal = function(id, admision) {
+    window.openDeleteModal = function (id, admision) {
         currentDeleteId = id;
         currentDeleteAdmision = admision;
         const deleteModalText = document.getElementById('deleteModalText');
@@ -1756,7 +1762,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    window.openHistoryModal = async function(id, admision) {
+    window.openHistoryModal = async function (id, admision) {
         window.showLoading('openHistoryModal');
         try {
             const q = query(
@@ -1765,7 +1771,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 orderBy("timestamp", "desc")
             );
             const querySnapshot = await getDocs(q);
-            
+
             historyContent.innerHTML = '';
             if (querySnapshot.empty) {
                 historyContent.innerHTML = '<p>No hay historial disponible para este registro.</p>';
@@ -1774,11 +1780,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     const data = doc.data();
                     const entry = document.createElement('div');
                     entry.className = 'history-entry';
-                    
+
                     let details = `<strong>Acción:</strong> ${data.action}<br>`;
                     details += `<strong>Usuario:</strong> ${data.userFullName} (${data.username})<br>`;
                     details += `<strong>Fecha:</strong> ${data.timestamp.toDate().toLocaleString('es-CL')}<br>`;
-                    
+
                     if (data.action === 'EDITAR') {
                         details += '<strong>Cambios:</strong><br>';
                         const oldData = data.oldData || {};
@@ -1789,12 +1795,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
                         }
                     }
-                    
+
                     entry.innerHTML = details;
                     historyContent.appendChild(entry);
                 });
             }
-            
+
             const historyModalTitle = document.getElementById('historyModalTitle');
             if (historyModalTitle) {
                 historyModalTitle.textContent = `Historial del Registro: ${admision}`;
@@ -1823,7 +1829,7 @@ document.addEventListener('DOMContentLoaded', () => {
             list.style.display = 'none';
             if (!value.trim()) return;
 
-            const filtered = medicos.filter(medico => 
+            const filtered = medicos.filter(medico =>
                 medico.nombre?.toUpperCase().includes(normalizeText(value))
             );
 
