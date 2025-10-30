@@ -547,24 +547,33 @@ function showToast(text, type = 'success') {
     }, 4000);
 }
 
-async function validateAdmision(admision, excludeId = null) {
-    if (!admision?.trim()) return null;
+async function validateAdmisionCodigo(admision, codigo, excludeId = null) {
+    if (!admision?.trim() || !codigo?.trim()) return null;
 
     try {
+        const normalizedAdmision = normalizeText(admision);
+        const normalizedCodigo = normalizeText(codigo);
+
         const q = query(
             collection(db, "registrar_consignacion"),
-            where("admision", "==", normalizeText(admision))
+            where("admision", "==", normalizedAdmision),
+            where("codigo", "==", normalizedCodigo)
         );
+
         const querySnapshot = await getDocs(q);
 
         if (querySnapshot.empty) return null;
 
-        const doc = querySnapshot.docs[0];
-        if (excludeId && doc.id === excludeId) return null;
+        for (const doc of querySnapshot.docs) {
+            if (excludeId && doc.id === excludeId) {
+                continue; // Es el mismo registro → permitido
+            }
+            return { id: doc.id, ...doc.data() };
+        }
 
-        return { id: doc.id, ...doc.data() };
+        return null; // No hay duplicados
     } catch (error) {
-        console.error('Error validating admision:', error);
+        console.error('Error validando admision + código:', error);
         return null;
     }
 }
@@ -809,7 +818,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadRegistros(filters) {
         window.showLoading('loadRegistros');
         try {
-            let q = query(collection(db, "registrar_consignacion"), orderBy("timestamp", "desc"));
+            let q = query(collection(db, "registrar_consignacion"), orderBy("timestamp", "asc"));
             const conditions = [];
 
             console.log('Filtros aplicados:', JSON.stringify(filters, null, 2));
@@ -1521,9 +1530,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const existingAdmision = await validateAdmision(admision);
-            if (existingAdmision) {
-                showToast('El número de admisión ya existe.', 'error');
+            const duplicado = await validateAdmisionCodigo(admision, codigo);
+            if (duplicado) {
+                showToast(`Ya existe un registro con admisión "${admision}" y código "${codigo}".`, 'error');
                 return;
             }
 
@@ -1646,9 +1655,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const existingAdmision = await validateAdmision(admision, currentEditId);
-            if (existingAdmision) {
-                showToast('El número de admisión ya existe.', 'error');
+            const duplicado = await validateAdmisionCodigo(admision, codigo, currentEditId);
+            if (duplicado) {
+                showToast(`Ya existe otro registro con admisión "${admision}" y código "${codigo}".`, 'error');
                 return;
             }
 
@@ -1676,7 +1685,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     totalItems,
                     userFullName: window.currentUserData?.fullName || 'Usuario Invitado',
                     userId: auth.currentUser?.uid || null,
-                    timestamp: new Date()  
+                    timestamp: new Date()
                 };
 
                 await updateDoc(docRef, newData);
