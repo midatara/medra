@@ -15,8 +15,10 @@ window.showLoading = function (caller = 'unknown') {
         return;
     }
     loadingCounter++;
+    console.log(`showLoading called by ${caller}, loadingCounter: ${loadingCounter}, classList: ${loading.classList}`);
     loading.classList.add('show');
     setTimeout(() => {
+        console.log(`showLoading post-add, classList: ${loading.classList}`);
     }, 10);
 };
 
@@ -26,11 +28,13 @@ window.hideLoading = function (caller = 'unknown') {
         return;
     }
     loadingCounter--;
+    console.log(`hideLoading called by ${caller}, loadingCounter: ${loadingCounter}, classList: ${loading.classList}`);
     if (loadingCounter <= 0) {
         loadingCounter = 0;
         loading.classList.remove('show');
         setTimeout(() => {
             loading.classList.remove('show');
+            console.log(`hideLoading post-remove, classList: ${loading.classList}`);
             if (loading.classList.contains('show')) {
                 console.error('Spinner sigue visible después de hideLoading, revisa CSS o conflictos en el DOM');
             }
@@ -104,10 +108,12 @@ async function loadMedicos() {
 
 async function loadReferencias() {
     if (isLoadingReferencias) {
+        console.log('loadReferencias skipped: already loading');
         return;
     }
     isLoadingReferencias = true;
     window.showLoading('loadReferencias');
+    console.log(`Cargando referencias para atributoFilter: ${atributoFilter}`);
     try {
         const normalizedAtributoFilter = normalizeText(atributoFilter);
         const querySnapshot = await getDocs(
@@ -117,6 +123,7 @@ async function loadReferencias() {
         querySnapshot.forEach((doc) => {
             referencias.push({ id: doc.id, ...doc.data() });
         });
+        console.log(`Referencias cargadas (${normalizedAtributoFilter}):`, referencias);
         referencias.sort((a, b) => (a.codigo || '').localeCompare(b.codigo || ''));
         setupAutocomplete('codigo', 'codigoToggle', 'codigoDropdown', referencias, 'codigo');
         setupAutocomplete('descripcion', 'descripcionToggle', 'descripcionDropdown', referencias, 'descripcion');
@@ -559,12 +566,12 @@ async function validateAdmisionCodigo(admision, codigo, excludeId = null) {
 
         for (const doc of querySnapshot.docs) {
             if (excludeId && doc.id === excludeId) {
-                continue; 
+                continue; // Es el mismo registro → permitido
             }
             return { id: doc.id, ...doc.data() };
         }
 
-        return null; 
+        return null; // No hay duplicados
     } catch (error) {
         console.error('Error validando admision + código:', error);
         return null;
@@ -641,6 +648,7 @@ function exportToExcel(data, filename) {
 document.addEventListener('DOMContentLoaded', () => {
     if (loading) {
         loading.classList.remove('show');
+        console.log('DOMContentLoaded: Spinner inicializado como oculto, classList:', loading.classList);
     } else {
         console.warn('DOMContentLoaded: Elemento con ID "loading" no encontrado en el DOM');
     }
@@ -813,6 +821,8 @@ document.addEventListener('DOMContentLoaded', () => {
             let q = query(collection(db, "registrar_consignacion"), orderBy("timestamp", "asc"));
             const conditions = [];
 
+            console.log('Filtros aplicados:', JSON.stringify(filters, null, 2));
+
             if (filters.searchAdmision) {
                 const normalizedAdmision = normalizeText(filters.searchAdmision);
                 conditions.push(where("admision", ">=", normalizedAdmision));
@@ -883,6 +893,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             totalRecords = await getTotalRecordsCount(filters);
+
+            console.log(`Registros cargados: ${registros.length}, Total estimado: ${totalRecords}`);
 
             renderTable();
         } catch (error) {
@@ -1165,6 +1177,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const debouncedLoadRegistros = debounce(() => {
+        console.log('debouncedLoadRegistros triggered with filters:', {
             searchAdmision,
             searchPaciente,
             searchMedico,
@@ -1206,6 +1219,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (input) {
             input.addEventListener('input', (e) => {
                 const value = normalizeText(e.target.value);
+                console.log(`Input ${filter} changed to: "${value}"`);
                 window[filter] = value;
                 debouncedLoadRegistros();
             });
@@ -1213,6 +1227,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const value = normalizeText(e.target.value);
                 e.target.value = value;
                 window[filter] = value;
+                console.log(`Input ${filter} changed (on change) to: "${value}"`);
                 debouncedLoadRegistros();
             });
         } else {
@@ -1228,6 +1243,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (fechaDiaInput?.value) {
                         fechaDia = fechaDiaInput.value;
                     }
+                    console.log('Date filter changed to day:', fechaDia);
                     debouncedLoadRegistros();
                 }
             });
@@ -1239,6 +1255,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     dateFilter = 'week';
                     fechaDesde = fechaDesdeInput?.value || '';
                     fechaHasta = fechaHastaInput?.value || '';
+                    console.log('Date filter changed to week:', { fechaDesde, fechaHasta });
                     debouncedLoadRegistros();
                 }
             });
@@ -1250,6 +1267,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     dateFilter = 'month';
                     mes = mesSelect?.value || '';
                     anio = anioSelect?.value || '';
+                    console.log('Date filter changed to month:', { mes, anio });
                     debouncedLoadRegistros();
                 }
             });
@@ -1259,6 +1277,7 @@ document.addEventListener('DOMContentLoaded', () => {
             fechaDiaInput.addEventListener('change', (e) => {
                 if (dateFilter === 'day') {
                     fechaDia = e.target.value;
+                    console.log('FechaDia changed:', fechaDia);
                     debouncedLoadRegistros();
                 }
             });
@@ -1268,6 +1287,7 @@ document.addEventListener('DOMContentLoaded', () => {
             fechaDesdeInput.addEventListener('change', (e) => {
                 if (dateFilter === 'week') {
                     fechaDesde = e.target.value;
+                    console.log('FechaDesde changed:', fechaDesde);
                     debouncedLoadRegistros();
                 }
             });
@@ -1277,6 +1297,7 @@ document.addEventListener('DOMContentLoaded', () => {
             fechaHastaInput.addEventListener('change', (e) => {
                 if (dateFilter === 'week') {
                     fechaHasta = e.target.value;
+                    console.log('FechaHasta changed:', fechaHasta);
                     debouncedLoadRegistros();
                 }
             });
@@ -1286,6 +1307,7 @@ document.addEventListener('DOMContentLoaded', () => {
             mesSelect.addEventListener('change', (e) => {
                 if (dateFilter === 'month') {
                     mes = e.target.value;
+                    console.log('Mes changed:', mes);
                     debouncedLoadRegistros();
                 }
             });
@@ -1305,6 +1327,7 @@ document.addEventListener('DOMContentLoaded', () => {
             anioSelect.addEventListener('change', (e) => {
                 if (dateFilter === 'month') {
                     anio = e.target.value;
+                    console.log('Anio changed:', anio);
                     debouncedLoadRegistros();
                 }
             });
@@ -1317,6 +1340,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const updateAtributoFilter = async (e) => {
             atributoFilter = e.target.value;
+            console.log('AtributoFilter changed:', atributoFilter);
             window.showLoading('updateAtributoFilter');
             try {
                 await loadReferencias();
@@ -1480,6 +1504,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (dropdown) dropdown.style.display = 'none';
             });
 
+            console.log('Todos los campos y filtros limpiados');
             debouncedLoadRegistros();
         });
     }
