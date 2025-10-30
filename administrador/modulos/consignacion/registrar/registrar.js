@@ -380,7 +380,7 @@ if (cantidadInput && precioUnitarioInput && totalItemsInput) {
 
     cantidadInput.addEventListener('input', updateTotal);
     precioUnitarioInput.addEventListener('input', updateTotal);
-    precioUnitarioInput.addEventListener('blur', updateTotal); 
+    precioUnitarioInput.addEventListener('blur', updateTotal);
 }
 
 async function logAction(registroId, action, oldData = null, newData = null) {
@@ -618,7 +618,7 @@ function exportToExcel(data, filename) {
         formatNumberWithThousandsSeparator(registro.precioUnitario) || '',
         registro.atributo || '',
         formatNumberWithThousandsSeparator(registro.totalItems) || '',
-        registro.userFullName || '' 
+        registro.userFullName || ''
     ]);
 
     const csvContent = [
@@ -809,7 +809,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadRegistros(filters) {
         window.showLoading('loadRegistros');
         try {
-            let q = query(collection(db, "registrar_consignacion"), orderBy("fechaCX", "asc"));
+            let q = query(collection(db, "registrar_consignacion"), orderBy("timestamp", "desc"));
             const conditions = [];
 
             console.log('Filtros aplicados:', JSON.stringify(filters, null, 2));
@@ -1196,7 +1196,7 @@ document.addEventListener('DOMContentLoaded', () => {
             mes,
             anio
         });
-    }, 150); 
+    }, 150);
 
     const searchInputs = [
         { input: buscarAdmisionInput, filter: 'searchAdmision' },
@@ -1548,8 +1548,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     precioUnitario,
                     atributo,
                     totalItems,
-                    userFullName: window.currentUserData?.fullName || 'Usuario Invitado',  
-                    userId: auth.currentUser?.uid || null  
+                    userFullName: window.currentUserData?.fullName || 'Usuario Invitado',
+                    userId: auth.currentUser?.uid || null,
+                    timestamp: new Date()
                 });
 
                 await logAction(docRef.id, 'CREAR', null, {
@@ -1673,8 +1674,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     precioUnitario,
                     atributo,
                     totalItems,
-                    userFullName: window.currentUserData?.fullName || 'Usuario Invitado', 
-                    userId: auth.currentUser?.uid || null
+                    userFullName: window.currentUserData?.fullName || 'Usuario Invitado',
+                    userId: auth.currentUser?.uid || null,
+                    timestamp: new Date()  
                 };
 
                 await updateDoc(docRef, newData);
