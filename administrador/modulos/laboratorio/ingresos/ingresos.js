@@ -61,7 +61,7 @@ function formatDateToDDMMYYYY(date) {
 
 function formatDateToYYYYMMDD(date) {
     if (!date || isNaN(new Date(date))) return '';
-    const d = new Date(date);
+    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
     const day = String(d.getDate()).padStart(2, '0');
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const year = d.getFullYear();
@@ -293,8 +293,12 @@ document.addEventListener('DOMContentLoaded', () => {
         currentEditOldData = { ...ingreso };
 
         const toYYYYMMDD = (dateStr) => {
+            if (!dateStr) return today;
             const parsed = parseDateDDMMYYYY(dateStr);
-            return parsed ? formatDateToYYYYMMDD(parsed) : today;
+            if (!parsed) return today;
+            // Crear fecha LOCAL para input date
+            const localDate = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+            return formatDateToYYYYMMDD(localDate);
         };
 
         document.getElementById('editId').value = id;
@@ -390,10 +394,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const toDDMMYYYY = (inputValue) => {
             if (!inputValue) return '';
-            const date = new Date(inputValue); // input es YYYY-MM-DD
-            return isNaN(date) ? '' : formatDateToDDMMYYYY(date);
+            const date = new Date(inputValue + 'T00:00:00'); // Forzar hora 00:00 local
+            return formatDateToDDMMYYYY(date);
         };
-
         const processedRow = {
             fechaIngreso: toDDMMYYYY(document.getElementById('editFechaIngreso').value),
             numeroFactura: document.getElementById('editNumeroFactura').value.trim(),
