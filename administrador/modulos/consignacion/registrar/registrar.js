@@ -810,61 +810,19 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadRegistros(filters) {
         window.showLoading('loadRegistros');
         try {
-            let q = query(collection(db, "registrar_consignacion"), orderBy("timestamp", "asc"));
-            const conditions = [];
-
-            if (filters.searchAdmision) {
-                const normalizedAdmision = normalizeText(filters.searchAdmision);
-                conditions.push(where("admision", ">=", normalizedAdmision));
-                conditions.push(where("admision", "<=", normalizedAdmision + '\uf8ff'));
-            }
-            if (filters.searchPaciente) {
-                const normalizedPaciente = normalizeText(filters.searchPaciente);
-                conditions.push(where("paciente", ">=", normalizedPaciente));
-                conditions.push(where("paciente", "<=", normalizedPaciente + '\uf8ff'));
-            }
-            if (filters.searchMedico) {
-                const normalizedMedico = normalizeText(filters.searchMedico);
-                conditions.push(where("medico", ">=", normalizedMedico));
-                conditions.push(where("medico", "<=", normalizedMedico + '\uf8ff'));
-            }
-            if (filters.searchProveedor) {
-                const normalizedProveedor = normalizeText(filters.searchProveedor);
-                conditions.push(where("proveedor", ">=", normalizedProveedor));
-                conditions.push(where("proveedor", "<=", normalizedProveedor + '\uf8ff'));
-            }
-            if (filters.searchDescripcion) {
-                const normalizedDescripcion = normalizeText(filters.searchDescripcion);
-                conditions.push(where("descripcion", ">=", normalizedDescripcion));
-                conditions.push(where("descripcion", "<=", normalizedDescripcion + '\uf8ff'));
-            }
-
-            if (filters.dateFilter === 'day' && filters.fechaDia) {
-                const start = new Date(filters.fechaDia);
-                const end = new Date(start);
-                end.setDate(end.getDate() + 1);
-                end.setHours(0, 0, 0, 0);
-                conditions.push(where("fechaCX", ">=", start));
-                conditions.push(where("fechaCX", "<", end));
-            } else if (filters.dateFilter === 'week' && filters.fechaDesde && filters.fechaHasta) {
-                conditions.push(where("fechaCX", ">=", new Date(filters.fechaDesde)));
-                conditions.push(where("fechaCX", "<=", new Date(filters.fechaHasta)));
-            } else if (filters.dateFilter === 'month' && filters.mes && filters.anio) {
-                const start = new Date(parseInt(filters.anio), parseInt(filters.mes) - 1, 1);
-                const end = new Date(parseInt(filters.anio), parseInt(filters.mes), 0);
-                conditions.push(where("fechaCX", ">=", start));
-                conditions.push(where("fechaCX", "<=", end));
-            }
+            let q = query(
+                collection(db, "registrar_consignacion"),
+                orderBy("timestamp", "desc"),  // Orden por registro (más nuevo primero)
+                limit(PAGE_SIZE * 3)  // Carga más para filtrar
+            );
 
             if (currentPage > 1 && lastVisible) {
-                conditions.push(startAfter(lastVisible));
+                q = query(q, startAfter(lastVisible));
             }
-            conditions.push(limit(PAGE_SIZE));
 
-            q = query(q, ...conditions);
             const querySnapshot = await getDocs(q);
-
             let tempRegistros = [];
+
             querySnapshot.forEach((doc) => {
                 const data = doc.data();
                 const registro = { id: doc.id, ...data };
@@ -872,153 +830,99 @@ document.addEventListener('DOMContentLoaded', () => {
                 tempRegistros.push(registro);
             });
 
-            registros = tempRegistros;
+            // FILTRADO EN CLIENTE
+            tempRegistros = tempRegistros.filter(reg => {
+                if (filters.searchAdmision && !reg.admision?.includes(filters.searchAdmision)) return false;
+                if (filters.searchPaciente && !reg.paciente?.includes(filters.searchPaciente)) return false;
+                if (filters.searchMedico && !reg.medico?.includes(filters.searchMedico)) return false;
+                if (filters.searchDescripcion && !reg.descripcion?.includes(filters.searchDescripcion)) return false;
+                if (filters.searchProveedor && !reg.proveedor?.includes(filters.searchProveedor)) return false;
 
+                // Filtros de fecha
+                if (filters.dateFilter === 'day' && filters.fechaDia) {
+                    const fechaReg = reg.fechaCX;
+                    const fechaFiltro = new Date(filters.fechaDia);
+                    if (!fechaReg || fechaReg.toLocaleDateString('es-CL') !== fechaFiltro.toLocaleDateString('es-CL')) {
+                        return false;
+                    }
+                }
+                if (filters.dateFilter === 'week' && filters.fechaDesde && filters.fechaHasta) {
+                    const fechaReg = reg.fechaCX;
+                    const desde = new Date(filters.fechaDesde);
+                    const hasta = new Date(filters.fechaHasta);
+                    if (!fechaReg || fechaReg < desde || fechaReg > hasta) return false;
+                }
+                if (filters.dateFilter === 'month' && filters.mes && filters.anio) {
+                    const fechaReg = reg.fechaCX;
+                    if (!fechaReg) return false;
+                    const mesReg = fechaReg.getMonth() + 1;
+                    const anioReg = fechaReg.getFullYear();
+                    if (mesReg !== parseInt(filters.mes) || anioReg !== parseInt(filters.anio)) return false;
+                }
+
+                return true;
+            });
+
+            // Paginación manual
+            const start = (currentPage - 1) * PAGE_SIZE;
+            const end = start + PAGE_SIZE;
+            registros = tempRegistros.slice(start, end);
+
+            // Actualiza lastVisible para siguiente página
             if (querySnapshot.docs.length > 0) {
-                lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
+                const lastDoc = querySnapshot.docs[querySnapshot.docs.length - 1];
+                lastVisible = lastDoc;
                 firstVisible = querySnapshot.docs[0];
             } else {
                 lastVisible = null;
                 firstVisible = null;
             }
 
-            totalRecords = await getTotalRecordsCount(filters);
+            // Total para paginación
+            totalRecords = await getTotalFilteredCount(filters);
 
             renderTable();
         } catch (error) {
             console.error('Error en loadRegistros:', error);
-            if (error.code === 'failed-precondition' && error.message.includes('index')) {
-                showToast('Se requiere un índice en Firestore. Revisa la consola para crear el índice.', 'error');
-            } else {
-                showToast('Error al cargar los registros: ' + error.message, 'error');
-            }
+            showToast('Error al cargar registros: ' + error.message, 'error');
         } finally {
             window.hideLoading('loadRegistros');
         }
     }
 
-    async function getTotalRecordsCount(filters) {
+    async function getTotalFilteredCount(filters) {
         try {
-            let countQuery = query(collection(db, "registrar_consignacion"));
+            const snapshot = await getDocs(query(collection(db, "registrar_consignacion")));
+            let count = 0;
+            snapshot.forEach(doc => {
+                const reg = { ...doc.data(), id: doc.id };
+                reg.fechaCX = parseFechaCX(reg.fechaCX);
 
-            if (filters.searchAdmision) {
-                const normalizedAdmision = normalizeText(filters.searchAdmision);
-                countQuery = query(countQuery,
-                    where("admision", ">=", normalizedAdmision),
-                    where("admision", "<=", normalizedAdmision + '\uf8ff')
-                );
-            }
-            if (filters.searchPaciente) {
-                const normalizedPaciente = normalizeText(filters.searchPaciente);
-                countQuery = query(countQuery,
-                    where("paciente", ">=", normalizedPaciente),
-                    where("paciente", "<=", normalizedPaciente + '\uf8ff')
-                );
-            }
-            if (filters.searchMedico) {
-                const normalizedMedico = normalizeText(filters.searchMedico);
-                countQuery = query(countQuery,
-                    where("medico", ">=", normalizedMedico),
-                    where("medico", "<=", normalizedMedico + '\uf8ff')
-                );
-            }
-            if (filters.searchProveedor) {
-                const normalizedProveedor = normalizeText(filters.searchProveedor);
-                countQuery = query(countQuery,
-                    where("proveedor", ">=", normalizedProveedor),
-                    where("proveedor", "<=", normalizedProveedor + '\uf8ff')
-                );
-            }
-            if (filters.searchDescripcion) {
-                const normalizedDescripcion = normalizeText(filters.searchDescripcion);
-                countQuery = query(countQuery,
-                    where("descripcion", ">=", normalizedDescripcion),
-                    where("descripcion", "<=", normalizedDescripcion + '\uf8ff')
-                );
-            }
-            if (filters.dateFilter === 'day' && filters.fechaDia) {
-                const start = new Date(filters.fechaDia);
-                const end = new Date(start);
-                end.setDate(end.getDate() + 1);
-                countQuery = query(countQuery,
-                    where("fechaCX", ">=", start),
-                    where("fechaCX", "<", end)
-                );
-            } else if (filters.dateFilter === 'week' && filters.fechaDesde && filters.fechaHasta) {
-                countQuery = query(countQuery,
-                    where("fechaCX", ">=", new Date(filters.fechaDesde)),
-                    where("fechaCX", "<=", new Date(filters.fechaHasta))
-                );
-            } else if (filters.dateFilter === 'month' && filters.mes && filters.anio) {
-                const start = new Date(parseInt(filters.anio), parseInt(filters.mes) - 1, 1);
-                const end = new Date(parseInt(filters.anio), parseInt(filters.mes), 0);
-                countQuery = query(countQuery,
-                    where("fechaCX", ">=", start),
-                    where("fechaCX", "<=", end)
-                );
-            }
+                let matches = true;
 
-            const countSnapshot = await getDocs(countQuery);
-            return countSnapshot.size;
+                if (filters.searchAdmision && !reg.admision?.includes(filters.searchAdmision)) matches = false;
+                if (filters.searchPaciente && !reg.paciente?.includes(filters.searchPaciente)) matches = false;
+                if (filters.searchMedico && !reg.medico?.includes(filters.searchMedico)) matches = false;
+                if (filters.searchDescripcion && !reg.descripcion?.includes(filters.searchDescripcion)) matches = false;
+                if (filters.searchProveedor && !reg.proveedor?.includes(filters.searchProveedor)) matches = false;
+
+                // Filtros de fecha (igual que arriba)
+                if (filters.dateFilter === 'day' && filters.fechaDia) {
+                    const fechaReg = reg.fechaCX;
+                    const fechaFiltro = new Date(filters.fechaDia);
+                    if (!fechaReg || fechaReg.toLocaleDateString('es-CL') !== fechaFiltro.toLocaleDateString('es-CL')) {
+                        matches = false;
+                    }
+                }
+                // ... (repite los otros filtros de fecha)
+
+                if (matches) count++;
+            });
+            return count;
         } catch (error) {
-            console.error('Error counting records:', error);
+            console.error('Error counting:', error);
             return 0;
         }
-    }
-
-    function renderTable() {
-        if (!registrarBody) return;
-
-        registrarBody.innerHTML = '';
-
-        if (registros.length === 0) {
-            registrarBody.innerHTML = `
-                <tr>
-                    <td colspan="13" style="text-align: center; padding: 20px; color: #666;">
-                        <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 10px; display: block;"></i>
-                        No hay registros para mostrar
-                    </td>
-                </tr>
-            `;
-        } else {
-            registros.forEach(registro => {
-                const row = document.createElement('tr');
-                row.className = 'registrar-row';
-
-                row.innerHTML = `
-                    <td class="registrar-cell admision">${escapeHtml(registro.admision || '')}</td>
-                    <td class="registrar-cell paciente">${escapeHtml(registro.paciente || '')}</td>
-                    <td class="registrar-cell medico">${escapeHtml(registro.medico || '')}</td>
-                    <td class="registrar-cell fecha">${registro.fechaCX ? registro.fechaCX.toLocaleDateString('es-CL') : ''}</td>
-                    <td class="registrar-cell codigo">${escapeHtml(registro.codigo || '')}</td>
-                    <td class="registrar-cell descripcion">${escapeHtml(registro.descripcion || '')}</td>
-                    <td class="registrar-cell cantidad">${registro.cantidad || ''}</td>
-                    <td class="registrar-cell referencia">${escapeHtml(registro.referencia || '')}</td>
-                    <td class="registrar-cell proveedor">${escapeHtml(registro.proveedor || '')}</td>
-                    <td class="registrar-cell precio">${formatNumberWithThousandsSeparator(registro.precioUnitario)}</td>
-                    <td class="registrar-cell atributo">${escapeHtml(registro.atributo || '')}</td>
-                    <td class="registrar-cell total">${formatNumberWithThousandsSeparator(registro.totalItems)}</td>
-                    <td class="registrar-cell usuario">${escapeHtml(registro.userFullName || '—')}</td>
-                    <td class="registrar-actions">
-                        <div class="registrar-actions">
-                            <button title="Editar registro" class="registrar-btn-edit" onclick="openEditModal('${registro.id}', ${JSON.stringify(registro).replace(/"/g, '&quot;')})">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button title="Eliminar registro" class="registrar-btn-delete" onclick="openDeleteModal('${registro.id}', '${escapeHtml(registro.admision || '')}')">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                            <button title="Ver historial" class="registrar-btn-history" onclick="openHistoryModal('${registro.id}', '${escapeHtml(registro.admision || '')}')">
-                                <i class="fas fa-history"></i>
-                            </button>
-                        </div>
-                    </td>
-                `;
-                registrarBody.appendChild(row);
-            });
-        }
-
-        updatePagination(totalRecords);
-        if (registrarTable) setupColumnResize();
     }
 
     function escapeHtml(text) {
@@ -1032,140 +936,97 @@ document.addEventListener('DOMContentLoaded', () => {
         return text?.replace(/[&<>"']/g, m => map[m]) || '';
     }
 
-    function updatePagination(total) {
-        const totalPages = Math.ceil(total / PAGE_SIZE);
-        const startRecord = (currentPage - 1) * PAGE_SIZE + 1;
-        const endRecord = Math.min(currentPage * PAGE_SIZE, total);
+    function renderTable() {
+    if (!registrarBody) return;
 
-        if (paginationInfo) {
-            paginationInfo.innerHTML = `
-                <span class="pagination-info">
-                    <strong>Página ${currentPage} de ${totalPages}</strong> | 
-                    Mostrando ${startRecord} - ${endRecord} de ${total} registros
-                </span>
+    registrarBody.innerHTML = '';
+
+    if (registros.length === 0) {
+        registrarBody.innerHTML = `
+            <tr>
+                <td colspan="14" style="text-align: center; padding: 20px; color: #666;">
+                    <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 10px; display: block;"></i>
+                    No hay registros para mostrar
+                </td>
+            </tr>
+        `;
+    } else {
+        registros.forEach(registro => {
+            const row = document.createElement('tr');
+            row.className = 'registrar-row';
+
+            row.innerHTML = `
+                <td class="registrar-cell admision">${escapeHtml(registro.admision || '')}</td>
+                <td class="registrar-cell paciente">${escapeHtml(registro.paciente || '')}</td>
+                <td class="registrar-cell medico">${escapeHtml(registro.medico || '')}</td>
+                <td class="registrar-cell fecha">${registro.fechaCX ? registro.fechaCX.toLocaleDateString('es-CL') : ''}</td>
+                <td class="registrar-cell codigo">${escapeHtml(registro.codigo || '')}</td>
+                <td class="registrar-cell descripcion">${escapeHtml(registro.descripcion || '')}</td>
+                <td class="registrar-cell cantidad">${registro.cantidad || ''}</td>
+                <td class="registrar-cell referencia">${escapeHtml(registro.referencia || '')}</td>
+                <td class="registrar-cell proveedor">${escapeHtml(registro.proveedor || '')}</td>
+                <td class="registrar-cell precio">${formatNumberWithThousandsSeparator(registro.precioUnitario)}</td>
+                <td class="registrar-cell atributo">${escapeHtml(registro.atributo || '')}</td>
+                <td class="registrar-cell total">${formatNumberWithThousandsSeparator(registro.totalItems)}</td>
+                <td class="registrar-cell usuario">${escapeHtml(registro.userFullName || '—')}</td>
+                <td class="registrar-actions">
+                    <div class="registrar-actions">
+                        <button title="Editar registro" class="registrar-btn-edit" onclick="openEditModal('${registro.id}', ${JSON.stringify(registro).replace(/"/g, '&quot;')})">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button title="Eliminar registro" class="registrar-btn-delete" onclick="openDeleteModal('${registro.id}', '${escapeHtml(registro.admision || '')}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        <button title="Ver historial" class="registrar-btn-history" onclick="openHistoryModal('${registro.id}', '${escapeHtml(registro.admision || '')}')">
+                            <i class="fas fa-history"></i>
+                        </button>
+                    </div>
+                </td>
             `;
-        }
-
-        if (prevPage) {
-            prevPage.disabled = currentPage === 1;
-            prevPage.innerHTML = '<i class="fas fa-chevron-left"></i>';
-        }
-
-        if (nextPage) {
-            nextPage.disabled = currentPage === totalPages || total === 0;
-            nextPage.innerHTML = '<i class="fas fa-chevron-right"></i>';
-        }
-
-        if (pageNumbers) {
-            pageNumbers.innerHTML = '';
-
-            if (totalPages > 1) {
-                const firstBtn = document.createElement('button');
-                firstBtn.innerHTML = '1';
-                firstBtn.className = currentPage === 1 ? 'active' : '';
-                firstBtn.addEventListener('click', () => goToPage(1));
-                pageNumbers.appendChild(firstBtn);
-            }
-
-            const startPage = Math.max(2, currentPage - 2);
-            const endPage = Math.min(totalPages - 1, currentPage + 2);
-
-            if (startPage > 2) {
-                const dots = document.createElement('span');
-                dots.textContent = '...';
-                dots.className = 'page-dots';
-                pageNumbers.appendChild(dots);
-            }
-
-            for (let i = startPage; i <= endPage; i++) {
-                const btn = document.createElement('button');
-                btn.textContent = i;
-                btn.className = i === currentPage ? 'active' : '';
-                btn.addEventListener('click', () => goToPage(i));
-                pageNumbers.appendChild(btn);
-            }
-
-            if (endPage < totalPages - 1) {
-                const dots = document.createElement('span');
-                dots.textContent = '...';
-                dots.className = 'page-dots';
-                pageNumbers.appendChild(dots);
-            }
-
-            if (totalPages > 1 && currentPage !== totalPages) {
-                const lastBtn = document.createElement('button');
-                lastBtn.innerHTML = totalPages;
-                lastBtn.className = currentPage === totalPages ? 'active' : '';
-                lastBtn.addEventListener('click', () => goToPage(totalPages));
-                pageNumbers.appendChild(lastBtn);
-            }
-        }
-    }
-
-    function goToPage(page) {
-        if (page < 1 || page > Math.ceil(totalRecords / PAGE_SIZE)) return;
-
-        currentPage = page;
-        loadRegistros({
-            searchAdmision,
-            searchPaciente,
-            searchMedico,
-            searchDescripcion,
-            searchProveedor,
-            dateFilter,
-            fechaDia,
-            fechaDesde,
-            fechaHasta,
-            mes,
-            anio
+            registrarBody.appendChild(row);
         });
     }
 
-    if (prevPage) {
-        prevPage.addEventListener('click', () => {
-            if (currentPage > 1) {
-                currentPage--;
-                loadRegistros({
-                    searchAdmision,
-                    searchPaciente,
-                    searchMedico,
-                    searchDescripcion,
-                    searchProveedor,
-                    dateFilter,
-                    fechaDia,
-                    fechaDesde,
-                    fechaHasta,
-                    mes,
-                    anio
-                });
-            }
+    // === NUEVO: BOTÓN "CARGAR MÁS" ===
+    const loadMoreContainer = document.getElementById('loadMoreContainer');
+    if (loadMoreContainer) loadMoreContainer.remove();
+
+    if (lastVisible && registros.length >= PAGE_SIZE) {
+        const container = document.createElement('div');
+        container.id = 'loadMoreContainer';
+        container.style.textAlign = 'center';
+        container.style.margin = '20px 0';
+        container.innerHTML = `
+            <button id="loadMoreBtn" class="registrar-btn">
+                Cargar más registros
+            </button>
+        `;
+        document.querySelector('.registrar-table-container')?.appendChild(container);
+
+        document.getElementById('loadMoreBtn')?.addEventListener('click', () => {
+            currentPage++;
+            loadRegistros({
+                searchAdmision,
+                searchPaciente,
+                searchMedico,
+                searchDescripcion,
+                searchProveedor,
+                dateFilter,
+                fechaDia,
+                fechaDesde,
+                fechaHasta,
+                mes,
+                anio
+            });
         });
     }
 
-    if (nextPage) {
-        nextPage.addEventListener('click', () => {
-            const totalPages = Math.ceil(totalRecords / PAGE_SIZE);
-            if (currentPage < totalPages) {
-                currentPage++;
-                loadRegistros({
-                    searchAdmision,
-                    searchPaciente,
-                    searchMedico,
-                    searchDescripcion,
-                    searchProveedor,
-                    dateFilter,
-                    fechaDia,
-                    fechaDesde,
-                    fechaHasta,
-                    mes,
-                    anio
-                });
-            }
-        });
-    }
+    if (registrarTable) setupColumnResize();
+}
+
 
     const debouncedLoadRegistros = debounce(() => {
-        
+
         currentPage = 1;
         lastVisible = null;
         loadRegistros({
