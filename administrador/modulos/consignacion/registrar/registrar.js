@@ -804,6 +804,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const loadMore = document.getElementById('loadMoreContainer');
         if (loadMore) loadMore.remove();
+
         if (lastVisible && registros.length >= PAGE_SIZE) {
             const div = document.createElement('div');
             div.id = 'loadMoreContainer';
