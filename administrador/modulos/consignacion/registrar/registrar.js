@@ -612,6 +612,10 @@ function renderTable() {
             loadRegistros();
         });
     }
+    
+    if (window.updateTraspasarButton) {
+    window.updateTraspasarButton(registros.length > 0);
+}
 }
 
 document.addEventListener('DOMContentLoaded', () => {

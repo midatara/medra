@@ -696,9 +696,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const upperCaseInputs = [
-        admisionInput, pacienteInput, medicoInput, codigoInput, descripcionInput,
+        admisionInput, pacienteInput, codigoInput, descripcionInput,
         referenciaInput, proveedorInput, atributoInput,
-        editAdmisionInput, editPacienteInput, editMedicoInput, editCodigoInput,
+        editAdmisionInput, editPacienteInput, editCodigoInput,
         editDescripcionInput, editReferenciaInput, editProveedorInput, editAtributoInput,
         buscarAdmisionInput, buscarPacienteInput, buscarMedicoInput, buscarDescripcionInput, buscarProveedorInput
     ];
@@ -913,7 +913,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = {
             admision: normalizeText(admisionInput?.value),
             paciente: normalizeText(pacienteInput?.value),
-            medico: normalizeText(medicoInput?.value),
+            medico: medicoInput?.value.trim() || '',
             fechaCX: new Date(fechaCXInput?.value),
             codigo: normalizeText(codigoInput?.value),
             descripcion: normalizeText(descripcionInput?.value),
@@ -945,12 +945,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.openEditModal = (id, r) => {
         currentEditId = id; currentEditOldData = { ...r };
-        editAdmisionInput.value = r.admision; editPacienteInput.value = r.paciente; editMedicoInput.value = r.medico;
+        editAdmisionInput.value = r.admision; 
+        editPacienteInput.value = r.paciente; 
+        editMedicoInput.value = r.medico; 
         editFechaCXInput.value = r.fechaCX ? r.fechaCX.toISOString().split('T')[0] : '';
-        editCodigoInput.value = r.codigo; editDescripcionInput.value = r.descripcion; editCantidadInput.value = r.cantidad;
-        editReferenciaInput.value = r.referencia; editProveedorInput.value = r.proveedor;
+        editCodigoInput.value = r.codigo; 
+        editDescripcionInput.value = r.descripcion; 
+        editCantidadInput.value = r.cantidad;
+        editReferenciaInput.value = r.referencia; 
+        editProveedorInput.value = r.proveedor;
         editPrecioUnitarioInput.value = formatNumberWithThousandsSeparator(r.precioUnitario);
-        editAtributoInput.value = r.atributo; editTotalItemsInput.value = formatNumberWithThousandsSeparator(r.totalItems);
+        editAtributoInput.value = r.atributo; 
+        editTotalItemsInput.value = formatNumberWithThousandsSeparator(r.totalItems);
         document.querySelectorAll('input[name="editAtributoFilter"]').forEach(rad => rad.checked = rad.value === r.atributo);
         editModal.style.display = 'block';
     };
@@ -959,7 +965,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = {
             admision: normalizeText(editAdmisionInput?.value),
             paciente: normalizeText(editPacienteInput?.value),
-            medico: normalizeText(editMedicoInput?.value),
+            medico: editMedicoInput?.value.trim() || '',
             fechaCX: new Date(editFechaCXInput?.value),
             codigo: normalizeText(editCodigoInput?.value),
             descripcion: normalizeText(editDescripcionInput?.value),

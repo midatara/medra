@@ -202,6 +202,11 @@
                 <tbody></tbody>
             </table>
         </div>
+        <div class="registrar-traspasar-container" style="text-align: center; margin-top: 15px;">
+            <button id="traspasarBtn" class="modal-btn modal-btn-danger" disabled>
+                TRASPASAR REGISTROS
+            </button>
+        </div>
         <div class="registrar-pagination">
             <div id="loadMoreContainer" style="display: none;"></div>
         </div>
@@ -315,5 +320,9 @@
     </div>
     <div class="registrar-toast-container" id="toastContainer"></div>
     <script type="module" src="registrar.js"></script>
+    <script type="module">
+    import { initTraspasar } from './traspasar.js';
+    window.initTraspasar = initTraspasar;
+</script>
 </body>
 </html>

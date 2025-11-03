@@ -844,3 +844,20 @@ html, body {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+
+.registrar-traspasar-container {
+    padding: 10px;
+    background: #f8f9fa;
+    border-top: 1px solid #ddd;
+}
+
+#traspasarBtn {
+    padding: 10px 20px;
+    font-weight: bold;
+    font-size: 12px;
+    min-width: 180px;
+}
+
+#traspasarBtn:not(:disabled):hover {
+    background-color: #c82333;
+}
