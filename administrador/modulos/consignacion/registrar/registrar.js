@@ -5,34 +5,24 @@ import {
     updateDoc, deleteDoc, orderBy, getDoc, limit, startAfter, increment
 } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js';
 
-// === VARIABLES GLOBALES ===
 let loadingCounter = 0;
 const loading = document.getElementById('loading');
 
 window.showLoading = function (caller = 'unknown') {
-    if (!loading) {
-        console.warn(`Elemento con ID 'loading' no encontrado en el DOM (caller: ${caller})`);
-        return;
-    }
+    if (!loading) return;
     loadingCounter++;
     loading.classList.add('show');
     setTimeout(() => {}, 10);
 };
 
 window.hideLoading = function (caller = 'unknown') {
-    if (!loading) {
-        console.warn(`Elemento con ID 'loading' no encontrado en el DOM (caller: ${caller})`);
-        return;
-    }
+    if (!loading) return;
     loadingCounter--;
     if (loadingCounter <= 0) {
         loadingCounter = 0;
         loading.classList.remove('show');
         setTimeout(() => {
             loading.classList.remove('show');
-            if (loading.classList.contains('show')) {
-                console.error('Spinner sigue visible después de hideLoading, revisa CSS o conflictos en el DOM');
-            }
         }, 300);
     }
 };
@@ -74,7 +64,6 @@ let anio = null;
 let atributoFilter = 'CONSIGNACION';
 let isLoadingReferencias = false;
 
-// === UTILIDADES ===
 function formatNumberWithThousandsSeparator(number) {
     if (!number) return '';
     const cleaned = String(number).replace(/[^\d]/g, '');
@@ -98,7 +87,6 @@ function debounce(func, wait) {
     };
 }
 
-// === CARGA DE MÉDICOS (SIEMPRE) ===
 async function loadMedicos() {
     window.showLoading('loadMedicos');
     try {
@@ -108,7 +96,6 @@ async function loadMedicos() {
             medicos.push({ id: doc.id, ...doc.data() });
         });
         medicos.sort((a, b) => a.nombre.localeCompare(b.nombre));
-
         setupMedicoAutocomplete('medico', 'medicoToggle', 'medicoDropdown');
         setupMedicoAutocomplete('editMedico', 'editMedicoToggle', 'editMedicoDropdown');
     } catch (error) {
@@ -119,7 +106,6 @@ async function loadMedicos() {
     }
 }
 
-// === CARGA DE REFERENCIAS (POR ATRIBUTO) ===
 async function loadReferencias() {
     if (isLoadingReferencias) return;
     isLoadingReferencias = true;
@@ -133,7 +119,6 @@ async function loadReferencias() {
         referencias = [];
         querySnapshot.forEach(doc => referencias.push({ id: doc.id, ...doc.data() }));
         referencias.sort((a, b) => (a.codigo || '').localeCompare(b.codigo || ''));
-
         setupAutocomplete('codigo', 'codigoToggle', 'codigoDropdown', referencias, 'codigo');
         setupAutocomplete('descripcion', 'descripcionToggle', 'descripcionDropdown', referencias, 'descripcion');
         setupAutocomplete('editCodigo', 'editCodigoToggle', 'editCodigoDropdown', referencias, 'codigo');
@@ -147,14 +132,11 @@ async function loadReferencias() {
     }
 }
 
-// === ÍCONOS: FORZAR RECARGA ===
 function attachIconForceLoad(iconId) {
     const icon = document.getElementById(iconId);
     if (!icon) return;
-
     icon.addEventListener('click', async (e) => {
         e.stopPropagation();
-
         const dropdownMap = {
             'codigoToggle': 'codigoDropdown',
             'descripcionToggle': 'descripcionDropdown',
@@ -162,7 +144,6 @@ function attachIconForceLoad(iconId) {
             'editDescripcionToggle': 'editDescripcionDropdown'
         };
         const dropdown = document.getElementById(dropdownMap[iconId]);
-
         if (!dropdown || dropdown.children.length === 0) {
             window.showLoading('forceLoad');
             try {
@@ -177,7 +158,6 @@ function attachIconForceLoad(iconId) {
     });
 }
 
-// === AUTOCOMPLETADO MÉDICOS ===
 function setupMedicoAutocomplete(inputId, iconId, listId) {
     const input = document.getElementById(inputId);
     const icon = document.getElementById(iconId);
@@ -235,7 +215,6 @@ function setupMedicoAutocomplete(inputId, iconId, listId) {
 
     input.addEventListener('input', e => showSuggestions(e.target.value));
     input.addEventListener('focus', () => input.value.trim() && showSuggestions(input.value));
-
     icon.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -246,7 +225,6 @@ function setupMedicoAutocomplete(inputId, iconId, listId) {
         }
         input.focus();
     });
-
     document.addEventListener('click', (e) => {
         if (!input.contains(e.target) && !icon.contains(e.target) && !list.contains(e.target)) {
             list.style.display = 'none';
@@ -254,23 +232,17 @@ function setupMedicoAutocomplete(inputId, iconId, listId) {
     });
 }
 
-// === FILTRO DE ATRIBUTO ===
 function setupAtributoFilter() {
     const radios = document.querySelectorAll('input[name="atributoFilter"], input[name="editAtributoFilter"]');
-
     const refresh = async (nuevoAtributo) => {
         const normalized = normalizeText(nuevoAtributo);
         if (atributoFilter === normalized) return;
-
         ['codigo', 'descripcion', 'referencia', 'proveedor', 'precioUnitario', 'atributo', 'totalItems',
          'editCodigo', 'editDescripcion', 'editReferencia', 'editProveedor', 'editPrecioUnitario', 'editAtributo', 'editTotalItems']
             .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-
         ['codigoDropdown', 'descripcionDropdown', 'editCodigoDropdown', 'editDescripcionDropdown']
             .forEach(id => { const d = document.getElementById(id); if (d) d.style.display = 'none'; });
-
         atributoFilter = normalized;
-
         window.showLoading('atributoChange');
         try {
             await loadReferencias();
@@ -278,14 +250,11 @@ function setupAtributoFilter() {
             window.hideLoading('atributoChange');
         }
     };
-
     radios.forEach(r => r.addEventListener('change', e => refresh(e.target.value)));
-
     const checked = document.querySelector('input[name="atributoFilter"]:checked');
     if (checked) refresh(checked.value);
 }
 
-// === AUTOCOMPLETADO ===
 function setupAutocomplete(inputId, iconId, listId, data, key) {
     const input = document.getElementById(inputId);
     const icon = document.getElementById(iconId);
@@ -336,7 +305,7 @@ function setupAutocomplete(inputId, iconId, listId, data, key) {
                 fillFields(item, inputId);
                 input.dispatchEvent(new Event('change'));
                 input.focus();
-            };
+            });
             list.appendChild(div);
         });
         list.style.display = 'block';
@@ -396,16 +365,13 @@ function updateTotalItems(isEdit = false) {
     if (totalItemsInput) totalItemsInput.value = total ? formatNumberWithThousandsSeparator(total) : '';
 }
 
-// === CÁLCULO TOTAL EN TIEMPO REAL ===
 document.getElementById('cantidad')?.addEventListener('input', () => updateTotalItems(false));
 document.getElementById('precioUnitario')?.addEventListener('input', () => updateTotalItems(false));
 document.getElementById('precioUnitario')?.addEventListener('blur', () => updateTotalItems(false));
-
 document.getElementById('editCantidad')?.addEventListener('input', () => updateTotalItems(true));
 document.getElementById('editPrecioUnitario')?.addEventListener('input', () => updateTotalItems(true));
 document.getElementById('editPrecioUnitario')?.addEventListener('blur', () => updateTotalItems(true));
 
-// === HISTORIAL ===
 async function logAction(registroId, action, oldData = null, newData = null) {
     if (!window.currentUserData) return;
     try {
@@ -424,7 +390,6 @@ async function logAction(registroId, action, oldData = null, newData = null) {
     }
 }
 
-// === TABLA RESIZABLE ===
 function setupColumnResize() {
     const headers = document.querySelectorAll('.registrar-table th');
     const initialWidths = [70, 130, 200, 80, 100, 300, 80, 130, 150, 100, 80, 100, 130, 65];
@@ -486,7 +451,6 @@ function setupColumnResize() {
     });
 }
 
-// === TOAST ===
 function showToast(text, type = 'success') {
     const toastContainer = document.getElementById('toastContainer');
     if (!toastContainer) return;
@@ -503,7 +467,6 @@ function showToast(text, type = 'success') {
     }, 4000);
 }
 
-// === VALIDACIÓN ===
 async function validateAdmisionCodigo(admision, codigo, excludeId = null) {
     if (!admision?.trim() || !codigo?.trim()) return null;
     try {
@@ -525,7 +488,6 @@ async function validateAdmisionCodigo(admision, codigo, excludeId = null) {
     }
 }
 
-// === EXPORTAR ===
 function exportToExcel(data, filename) {
     const headers = ['Admisión', 'Paciente', 'Médico', 'Fecha CX', 'Código', 'Descripción', 'Cantidad', 'Referencia', 'Proveedor', 'Precio Unitario', 'Atributo', 'Total', 'Usuario'];
     const rows = data.map(r => [
@@ -594,7 +556,6 @@ function parseFechaCX(fecha) {
     return new Date(fecha);
 }
 
-// === DOMContentLoaded - FILTROS 100% FUNCIONALES ===
 document.addEventListener('DOMContentLoaded', () => {
     if (loading) loading.classList.remove('show');
 
@@ -664,7 +625,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentDeleteId = null;
     let currentDeleteAdmision = null;
 
-    // === FORMATOS ===
     [precioUnitarioInput, editPrecioUnitarioInput].forEach(input => {
         if (input) {
             input.addEventListener('input', e => {
@@ -692,12 +652,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // === FILTROS DE FECHA - CORREGIDOS ===
     function setupDateFilters() {
         const updateFilter = () => {
             dateFilter = null;
             fechaDia = fechaDesde = fechaHasta = mes = anio = null;
-
             if (dateDay?.checked) {
                 dateFilter = 'day';
                 fechaDia = fechaDiaInput?.value || '';
@@ -710,18 +668,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 mes = mesSelect?.value || '';
                 anio = anioSelect?.value || '';
             }
-
             debouncedLoadRegistros();
         };
-
         [dateDay, dateWeek, dateMonth].forEach(radio => {
             if (radio) radio.addEventListener('change', updateFilter);
         });
-
         [fechaDiaInput, fechaDesdeInput, fechaHastaInput, mesSelect, anioSelect].forEach(input => {
             if (input) input.addEventListener('change', updateFilter);
         });
-
         if (anioSelect) {
             const currentYear = new Date().getFullYear();
             anioSelect.innerHTML = '';
@@ -734,13 +688,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // === CARGA DE REGISTROS - CON FILTROS REALES ===
     async function loadRegistros() {
         window.showLoading('loadRegistros');
         try {
             let q = query(collection(db, "registrar_consignacion"), orderBy("timestamp", "desc"));
-
-            // FILTROS DE TEXTO
             if (searchAdmision) {
                 q = query(q, where("admision", ">=", searchAdmision), where("admision", "<=", searchAdmision + '\uf8ff'));
             }
@@ -756,20 +707,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (searchProveedor) {
                 q = query(q, where("proveedor", ">=", searchProveedor), where("proveedor", "<=", searchProveedor + '\uf8ff'));
             }
-
-            // PAGINACIÓN
             if (currentPage > 1 && lastVisible) {
                 q = query(q, startAfter(lastVisible));
             }
             q = query(q, limit(PAGE_SIZE));
-
             const snapshot = await getDocs(q);
             let temp = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), fechaCX: parseFechaCX(doc.data().fechaCX) }));
-
-            // FILTROS DE FECHA (DESPUÉS DE TRAER DATOS)
             temp = temp.filter(r => {
                 if (!r.fechaCX) return false;
-
                 if (dateFilter === 'day' && fechaDia) {
                     const d1 = r.fechaCX.toLocaleDateString('es-CL');
                     const d2 = new Date(fechaDia).toLocaleDateString('es-CL');
@@ -787,7 +732,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 return true;
             });
-
             registros = temp;
             lastVisible = snapshot.docs[snapshot.docs.length - 1] || null;
             renderTable();
@@ -799,14 +743,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // === DEBOUNCE CORREGIDO ===
     const debouncedLoadRegistros = debounce(() => {
         currentPage = 1;
         lastVisible = null;
         loadRegistros();
     }, 300);
 
-    // === FILTROS DE BÚSQUEDA - ACTUALIZAN VARIABLES GLOBALES ===
     const searchInputs = [
         { input: buscarAdmisionInput, var: 'searchAdmision' },
         { input: buscarPacienteInput, var: 'searchPaciente' },
@@ -814,7 +756,6 @@ document.addEventListener('DOMContentLoaded', () => {
         { input: buscarDescripcionInput, var: 'searchDescripcion' },
         { input: buscarProveedorInput, var: 'searchProveedor' }
     ];
-
     searchInputs.forEach(({ input, var: varName }) => {
         if (input) {
             input.addEventListener('input', e => {
@@ -827,10 +768,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // === RENDER TABLA ===
     function renderTable() {
         if (!registrarBody) return;
-
         if (registros.length === 0) {
             registrarBody.innerHTML = `<tr><td colspan="14" style="text-align:center;padding:20px;color:#666;">
                 <i class="fas fa-inbox" style="font-size:48px;display:block;margin-bottom:10px;"></i>
@@ -853,16 +792,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td class="registrar-cell total">${formatNumberWithThousandsSeparator(r.totalItems)}</td>
                     <td class="registrar-cell usuario">${escapeHtml(r.userFullName || '—')}</td>
                     <td class="registrar-actions">
-                        <button class="registrar-btn-edit" onclick="openEditModal('${r.id}', ${JSON.stringify(r).replace(/"/g, '&quot;')} )"><i class="fas fa-edit"></i></button>
-                        <button class="registrar-btn-delete" onclick="openDeleteModal('${r.id}', '${escapeHtml(r.admision)}')"><i class="fas fa-trash"></i></button>
-                        <button class="registrar-btn-history" onclick="openHistoryModal('${r.id}', '${escapeHtml(r.admision)}')"><i class="fas fa-history"></i></button>
+                        <button class="registrar-btn-edit" data-id="${r.id}"><i class="fas fa-edit"></i></button>
+                        <button class="registrar-btn-delete" data-id="${r.id}" data-admision="${escapeHtml(r.admision)}"><i class="fas fa-trash"></i></button>
+                        <button class="registrar-btn-history" data-id="${r.id}" data-admision="${escapeHtml(r.admision)}"><i class="fas fa-history"></i></button>
                     </td>
                 </tr>`).join('');
         }
 
         const loadMore = document.getElementById('loadMoreContainer');
         if (loadMore) loadMore.remove();
-
         if (lastVisible && registros.length >= PAGE_SIZE) {
             const div = document.createElement('div');
             div.id = 'loadMoreContainer';
@@ -876,7 +814,42 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // === MODALES ===
+    registrarBody.addEventListener('click', async (e) => {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        const id = btn.dataset.id;
+        if (!id) return;
+
+        if (btn.classList.contains('registrar-btn-edit')) {
+            e.preventDefault();
+            window.showLoading('openEdit');
+            try {
+                const docRef = doc(db, "registrar_consignacion", id);
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    const data = { id: docSnap.id, ...docSnap.data(), fechaCX: parseFechaCX(docSnap.data().fechaCX) };
+                    window.openEditModal(id, data);
+                }
+            } catch (err) {
+                showToast('Error al cargar registro', 'error');
+            } finally {
+                window.hideLoading('openEdit');
+            }
+        }
+
+        if (btn.classList.contains('registrar-btn-delete')) {
+            e.preventDefault();
+            const admision = btn.dataset.admision || 'desconocida';
+            window.openDeleteModal(id, admision);
+        }
+
+        if (btn.classList.contains('registrar-btn-history')) {
+            e.preventDefault();
+            const admision = btn.dataset.admision || 'desconocida';
+            window.openHistoryModal(id, admision);
+        }
+    });
+
     function closeModal(modal) {
         if (!modal) return;
         modal.style.display = 'none';
@@ -890,7 +863,6 @@ document.addEventListener('DOMContentLoaded', () => {
     cancelEditBtn?.addEventListener('click', () => closeModal(editModal));
     cancelDeleteBtn?.addEventListener('click', () => closeModal(deleteModal));
 
-    // === BOTONES ===
     if (actionsBtn && actionsMenu) {
         actionsBtn.addEventListener('click', e => { e.stopPropagation(); actionsMenu.style.display = actionsMenu.style.display === 'block' ? 'none' : 'block'; });
         document.addEventListener('click', e => { if (!actionsBtn.contains(e.target) && !actionsMenu.contains(e.target)) actionsMenu.style.display = 'none'; });
@@ -921,7 +893,6 @@ document.addEventListener('DOMContentLoaded', () => {
         debouncedLoadRegistros();
     });
 
-    // === REGISTRAR ===
     registrarBtn?.addEventListener('click', async e => {
         e.preventDefault();
         const data = {
@@ -957,7 +928,6 @@ document.addEventListener('DOMContentLoaded', () => {
         finally { window.hideLoading('registrar'); }
     });
 
-    // === MODALES: EDITAR, ELIMINAR, HISTORIAL ===
     window.openEditModal = (id, r) => {
         currentEditId = id; currentEditOldData = { ...r };
         editAdmisionInput.value = r.admision; editPacienteInput.value = r.paciente; editMedicoInput.value = r.medico;
@@ -1048,7 +1018,6 @@ document.addEventListener('DOMContentLoaded', () => {
         finally { window.hideLoading('history'); }
     };
 
-    // === INICIALIZACIÓN ===
     setupDateFilters();
     setupAtributoFilter();
     attachIconForceLoad('codigoToggle');
