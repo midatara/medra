@@ -1,4 +1,4 @@
-// pacientes.js  →  VERSIÓN FINAL CORREGIDA
+// pacientes.js  →  VERSIÓN FINAL CORREGIDA Y FUNCIONAL
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
 import { 
     getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence 
@@ -21,6 +21,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 setPersistence(auth, browserSessionPersistence);
 
+// === ESTADO DE LA APLICACIÓN ===
 let pacientes = [];
 let currentPage = 1;
 const PAGE_SIZE = 50;
@@ -41,8 +42,10 @@ let fechaHasta = null;
 let mes = null;
 let anio = null;
 
+// === ELEMENTOS DOM ===
 const loading = document.getElementById('loading');
 
+// === FUNCIONES GLOBALES (para toast/loading) ===
 window.showLoading = () => {
     if (loading) loading.classList.add('show');
 };
@@ -50,13 +53,14 @@ window.hideLoading = () => {
     if (loading) loading.classList.remove('show');
 };
 
+// === UTILIDADES ===
 function normalizeText(text) {
     return text?.trim().toUpperCase() || '';
 }
 
 function escapeHtml(text) {
     const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
-    return text?.replace(/[&<>"']/g, m => map[m]) || '';
+    return text?.toString().replace(/[&<>"']/g, m => map[m]) || '';
 }
 
 function formatNumberWithThousandsSeparator(number) {
@@ -86,6 +90,7 @@ function showToast(text, type = 'success') {
     }, 4000);
 }
 
+// === CARGA DE DATOS ===
 async function loadPacientes() {
     window.showLoading();
     try {
@@ -96,30 +101,36 @@ async function loadPacientes() {
         q = query(q, limit(PAGE_SIZE));
 
         const snapshot = await getDocs(q);
-        let temp = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data(),
-            fechaCX: doc.data().fechaCX?.toDate?.() || new Date(doc.data().fechaCX),
-            _admision: normalizeText(doc.data().admision),
-            _paciente: normalizeText(doc.data().nombrePaciente),
-            _medico: normalizeText(doc.data().medico),
-            _proveedor: normalizeText(doc.data().proveedor),
-            _estado: normalizeText(doc.data().estado),
-            _prevision: normalizeText(doc.data().prevision),
-            _convenio: normalizeText(doc.data().convenio)
-        }));
+        const temp = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                ...data,
+                fechaCX: data.fechaCX?.toDate?.() || new Date(data.fechaCX || Date.now()),
+                fechaIngreso: data.fechaIngreso?.toDate?.() || new Date(), // CORREGIDO
+                _admision: normalizeText(data.admision),
+                _paciente: normalizeText(data.nombrePaciente),
+                _medico: normalizeText(data.medico),
+                _proveedor: normalizeText(data.proveedor),
+                _estado: normalizeText(data.estado),
+                _prevision: normalizeText(data.prevision),
+                _convenio: normalizeText(data.convenio)
+            };
+        });
+
+        let filtered = temp;
 
         // Filtros de texto
-        if (searchEstado) temp = temp.filter(p => p._estado.includes(searchEstado));
-        if (searchPrevision) temp = temp.filter(p => p._prevision.includes(searchPrevision));
-        if (searchConvenio) temp = temp.filter(p => p._convenio.includes(searchConvenio));
-        if (searchAdmision) temp = temp.filter(p => p._admision.includes(searchAdmision));
-        if (searchPaciente) temp = temp.filter(p => p._paciente.includes(searchPaciente));
-        if (searchMedico) temp = temp.filter(p => p._medico.includes(searchMedico));
-        if (searchProveedor) temp = temp.filter(p => p._proveedor.includes(searchProveedor));
+        if (searchEstado) filtered = filtered.filter(p => p._estado.includes(searchEstado));
+        if (searchPrevision) filtered = filtered.filter(p => p._prevision.includes(searchPrevision));
+        if (searchConvenio) filtered = filtered.filter(p => p._convenio.includes(searchConvenio));
+        if (searchAdmision) filtered = filtered.filter(p => p._admision.includes(searchAdmision));
+        if (searchPaciente) filtered = filtered.filter(p => p._paciente.includes(searchPaciente));
+        if (searchMedico) filtered = filtered.filter(p => p._medico.includes(searchMedico));
+        if (searchProveedor) filtered = filtered.filter(p => p._proveedor.includes(searchProveedor));
 
         // Filtros de fecha
-        temp = temp.filter(p => {
+        filtered = filtered.filter(p => {
             if (!p.fechaCX) return false;
             if (dateFilter === 'day' && fechaDia) {
                 return p.fechaCX.toLocaleDateString('es-CL') === new Date(fechaDia).toLocaleDateString('es-CL');
@@ -137,11 +148,11 @@ async function loadPacientes() {
             return true;
         });
 
-        pacientes = temp;
+        pacientes = filtered;
         lastVisible = snapshot.docs[snapshot.docs.length - 1] || null;
         renderTable();
     } catch (e) {
-        console.error(e);
+        console.error("Error al cargar pacientes:", e);
         showToast('Error al cargar pacientes', 'error');
     } finally {
         window.hideLoading();
@@ -154,36 +165,44 @@ const debouncedLoad = debounce(() => {
     loadPacientes();
 }, 300);
 
+// === RENDERIZADO DE TABLA ===
 function renderTable() {
     const tbody = document.querySelector('#pacientesTable tbody');
     if (!tbody) return;
 
     if (pacientes.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="12" style="text-align:center;padding:20px;color:#666;">
-            <i class="fas fa-inbox" style="font-size:48px;display:block;margin-bottom:10px;"></i>
-            No hay pacientes
-        </td></tr>`;
-    } else {
-        tbody.innerHTML = pacientes.map(p => `
+        tbody.innerHTML = `
             <tr>
-                <td>${p.fechaIngreso?.toLocaleDateString('es-CL') || ''}</td>
-                <td>${escapeHtml(p.estado)}</td>
-                <td>${escapeHtml(p.prevision)}</td>
-                <td>${escapeHtml(p.convenio)}</td>
-                <td>${escapeHtml(p.admision)}</td>
-                <td>${escapeHtml(p.nombrePaciente)}</td>
-                <td>${escapeHtml(p.medico)}</td>
-                <td>${p.fechaCX?.toLocaleDateString('es-CL') || ''}</td>
-                <td>${escapeHtml(p.proveedor)}</td>
-                <td>${formatNumberWithThousandsSeparator(p.totalPaciente)}</td>
-                <td>${escapeHtml(p.atributo)}</td>
-                <td class="pacientes-actions">
-                    <button class="pacientes-btn-history" data-id="${p.id}"><i class="fas fa-history"></i></button>
+                <td colspan="12" style="text-align:center;padding:20px;color:#666;">
+                    <i class="fas fa-inbox" style="font-size:48px;display:block;margin-bottom:10px;"></i>
+                    No hay pacientes
                 </td>
-            </tr>
-        `).join('');
+            </tr>`;
+        return;
     }
 
+    tbody.innerHTML = pacientes.map(p => `
+        <tr>
+            <td>${p.fechaIngreso?.toLocaleDateString?.('es-CL') || ''}</td>
+            <td>${escapeHtml(p.estado)}</td>
+            <td>${escapeHtml(p.prevision)}</td>
+            <td>${escapeHtml(p.convenio)}</td>
+            <td>${escapeHtml(p.admision)}</td>
+            <td>${escapeHtml(p.nombrePaciente)}</td>
+            <td>${escapeHtml(p.medico)}</td>
+            <td>${p.fechaCX?.toLocaleDateString?.('es-CL') || ''}</td>
+            <td>${escapeHtml(p.proveedor)}</td>
+            <td>${formatNumberWithThousandsSeparator(p.totalPaciente)}</td>
+            <td>${escapeHtml(p.atributo)}</td>
+            <td class="pacientes-actions">
+                <button class="pacientes-btn-history" data-id="${p.id}" title="Ver historial">
+                    <i class="fas fa-history"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('');
+
+    // Paginación
     const loadMore = document.getElementById('loadMoreContainer');
     if (loadMore) loadMore.remove();
 
@@ -200,6 +219,7 @@ function renderTable() {
     }
 }
 
+// === RESIZE DE COLUMNAS ===
 function setupColumnResize() {
     const headers = document.querySelectorAll('.pacientes-table th');
     const initialWidths = [90, 80, 100, 110, 70, 180, 150, 90, 120, 100, 80, 80];
@@ -258,6 +278,7 @@ function setupColumnResize() {
     });
 }
 
+// === FILTROS DE FECHA ===
 function setupDateFilters() {
     const update = () => {
         dateFilter = null;
@@ -265,6 +286,7 @@ function setupDateFilters() {
         const day = document.getElementById('dateDay');
         const week = document.getElementById('dateWeek');
         const month = document.getElementById('dateMonth');
+
         if (day?.checked) {
             dateFilter = 'day';
             fechaDia = document.getElementById('fechaDia')?.value;
@@ -286,17 +308,19 @@ function setupDateFilters() {
     });
 
     const anioSelect = document.getElementById('anioSelect');
-    if (anioSelect) {
+    if (anioSelect && anioSelect.children.length === 0) {
         const current = new Date().getFullYear();
         for (let y = current - 5; y <= current + 5; y++) {
             const opt = document.createElement('option');
-            opt.value = y; opt.textContent = y;
+            opt.value = y;
+            opt.textContent = y;
             if (y === current) opt.selected = true;
             anioSelect.appendChild(opt);
         }
     }
 }
 
+// === INICIALIZACIÓN ===
 document.addEventListener('DOMContentLoaded', () => {
     const inputs = [
         { id: 'buscarEstado', var: 'searchEstado' },
@@ -321,6 +345,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupDateFilters();
     setupColumnResize();
 
+    // Cargar al iniciar (sin esperar login obligatorio)
     onAuthStateChanged(auth, user => {
         loadPacientes();
     });
