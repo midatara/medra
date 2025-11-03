@@ -157,57 +157,46 @@ async function ejecutarTraspaso() {
         let total = 0;
 
         snapshot.docs.forEach(d => {
-            const data = { id: d.id, ...d.data() };
-            const fechaCX = data.fechaCX?.toDate?.() ?? new Date(data.fechaCX);
+    const data = { id: d.id, ...d.data() };
 
-            // === PACIENTES: agrupar por admision + proveedor ===
-            const key = `${data.admision}_${data.proveedor}`;
-            if (pacientesMap.has(key)) {
-                const p = pacientesMap.get(key);
-                p.totalPaciente = (p.totalPaciente || 0) + data.totalItems;
-            } else {
-                pacientesMap.set(key, {
-                    fechaIngreso: new Date(),
-                    estado: 'ACTIVO',
-                    prevision: '',
-                    convenio: '',
-                    admision: data.admision,
-                    nombrePaciente: data.paciente,
-                    medico: data.medico,
-                    fechaCX,
-                    proveedor: data.proveedor,
-                    totalPaciente: data.totalItems,
-                    atributo: data.atributo
-                });
-            }
+    // === CORREGIR FECHA CX (SIN TOCAR registrar.js) ===
+    let fechaCX = data.fechaCX?.toDate?.() ?? new Date(data.fechaCX);
+    if (fechaCX) {
+        // Forzar a mediodía local → evita desfase horario
+        fechaCX = new Date(fechaCX.getFullYear(), fechaCX.getMonth(), fechaCX.getDate(), 12, 0, 0);
+    }
 
-            // === CARGAS: uno por registro ===
-            cargas.push({
-                estado: 'CARGADO',
-                fechaCarga: new Date(),
-                referencia: data.referencia,
-                idRegistro: data.id,
-                codigo: data.codigo,
-                cantidad: data.cantidad,
-                venta: data.precioUnitario,
-                prevision: '',
-                admision: data.admision,
-                paciente: data.paciente,
-                medico: data.medico,
-                fechaCX,
-                proveedor: data.proveedor,
-                codigoProducto: data.codigo,
-                descripcion: data.descripcion,
-                cantidadProducto: data.cantidad,
-                precio: data.precioUnitario,
-                atributo: data.atributo,
-                totalItem: data.totalItems,
-                margen: 0
-            });
-
-            batch.delete(d.ref);
-            total++;
+    // === PACIENTES ===
+    const key = `${data.admision}_${data.proveedor}`;
+    if (pacientesMap.has(key)) {
+        const p = pacientesMap.get(key);
+        p.totalPaciente = (p.totalPaciente || 0) + data.totalItems;
+    } else {
+        pacientesMap.set(key, {
+            fechaIngreso: new Date(),
+            estado: 'ACTIVO',
+            prevision: '',
+            convenio: '',
+            admision: data.admision,
+            nombrePaciente: data.paciente,
+            medico: data.medico,
+            fechaCX, // ← YA CORREGIDA
+            proveedor: data.proveedor,
+            totalPaciente: data.totalItems,
+            atributo: data.atributo
         });
+    }
+
+    // === CARGAS ===
+    cargas.push({
+        // ...
+        fechaCX, // ← CORREGIDA
+        // ...
+    });
+
+    batch.delete(d.ref);
+    total++;
+});
 
         // Guardar pacientes
         pacientesMap.forEach(p => {
