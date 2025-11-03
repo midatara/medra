@@ -108,6 +108,10 @@ async function loadMedicos() {
             medicos.push({ id: doc.id, ...doc.data() });
         });
         medicos.sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+        // RECREAMOS AUTOCOMPLETADO DE MÉDICOS
+        setupMedicoAutocomplete('medico', 'medicoToggle', 'medicoDropdown');
+        setupMedicoAutocomplete('editMedico', 'editMedicoToggle', 'editMedicoDropdown');
     } catch (error) {
         console.error('Error en loadMedicos:', error);
         showToast('Error al cargar médicos: ' + error.message, 'error');
@@ -130,6 +134,7 @@ async function loadReferencias() {
         querySnapshot.forEach(doc => referencias.push({ id: doc.id, ...doc.data() }));
         referencias.sort((a, b) => (a.codigo || '').localeCompare(b.codigo || ''));
 
+        // RECREAMOS AUTOCOMPLETADO DE CÓDIGO Y DESCRIPCIÓN
         setupAutocomplete('codigo', 'codigoToggle', 'codigoDropdown', referencias, 'codigo');
         setupAutocomplete('descripcion', 'descripcionToggle', 'descripcionDropdown', referencias, 'descripcion');
         setupAutocomplete('editCodigo', 'editCodigoToggle', 'editCodigoDropdown', referencias, 'codigo');
@@ -146,21 +151,31 @@ async function loadReferencias() {
 function attachIconForceLoad(iconId) {
     const icon = document.getElementById(iconId);
     if (!icon) return;
-    icon.addEventListener('click', async e => {
+
+    icon.addEventListener('click', async (e) => {
         e.stopPropagation();
-        const dropdown = document.getElementById(
-            iconId === 'codigoToggle' ? 'codigoDropdown' :
-            iconId === 'descripcionToggle' ? 'descripcionDropdown' :
-            iconId === 'editCodigoToggle' ? 'editCodigoDropdown' :
-            'editDescripcionDropdown'
-        );
+
+        const dropdownMap = {
+            'codigoToggle': 'codigoDropdown',
+            'descripcionToggle': 'descripcionDropdown',
+            'editCodigoToggle': 'editCodigoDropdown',
+            'editDescripcionToggle': 'editDescripcionDropdown'
+        };
+        const dropdown = document.getElementById(dropdownMap[iconId]);
+
+        // SI EL DROPDOWN ESTÁ VACÍO O EL ATRIBUTO NO COINCIDE → RECARGAR
         if (!dropdown || dropdown.children.length === 0) {
-            window.showLoading('iconForceLoad');
+            window.showLoading('forceLoad');
             try {
                 await loadReferencias();
+                // Mostrar dropdown después de cargar
+                if (dropdown) dropdown.style.display = 'block';
             } finally {
-                window.hideLoading('iconForceLoad');
+                window.hideLoading('forceLoad');
             }
+        } else {
+            // Si ya tiene datos, solo mostrar/ocultar
+            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
         }
     });
 }
@@ -600,23 +615,40 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // === FILTRO DE ATRIBUTO ===
-    function setupAtributoFilter() {
-        const radios = document.querySelectorAll('input[name="atributoFilter"], input[name="editAtributoFilter"]');
-        const refresh = async (val) => {
-            if (atributoFilter === val) return;
-            ['codigo', 'descripcion', 'referencia', 'proveedor', 'precioUnitario', 'atributo', 'totalItems',
-             'editCodigo', 'editDescripcion', 'editReferencia', 'editProveedor', 'editPrecioUnitario', 'editAtributo', 'editTotalItems']
-                .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-            ['codigoDropdown', 'descripcionDropdown', 'editCodigoDropdown', 'editDescripcionDropdown']
-                .forEach(id => { const d = document.getElementById(id); if (d) d.style.display = 'none'; });
-            atributoFilter = val;
-            window.showLoading('atributoFilter');
-            try { await loadReferencias(); } finally { window.hideLoading('atributoFilter'); }
-        };
-        radios.forEach(r => r.addEventListener('change', e => refresh(e.target.value)));
-        const checked = document.querySelector('input[name="atributoFilter"]:checked');
-        if (checked) refresh(checked.value);
-    }
+function setupAtributoFilter() {
+    const radios = document.querySelectorAll('input[name="atributoFilter"], input[name="editAtributoFilter"]');
+
+    const refresh = async (nuevoAtributo) => {
+        const normalized = normalizeText(nuevoAtributo);
+        if (atributoFilter === normalized) return;
+
+        // LIMPIAR CAMPOS DE PRODUCTO
+        ['codigo', 'descripcion', 'referencia', 'proveedor', 'precioUnitario', 'atributo', 'totalItems',
+         'editCodigo', 'editDescripcion', 'editReferencia', 'editProveedor', 'editPrecioUnitario', 'editAtributo', 'editTotalItems']
+            .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+
+        // OCULTAR DROPDOWNS
+        ['codigoDropdown', 'descripcionDropdown', 'editCodigoDropdown', 'editDescripcionDropdown']
+            .forEach(id => { const d = document.getElementById(id); if (d) d.style.display = 'none'; });
+
+        // ACTUALIZAR FILTRO
+        atributoFilter = normalized;
+
+        // RECARGAR REFERENCIAS
+        window.showLoading('atributoChange');
+        try {
+            await loadReferencias();
+        } finally {
+            window.hideLoading('atributoChange');
+        }
+    };
+
+    radios.forEach(r => r.addEventListener('change', e => refresh(e.target.value)));
+
+    // INICIALIZAR CON EL VALOR SELECCIONADO
+    const checked = document.querySelector('input[name="atributoFilter"]:checked');
+    if (checked) refresh(checked.value);
+}
 
     // === CARGA DE REGISTROS ===
     async function loadRegistros(filters) {
@@ -884,31 +916,80 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     function setupMedicoAutocomplete(inputId, iconId, listId) {
-        const input = document.getElementById(inputId);
-        const icon = document.getElementById(iconId);
-        const list = document.getElementById(listId);
-        if (!input || !icon || !list) return;
+    const input = document.getElementById(inputId);
+    const icon = document.getElementById(iconId);
+    const list = document.getElementById(listId);
+    if (!input || !icon || !list) return;
 
-        const show = (val) => {
-            list.innerHTML = ''; list.style.display = 'none';
-            if (!val.trim()) return;
-            const filtered = medicos.filter(m => m.nombre?.toUpperCase().includes(normalizeText(val)));
-            if (!filtered.length) return;
-            filtered.slice(0, 10).forEach(m => {
-                const div = document.createElement('div');
-                div.className = 'autocomplete-item';
-                div.textContent = m.nombre;
-                div.onclick = () => { input.value = m.nombre; list.style.display = 'none'; input.dispatchEvent(new Event('change')); };
-                list.appendChild(div);
-            });
+    const showAll = () => {
+        list.innerHTML = '';
+        if (medicos.length === 0) {
+            list.innerHTML = '<div class="autocomplete-item" style="color:#999; font-style:italic;">Cargando médicos...</div>';
             list.style.display = 'block';
-        };
+            return;
+        }
+        medicos.slice(0, 20).forEach(m => {
+            const div = document.createElement('div');
+            div.className = 'autocomplete-item';
+            div.textContent = m.nombre;
+            div.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                input.value = m.nombre;
+                list.style.display = 'none';
+                input.dispatchEvent(new Event('change'));
+                input.focus();
+            };
+            list.appendChild(div);
+        });
+        list.style.display = 'block';
+        list.style.maxHeight = '200px';
+        list.style.overflowY = 'auto';
+    };
 
-        input.addEventListener('input', e => show(e.target.value));
-        input.addEventListener('focus', () => input.value.trim() && show(input.value));
-        icon.addEventListener('click', e => { e.stopPropagation(); list.style.display = list.style.display === 'block' ? 'none' : 'block'; if (list.style.display === 'block') show(input.value); });
-        document.addEventListener('click', e => { if (!input.contains(e.target) && !icon.contains(e.target) && !list.contains(e.target)) list.style.display = 'none'; });
-    }
+    const showSuggestions = (value) => {
+        list.innerHTML = '';
+        list.style.display = 'none';
+        if (!value.trim()) return;
+        const filtered = medicos.filter(m => m.nombre?.toUpperCase().includes(normalizeText(value)));
+        if (filtered.length === 0) return;
+        filtered.slice(0, 10).forEach(m => {
+            const div = document.createElement('div');
+            div.className = 'autocomplete-item';
+            div.textContent = m.nombre;
+            div.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                input.value = m.nombre;
+                list.style.display = 'none';
+                input.dispatchEvent(new Event('change'));
+                input.focus();
+            };
+            list.appendChild(div);
+        });
+        list.style.display = 'block';
+    };
+
+    input.addEventListener('input', e => showSuggestions(e.target.value));
+    input.addEventListener('focus', () => input.value.trim() && showSuggestions(input.value));
+
+    icon.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (list.style.display === 'block') {
+            list.style.display = 'none';
+        } else {
+            showAll();
+        }
+        input.focus();
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!input.contains(e.target) && !icon.contains(e.target) && !list.contains(e.target)) {
+            list.style.display = 'none';
+        }
+    });
+}
 
     setupMedicoAutocomplete('medico', 'medicoToggle', 'medicoDropdown');
     setupMedicoAutocomplete('editMedico', 'editMedicoToggle', 'editMedicoDropdown');
@@ -923,14 +1004,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (registrarTable) setupColumnResize();
 
     async function initialize() {
-        window.showLoading('init');
-        try {
-            await loadMedicos();
-            await loadReferencias();
-            await loadRegistros({ searchAdmision, searchPaciente, searchMedico, searchDescripcion, searchProveedor, dateFilter, fechaDia, fechaDesde, fechaHasta, mes, anio });
-        } catch (e) { console.error(e); showToast('Error al iniciar', 'error'); }
-        finally { window.hideLoading('init'); }
+    window.showLoading('init');
+    try {
+        await loadMedicos();      // ← Siempre carga médicos
+        await loadReferencias();  // ← Según atributo seleccionado
+        await loadRegistros({ ... });
+    } finally {
+        window.hideLoading('init');
     }
+}
 
     onAuthStateChanged(auth, user => {
         if (user) {
