@@ -5,6 +5,7 @@ import {
     updateDoc, deleteDoc, orderBy, getDoc, limit, startAfter, increment
 } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js';
 
+// === VARIABLES GLOBALES ===
 let loadingCounter = 0;
 const loading = document.getElementById('loading');
 
@@ -15,7 +16,7 @@ window.showLoading = function (caller = 'unknown') {
     }
     loadingCounter++;
     loading.classList.add('show');
-    setTimeout(() => { }, 10);
+    setTimeout(() => {}, 10);
 };
 
 window.hideLoading = function (caller = 'unknown') {
@@ -73,6 +74,7 @@ let anio = null;
 let atributoFilter = 'CONSIGNACION';
 let isLoadingReferencias = false;
 
+// === UTILIDADES ===
 function formatNumberWithThousandsSeparator(number) {
     if (!number) return '';
     const cleaned = String(number).replace(/[^\d]/g, '');
@@ -83,6 +85,20 @@ function normalizeText(text) {
     return text?.trim().toUpperCase() || '';
 }
 
+function escapeHtml(text) {
+    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+    return text?.replace(/[&<>"']/g, m => map[m]) || '';
+}
+
+function debounce(func, wait) {
+    let timeout;
+    return function (...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+    };
+}
+
+// === CARGA DE DATOS ===
 async function loadMedicos() {
     window.showLoading('loadMedicos');
     try {
@@ -114,31 +130,37 @@ async function loadReferencias() {
         querySnapshot.forEach(doc => referencias.push({ id: doc.id, ...doc.data() }));
         referencias.sort((a, b) => (a.codigo || '').localeCompare(b.codigo || ''));
 
-        // *** RECREAMOS AUTOCOMPLETADO ***
         setupAutocomplete('codigo', 'codigoToggle', 'codigoDropdown', referencias, 'codigo');
         setupAutocomplete('descripcion', 'descripcionToggle', 'descripcionDropdown', referencias, 'descripcion');
         setupAutocomplete('editCodigo', 'editCodigoToggle', 'editCodigoDropdown', referencias, 'codigo');
         setupAutocomplete('editDescripcion', 'editDescripcionToggle', 'editDescripcionDropdown', referencias, 'descripcion');
-    } catch (e) { console.error(e); showToast('Error al cargar referencias: ' + e.message, 'error'); }
-    finally { isLoadingReferencias = false; window.hideLoading('loadReferencias'); }
+    } catch (e) {
+        console.error(e);
+        showToast('Error al cargar referencias: ' + e.message, 'error');
+    } finally {
+        isLoadingReferencias = false;
+        window.hideLoading('loadReferencias');
+    }
 }
 
-// Después de la definición de loadReferencias()
 function attachIconForceLoad(iconId) {
     const icon = document.getElementById(iconId);
     if (!icon) return;
     icon.addEventListener('click', async e => {
         e.stopPropagation();
-        // Si la lista está vacía (o el atributo no coincide) recargamos
         const dropdown = document.getElementById(
             iconId === 'codigoToggle' ? 'codigoDropdown' :
-                iconId === 'descripcionToggle' ? 'descripcionDropdown' :
-                    iconId === 'editCodigoToggle' ? 'editCodigoDropdown' :
-                        'editDescripcionDropdown'
+            iconId === 'descripcionToggle' ? 'descripcionDropdown' :
+            iconId === 'editCodigoToggle' ? 'editCodigoDropdown' :
+            'editDescripcionDropdown'
         );
         if (!dropdown || dropdown.children.length === 0) {
             window.showLoading('iconForceLoad');
-            try { await loadReferencias(); } finally { window.hideLoading('iconForceLoad'); }
+            try {
+                await loadReferencias();
+            } finally {
+                window.hideLoading('iconForceLoad');
+            }
         }
     });
 }
@@ -161,6 +183,32 @@ async function getReferenciaByDescripcion(descripcion) {
     }
 }
 
+async function getProductoByCodigo(codigo) {
+    if (!codigo?.trim()) return null;
+    try {
+        const q = query(
+            collection(db, "referencias_implantes"),
+            where("codigo", "==", normalizeText(codigo)),
+            where("atributo", "==", atributoFilter)
+        );
+        const querySnapshot = await getDocs(q);
+        if (querySnapshot.empty) return null;
+        const doc = querySnapshot.docs[0];
+        return { id: doc.id, ...doc.data() };
+    } catch (error) {
+        console.error('Error getting product by code:', error);
+        return null;
+    }
+}
+
+function parseFechaCX(fecha) {
+    if (!fecha) return null;
+    if (fecha && typeof fecha.toDate === 'function') return fecha.toDate();
+    if (fecha instanceof Date) return fecha;
+    return new Date(fecha);
+}
+
+// === AUTOCOMPLETADO ===
 function setupAutocomplete(inputId, iconId, listId, data, key) {
     const input = document.getElementById(inputId);
     const icon = document.getElementById(iconId);
@@ -271,36 +319,16 @@ function updateTotalItems(isEdit = false) {
     if (totalItemsInput) totalItemsInput.value = total ? formatNumberWithThousandsSeparator(total) : '';
 }
 
-const editCantidadInput = document.getElementById('editCantidad');
-const editPrecioUnitarioInput = document.getElementById('editPrecioUnitario');
-const editTotalItemsInput = document.getElementById('editTotalItems');
-if (editCantidadInput && editPrecioUnitarioInput && editTotalItemsInput) {
-    const updateEditTotal = () => {
-        const cantidad = parseInt(editCantidadInput.value) || 0;
-        const precio = parseInt((editPrecioUnitarioInput.value || '').replace(/[^\d]/g, '')) || 0;
-        const total = cantidad * precio;
-        editTotalItemsInput.value = total ? formatNumberWithThousandsSeparator(total) : '';
-    };
-    editCantidadInput.addEventListener('input', updateEditTotal);
-    editPrecioUnitarioInput.addEventListener('input', updateEditTotal);
-    editPrecioUnitarioInput.addEventListener('blur', updateEditTotal);
-}
+// === CÁLCULO TOTAL EN TIEMPO REAL ===
+document.getElementById('cantidad')?.addEventListener('input', () => updateTotalItems(false));
+document.getElementById('precioUnitario')?.addEventListener('input', () => updateTotalItems(false));
+document.getElementById('precioUnitario')?.addEventListener('blur', () => updateTotalItems(false));
 
-const cantidadInput = document.getElementById('cantidad');
-const precioUnitarioInput = document.getElementById('precioUnitario');
-const totalItemsInput = document.getElementById('totalItems');
-if (cantidadInput && precioUnitarioInput && totalItemsInput) {
-    const updateTotal = () => {
-        const cantidad = parseInt(cantidadInput.value) || 0;
-        const precio = parseInt((precioUnitarioInput.value || '').replace(/[^\d]/g, '')) || 0;
-        const total = cantidad * precio;
-        totalItemsInput.value = total ? formatNumberWithThousandsSeparator(total) : '';
-    };
-    cantidadInput.addEventListener('input', updateTotal);
-    precioUnitarioInput.addEventListener('input', updateTotal);
-    precioUnitarioInput.addEventListener('blur', updateTotal);
-}
+document.getElementById('editCantidad')?.addEventListener('input', () => updateTotalItems(true));
+document.getElementById('editPrecioUnitario')?.addEventListener('input', () => updateTotalItems(true));
+document.getElementById('editPrecioUnitario')?.addEventListener('blur', () => updateTotalItems(true));
 
+// === HISTORIAL ===
 async function logAction(registroId, action, oldData = null, newData = null) {
     if (!window.currentUserData) return;
     try {
@@ -319,111 +347,69 @@ async function logAction(registroId, action, oldData = null, newData = null) {
     }
 }
 
+// === TABLA RESIZABLE ===
 function setupColumnResize() {
-    const table = document.querySelector('.registrar-table');
     const headers = document.querySelectorAll('.registrar-table th');
     const initialWidths = [70, 130, 200, 80, 100, 300, 80, 130, 150, 100, 80, 100, 130, 65];
 
     headers.forEach((header, index) => {
-        if (initialWidths[index]) {
-            header.style.width = `${initialWidths[index]}px`;
-            header.style.minWidth = `${initialWidths[index]}px`;
-            header.style.maxWidth = `${initialWidths[index] * 2}px`;
-            const cells = document.querySelectorAll(`.registrar-table td:nth-child(${index + 1})`);
-            cells.forEach(cell => {
-                cell.style.width = `${initialWidths[index]}px`;
-                cell.style.minWidth = `${initialWidths[index]}px`;
-                cell.style.maxWidth = `${initialWidths[index] * 2}px`;
-            });
-        }
-    });
-
-    headers.forEach((header, index) => {
-        const existingHandle = header.querySelector('.resize-handle');
-        if (existingHandle) existingHandle.remove();
+        if (!initialWidths[index]) return;
+        header.style.width = `${initialWidths[index]}px`;
+        header.style.minWidth = `${initialWidths[index]}px`;
+        header.style.maxWidth = `${initialWidths[index] * 2}px`;
+        const cells = document.querySelectorAll(`.registrar-table td:nth-child(${index + 1})`);
+        cells.forEach(cell => {
+            cell.style.width = `${initialWidths[index]}px`;
+            cell.style.minWidth = `${initialWidths[index]}px`;
+            cell.style.maxWidth = `${initialWidths[index] * 2}px`;
+        });
 
         const resizeHandle = document.createElement('div');
         resizeHandle.className = 'resize-handle';
         header.appendChild(resizeHandle);
         header.style.position = 'relative';
 
-        let isResizing = false;
-        let startX, startWidth;
+        let isResizing = false, startX, startWidth;
 
-        resizeHandle.addEventListener('mousedown', (e) => {
+        const startResize = (e) => {
             isResizing = true;
-            startX = e.clientX;
+            startX = e.clientX || e.touches[0].clientX;
             startWidth = header.getBoundingClientRect().width;
             document.body.style.userSelect = 'none';
             resizeHandle.classList.add('active');
-        });
+            e.preventDefault();
+        };
 
-        document.addEventListener('mousemove', (e) => {
+        const doResize = (e) => {
             if (!isResizing) return;
-            const delta = e.clientX - startX;
+            const delta = (e.clientX || e.touches[0].clientX) - startX;
             let newWidth = Math.max(initialWidths[index], Math.min(initialWidths[index] * 2, startWidth + delta));
             header.style.width = `${newWidth}px`;
             header.style.minWidth = `${newWidth}px`;
-            header.style.maxWidth = `${newWidth * 2}px`;
-            const cells = document.querySelectorAll(`.registrar-table td:nth-child(${index + 1})`);
             cells.forEach(cell => {
                 cell.style.width = `${newWidth}px`;
                 cell.style.minWidth = `${newWidth}px`;
-                cell.style.maxWidth = `${newWidth * 2}px`;
             });
-        });
+        };
 
-        document.addEventListener('mouseup', () => {
+        const stopResize = () => {
             if (isResizing) {
                 isResizing = false;
                 document.body.style.userSelect = '';
                 resizeHandle.classList.remove('active');
             }
-        });
+        };
 
-        resizeHandle.addEventListener('touchstart', (e) => {
-            isResizing = true;
-            startX = e.touches[0].clientX;
-            startWidth = header.getBoundingClientRect().width;
-            document.body.style.userSelect = 'none';
-            resizeHandle.classList.add('active');
-            e.preventDefault();
-        });
-
-        document.addEventListener('touchmove', (e) => {
-            if (!isResizing) return;
-            const delta = e.touches[0].clientX - startX;
-            let newWidth = Math.max(initialWidths[index], Math.min(initialWidths[index] * 2, startWidth + delta));
-            header.style.width = `${newWidth}px`;
-            header.style.minWidth = `${newWidth}px`;
-            header.style.maxWidth = `${newWidth * 2}px`;
-            const cells = document.querySelectorAll(`.registrar-table td:nth-child(${index + 1})`);
-            cells.forEach(cell => {
-                cell.style.width = `${newWidth}px`;
-                cell.style.minWidth = `${newWidth}px`;
-                cell.style.maxWidth = `${newWidth * 2}px`;
-            });
-            e.preventDefault();
-        });
-
-        document.addEventListener('touchend', () => {
-            if (isResizing) {
-                isResizing = false;
-                document.body.style.userSelect = '';
-                resizeHandle.classList.remove('active');
-            }
-        });
+        resizeHandle.addEventListener('mousedown', startResize);
+        document.addEventListener('mousemove', doResize);
+        document.addEventListener('mouseup', stopResize);
+        resizeHandle.addEventListener('touchstart', startResize);
+        document.addEventListener('touchmove', doResize);
+        document.addEventListener('touchend', stopResize);
     });
 }
 
-function debounce(func, wait) {
-    let timeout;
-    return function (...args) {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => func.apply(this, args), wait);
-    };
-}
-
+// === TOAST ===
 function showToast(text, type = 'success') {
     const toastContainer = document.getElementById('toastContainer');
     if (!toastContainer) return;
@@ -440,6 +426,7 @@ function showToast(text, type = 'success') {
     }, 4000);
 }
 
+// === VALIDACIÓN ===
 async function validateAdmisionCodigo(admision, codigo, excludeId = null) {
     if (!admision?.trim() || !codigo?.trim()) return null;
     try {
@@ -461,59 +448,33 @@ async function validateAdmisionCodigo(admision, codigo, excludeId = null) {
     }
 }
 
-async function getProductoByCodigo(codigo) {
-    if (!codigo?.trim()) return null;
-    try {
-        const q = query(
-            collection(db, "referencias_implantes"),
-            where("codigo", "==", normalizeText(codigo)),
-            where("atributo", "==", atributoFilter)
-        );
-        const querySnapshot = await getDocs(q);
-        if (querySnapshot.empty) return null;
-        const doc = querySnapshot.docs[0];
-        return { id: doc.id, ...doc.data() };
-    } catch (error) {
-        console.error('Error getting product by code:', error);
-        return null;
-    }
-}
-
-function parseFechaCX(fecha) {
-    if (!fecha) return null;
-    if (fecha && typeof fecha.toDate === 'function') return fecha.toDate();
-    if (fecha instanceof Date) return fecha;
-    return new Date(fecha);
-}
-
+// === EXPORTAR ===
 function exportToExcel(data, filename) {
     const headers = ['Admisión', 'Paciente', 'Médico', 'Fecha CX', 'Código', 'Descripción', 'Cantidad', 'Referencia', 'Proveedor', 'Precio Unitario', 'Atributo', 'Total', 'Usuario'];
-    const rows = data.map(registro => [
-        registro.admision || '',
-        registro.paciente || '',
-        registro.medico || '',
-        registro.fechaCX ? registro.fechaCX.toLocaleDateString('es-CL') : '',
-        registro.codigo || '',
-        registro.descripcion || '',
-        registro.cantidad || '',
-        registro.referencia || '',
-        registro.proveedor || '',
-        formatNumberWithThousandsSeparator(registro.precioUnitario) || '',
-        registro.atributo || '',
-        formatNumberWithThousandsSeparator(registro.totalItems) || '',
-        registro.userFullName || ''
+    const rows = data.map(r => [
+        r.admision || '',
+        r.paciente || '',
+        r.medico || '',
+        r.fechaCX ? r.fechaCX.toLocaleDateString('es-CL') : '',
+        r.codigo || '',
+        r.descripcion || '',
+        r.cantidad || '',
+        r.referencia || '',
+        r.proveedor || '',
+        formatNumberWithThousandsSeparator(r.precioUnitario) || '',
+        r.atributo || '',
+        formatNumberWithThousandsSeparator(r.totalItems) || '',
+        r.userFullName || ''
     ]);
-    const csvContent = [headers.join(','), ...rows.map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(','))].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const csv = [headers.join(','), ...rows.map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `${filename}.csv`);
-    document.body.appendChild(link);
+    link.href = URL.createObjectURL(blob);
+    link.download = `${filename}.csv`;
     link.click();
-    document.body.removeChild(link);
 }
 
+// === DOMContentLoaded ===
 document.addEventListener('DOMContentLoaded', () => {
     if (loading) loading.classList.remove('show');
 
@@ -588,31 +549,19 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentDeleteId = null;
     let currentDeleteAdmision = null;
 
-    function formatMontoInput(input) {
-        if (!input) return;
-        input.addEventListener('input', (e) => {
-            let value = e.target.value.replace(/[^\d]/g, '');
-            if (value) e.target.value = formatNumberWithThousandsSeparator(value);
-        });
-        input.addEventListener('focus', (e) => {
-            e.target.value = e.target.value.replace(/[^\d]/g, '');
-        });
-        input.addEventListener('blur', (e) => {
-            if (e.target.value) e.target.value = formatNumberWithThousandsSeparator(e.target.value.replace(/[^\d]/g, ''));
-        });
-    }
-
-    formatMontoInput(precioUnitarioInput);
-    formatMontoInput(editPrecioUnitarioInput);
-
-    function enforceUpperCase(inputs) {
-        inputs.forEach(input => {
-            if (input) {
-                input.addEventListener('input', (e) => e.target.value = e.target.value.toUpperCase());
-                input.addEventListener('change', (e) => e.target.value = normalizeText(e.target.value));
-            }
-        });
-    }
+    // === FORMATOS ===
+    [precioUnitarioInput, editPrecioUnitarioInput].forEach(input => {
+        if (input) {
+            input.addEventListener('input', e => {
+                let v = e.target.value.replace(/[^\d]/g, '');
+                e.target.value = v ? formatNumberWithThousandsSeparator(v) : '';
+            });
+            input.addEventListener('focus', e => e.target.value = e.target.value.replace(/[^\d]/g, ''));
+            input.addEventListener('blur', e => {
+                if (e.target.value) e.target.value = formatNumberWithThousandsSeparator(e.target.value.replace(/[^\d]/g, ''));
+            });
+        }
+    });
 
     const upperCaseInputs = [
         admisionInput, pacienteInput, medicoInput, codigoInput, descripcionInput,
@@ -621,618 +570,317 @@ document.addEventListener('DOMContentLoaded', () => {
         editDescripcionInput, editReferenciaInput, editProveedorInput, editAtributoInput,
         buscarAdmisionInput, buscarPacienteInput, buscarMedicoInput, buscarDescripcionInput, buscarProveedorInput
     ];
-    enforceUpperCase(upperCaseInputs.filter(Boolean));
+    upperCaseInputs.forEach(input => {
+        if (input) {
+            input.addEventListener('input', e => e.target.value = e.target.value.toUpperCase());
+            input.addEventListener('change', e => e.target.value = normalizeText(e.target.value));
+        }
+    });
 
-    function clearForm() {
-        [codigoInput, descripcionInput, cantidadInput, referenciaInput, proveedorInput, precioUnitarioInput, atributoInput, totalItemsInput].forEach(input => {
-            if (input) input.value = '';
-        });
-        document.getElementById('codigoDropdown').style.display = 'none';
-        document.getElementById('descripcionDropdown').style.display = 'none';
-    }
-
-    function closeModal(modal) {
-        if (modal) modal.style.display = 'none';
-        if (modal === editModal) {
-            currentEditId = null;
-            currentEditOldData = null;
-            editMedicoDropdown.style.display = 'none';
-            editCodigoDropdown.style.display = 'none';
-            editDescripcionDropdown.style.display = 'none';
-        } else if (modal === deleteModal) {
-            currentDeleteId = null;
-            currentDeleteAdmision = null;
-        } else if (modal === historyModal) {
-            if (historyContent) historyContent.innerHTML = '';
+    // === FILTROS DE FECHA ===
+    function setupDateFilters() {
+        if (dateDay) dateDay.addEventListener('change', e => { if (e.target.checked) { dateFilter = 'day'; fechaDia = fechaDiaInput?.value || ''; debouncedLoadRegistros(); } });
+        if (dateWeek) dateWeek.addEventListener('change', e => { if (e.target.checked) { dateFilter = 'week'; fechaDesde = fechaDesdeInput?.value || ''; fechaHasta = fechaHastaInput?.value || ''; debouncedLoadRegistros(); } });
+        if (dateMonth) dateMonth.addEventListener('change', e => { if (e.target.checked) { dateFilter = 'month'; mes = mesSelect?.value || ''; anio = anioSelect?.value || ''; debouncedLoadRegistros(); } });
+        if (fechaDiaInput) fechaDiaInput.addEventListener('change', e => { if (dateFilter === 'day') { fechaDia = e.target.value; debouncedLoadRegistros(); } });
+        if (fechaDesdeInput) fechaDesdeInput.addEventListener('change', e => { if (dateFilter === 'week') { fechaDesde = e.target.value; debouncedLoadRegistros(); } });
+        if (fechaHastaInput) fechaHastaInput.addEventListener('change', e => { if (dateFilter === 'week') { fechaHasta = e.target.value; debouncedLoadRegistros(); } });
+        if (mesSelect) mesSelect.addEventListener('change', e => { if (dateFilter === 'month') { mes = e.target.value; debouncedLoadRegistros(); } });
+        if (anioSelect) {
+            const currentYear = new Date().getFullYear();
+            anioSelect.innerHTML = '';
+            for (let y = currentYear - 5; y <= currentYear + 5; y++) {
+                const opt = document.createElement('option');
+                opt.value = y; opt.textContent = y;
+                if (y === currentYear) opt.selected = true;
+                anioSelect.appendChild(opt);
+            }
+            anioSelect.addEventListener('change', e => { if (dateFilter === 'month') { anio = e.target.value; debouncedLoadRegistros(); } });
         }
     }
 
-    document.querySelectorAll('.modal .close, .modal-btn-secondary').forEach(closeBtn => {
-        closeBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            closeModal(closeBtn.closest('.modal'));
-        });
-    });
+    // === FILTRO DE ATRIBUTO ===
+    function setupAtributoFilter() {
+        const radios = document.querySelectorAll('input[name="atributoFilter"], input[name="editAtributoFilter"]');
+        const refresh = async (val) => {
+            if (atributoFilter === val) return;
+            ['codigo', 'descripcion', 'referencia', 'proveedor', 'precioUnitario', 'atributo', 'totalItems',
+             'editCodigo', 'editDescripcion', 'editReferencia', 'editProveedor', 'editPrecioUnitario', 'editAtributo', 'editTotalItems']
+                .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+            ['codigoDropdown', 'descripcionDropdown', 'editCodigoDropdown', 'editDescripcionDropdown']
+                .forEach(id => { const d = document.getElementById(id); if (d) d.style.display = 'none'; });
+            atributoFilter = val;
+            window.showLoading('atributoFilter');
+            try { await loadReferencias(); } finally { window.hideLoading('atributoFilter'); }
+        };
+        radios.forEach(r => r.addEventListener('change', e => refresh(e.target.value)));
+        const checked = document.querySelector('input[name="atributoFilter"]:checked');
+        if (checked) refresh(checked.value);
+    }
 
-    window.addEventListener('click', (e) => {
-        if (e.target.classList.contains('modal')) closeModal(e.target);
-    });
-
-    if (cancelEditBtn) cancelEditBtn.addEventListener('click', () => closeModal(editModal));
-    if (cancelDeleteBtn) cancelDeleteBtn.addEventListener('click', () => closeModal(deleteModal));
-
-    // === LOAD REGISTROS OPTIMIZADO ===
+    // === CARGA DE REGISTROS ===
     async function loadRegistros(filters) {
         window.showLoading('loadRegistros');
         try {
-            let q = query(
-                collection(db, "registrar_consignacion"),
-                orderBy("timestamp", "desc")
-            );
-
-            // FILTROS EN SERVIDOR
-            if (filters.searchAdmision) {
-                const n = normalizeText(filters.searchAdmision);
-                q = query(q, where("admision", ">=", n), where("admision", "<=", n + '\uf8ff'));
-            }
-            if (filters.searchPaciente) {
-                const n = normalizeText(filters.searchPaciente);
-                q = query(q, where("paciente", ">=", n), where("paciente", "<=", n + '\uf8ff'));
-            }
-            if (filters.searchMedico) {
-                const n = normalizeText(filters.searchMedico);
-                q = query(q, where("medico", ">=", n), where("medico", "<=", n + '\uf8ff'));
-            }
-            if (filters.searchDescripcion) {
-                const n = normalizeText(filters.searchDescripcion);
-                q = query(q, where("descripcion", ">=", n), where("descripcion", "<=", n + '\uf8ff'));
-            }
-            if (filters.searchProveedor) {
-                const n = normalizeText(filters.searchProveedor);
-                q = query(q, where("proveedor", ">=", n), where("proveedor", "<=", n + '\uf8ff'));
-            }
-
-            // PAGINACIÓN
-            if (currentPage > 1 && lastVisible) {
-                q = query(q, startAfter(lastVisible));
-            }
-            q = query(q, limit(PAGE_SIZE));
-
-            const querySnapshot = await getDocs(q);
-            let tempRegistros = [];
-
-            querySnapshot.forEach((doc) => {
-                const data = doc.data();
-                const registro = { id: doc.id, ...data };
-                registro.fechaCX = parseFechaCX(data.fechaCX);
-                tempRegistros.push(registro);
+            let q = query(collection(db, "registrar_consignacion"), orderBy("timestamp", "desc"));
+            ['searchAdmision', 'searchPaciente', 'searchMedico', 'searchDescripcion', 'searchProveedor'].forEach(f => {
+                if (filters[f]) q = query(q, where(f.replace('search', '').toLowerCase(), ">=", normalizeText(filters[f])), where(f.replace('search', '').toLowerCase(), "<=", normalizeText(filters[f]) + '\uf8ff'));
             });
-
-            // FILTROS DE FECHA EN CLIENTE
-            tempRegistros = tempRegistros.filter(reg => {
+            if (currentPage > 1 && lastVisible) q = query(q, startAfter(lastVisible));
+            q = query(q, limit(PAGE_SIZE));
+            const snapshot = await getDocs(q);
+            let temp = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), fechaCX: parseFechaCX(doc.data().fechaCX) }));
+            temp = temp.filter(r => {
                 if (filters.dateFilter === 'day' && filters.fechaDia) {
-                    const fechaReg = reg.fechaCX;
-                    const fechaFiltro = new Date(filters.fechaDia);
-                    if (!fechaReg || fechaReg.toLocaleDateString('es-CL') !== fechaFiltro.toLocaleDateString('es-CL')) return false;
+                    const d1 = r.fechaCX; const d2 = new Date(filters.fechaDia);
+                    if (!d1 || d1.toLocaleDateString('es-CL') !== d2.toLocaleDateString('es-CL')) return false;
                 }
                 if (filters.dateFilter === 'week' && filters.fechaDesde && filters.fechaHasta) {
-                    const fechaReg = reg.fechaCX;
-                    const desde = new Date(filters.fechaDesde);
-                    const hasta = new Date(filters.fechaHasta);
-                    hasta.setHours(23, 59, 59, 999);
-                    if (!fechaReg || fechaReg < desde || fechaReg > hasta) return false;
+                    const d1 = r.fechaCX; const d2 = new Date(filters.fechaDesde); const d3 = new Date(filters.fechaHasta); d3.setHours(23,59,59,999);
+                    if (!d1 || d1 < d2 || d1 > d3) return false;
                 }
                 if (filters.dateFilter === 'month' && filters.mes && filters.anio) {
-                    const fechaReg = reg.fechaCX;
-                    if (!fechaReg) return false;
-                    const mesReg = fechaReg.getMonth() + 1;
-                    const anioReg = fechaReg.getFullYear();
-                    if (mesReg !== parseInt(filters.mes) || anioReg !== parseInt(filters.anio)) return false;
+                    if (!r.fechaCX) return false;
+                    if (r.fechaCX.getMonth() + 1 !== parseInt(filters.mes) || r.fechaCX.getFullYear() !== parseInt(filters.anio)) return false;
                 }
                 return true;
             });
-
-            registros = tempRegistros;
-
-            if (querySnapshot.docs.length > 0) {
-                lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
-                firstVisible = querySnapshot.docs[0];
-            } else {
-                lastVisible = null;
-                firstVisible = null;
-            }
-
-            totalRecords = await getTotalFilteredCount(filters);
+            registros = temp;
+            lastVisible = snapshot.docs[snapshot.docs.length - 1] || null;
             renderTable();
-        } catch (error) {
-            console.error('Error en loadRegistros:', error);
-            showToast('Error al cargar registros: ' + error.message, 'error');
-        } finally {
-            window.hideLoading('loadRegistros');
-        }
+        } catch (e) { console.error(e); showToast('Error al cargar registros', 'error'); }
+        finally { window.hideLoading('loadRegistros'); }
     }
 
-    // === CONTEO OPTIMIZADO ===
-    async function getTotalFilteredCount(filters) {
+    async function getTotalFilteredCount() {
         try {
-            const statsRef = doc(db, "stats", "counts");
-            const statsSnap = await getDoc(statsRef);
-            return statsSnap.exists() ? (statsSnap.data().totalRegistros || 0) : 0;
-        } catch (error) {
-            console.error('Error en conteo:', error);
-            return 0;
-        }
-    }
-
-    function escapeHtml(text) {
-        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
-        return text?.replace(/[&<>"']/g, m => map[m]) || '';
+            const snap = await getDoc(doc(db, "stats", "counts"));
+            return snap.exists() ? snap.data().totalRegistros || 0 : 0;
+        } catch { return 0; }
     }
 
     function renderTable() {
         if (!registrarBody) return;
-        registrarBody.innerHTML = '';
-
-        if (registros.length === 0) {
-            registrarBody.innerHTML = `<tr><td colspan="14" style="text-align: center; padding: 20px; color: #666;"><i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 10px; display: block;"></i> No hay registros para mostrar</td></tr>`;
-        } else {
-            registros.forEach(registro => {
-                const row = document.createElement('tr');
-                row.className = 'registrar-row';
-                row.innerHTML = `
-                    <td class="registrar-cell admision">${escapeHtml(registro.admision || '')}</td>
-                    <td class="registrar-cell paciente">${escapeHtml(registro.paciente || '')}</td>
-                    <td class="registrar-cell medico">${escapeHtml(registro.medico || '')}</td>
-                    <td class="registrar-cell fecha">${registro.fechaCX ? registro.fechaCX.toLocaleDateString('es-CL') : ''}</td>
-                    <td class="registrar-cell codigo">${escapeHtml(registro.codigo || '')}</td>
-                    <td class="registrar-cell descripcion">${escapeHtml(registro.descripcion || '')}</td>
-                    <td class="registrar-cell cantidad">${registro.cantidad || ''}</td>
-                    <td class="registrar-cell referencia">${escapeHtml(registro.referencia || '')}</td>
-                    <td class="registrar-cell proveedor">${escapeHtml(registro.proveedor || '')}</td>
-                    <td class="registrar-cell precio">${formatNumberWithThousandsSeparator(registro.precioUnitario)}</td>
-                    <td class="registrar-cell atributo">${escapeHtml(registro.atributo || '')}</td>
-                    <td class="registrar-cell total">${formatNumberWithThousandsSeparator(registro.totalItems)}</td>
-                    <td class="registrar-cell usuario">${escapeHtml(registro.userFullName || '—')}</td>
+        registrarBody.innerHTML = registros.length === 0
+            ? `<tr><td colspan="14" style="text-align:center;padding:20px;color:#666;"><i class="fas fa-inbox" style="font-size:48px;display:block;margin-bottom:10px;"></i>No hay registros</td></tr>`
+            : registros.map(r => `
+                <tr class="registrar-row">
+                    <td class="registrar-cell admision">${escapeHtml(r.admision)}</td>
+                    <td class="registrar-cell paciente">${escapeHtml(r.paciente)}</td>
+                    <td class="registrar-cell medico">${escapeHtml(r.medico)}</td>
+                    <td class="registrar-cell fecha">${r.fechaCX ? r.fechaCX.toLocaleDateString('es-CL') : ''}</td>
+                    <td class="registrar-cell codigo">${escapeHtml(r.codigo)}</td>
+                    <td class="registrar-cell descripcion">${escapeHtml(r.descripcion)}</td>
+                    <td class="registrar-cell cantidad">${r.cantidad}</td>
+                    <td class="registrar-cell referencia">${escapeHtml(r.referencia)}</td>
+                    <td class="registrar-cell proveedor">${escapeHtml(r.proveedor)}</td>
+                    <td class="registrar-cell precio">${formatNumberWithThousandsSeparator(r.precioUnitario)}</td>
+                    <td class="registrar-cell atributo">${escapeHtml(r.atributo)}</td>
+                    <td class="registrar-cell total">${formatNumberWithThousandsSeparator(r.totalItems)}</td>
+                    <td class="registrar-cell usuario">${escapeHtml(r.userFullName || '—')}</td>
                     <td class="registrar-actions">
-                        <div class="registrar-actions">
-                            <button title="Editar registro" class="registrar-btn-edit" onclick="openEditModal('${registro.id}', ${JSON.stringify(registro).replace(/"/g, '&quot;')} )">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button title="Eliminar registro" class="registrar-btn-delete" onclick="openDeleteModal('${registro.id}', '${escapeHtml(registro.admision || '')}')">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                            <button title="Ver historial" class="registrar-btn-history" onclick="openHistoryModal('${registro.id}', '${escapeHtml(registro.admision || '')}')">
-                                <i class="fas fa-history"></i>
-                            </button>
-                        </div>
+                        <button class="registrar-btn-edit" onclick="openEditModal('${r.id}', ${JSON.stringify(r).replace(/"/g, '&quot;')} )"><i class="fas fa-edit"></i></button>
+                        <button class="registrar-btn-delete" onclick="openDeleteModal('${r.id}', '${escapeHtml(r.admision)}')"><i class="fas fa-trash"></i></button>
+                        <button class="registrar-btn-history" onclick="openHistoryModal('${r.id}', '${escapeHtml(r.admision)}')"><i class="fas fa-history"></i></button>
                     </td>
-                `;
-                registrarBody.appendChild(row);
-            });
-        }
+                </tr>`).join('');
 
-        // === BOTÓN CARGAR MÁS MEJORADO ===
-        const loadMoreContainer = document.getElementById('loadMoreContainer');
-        if (loadMoreContainer) loadMoreContainer.remove();
-
+        const loadMore = document.getElementById('loadMoreContainer');
+        if (loadMore) loadMore.remove();
         if (lastVisible && registros.length >= PAGE_SIZE) {
-            const container = document.createElement('div');
-            container.id = 'loadMoreContainer';
-            container.style.textAlign = 'center';
-            container.style.margin = '20px 0';
-            container.innerHTML = `<button id="loadMoreBtn" class="registrar-btn">Cargar más registros</button>`;
-            document.querySelector('.registrar-table-container')?.appendChild(container);
-
-            const loadMoreBtn = document.getElementById('loadMoreBtn');
-            if (loadMoreBtn) {
-                loadMoreBtn.onclick = () => {
-                    currentPage++;
-                    loadRegistros({ searchAdmision, searchPaciente, searchMedico, searchDescripcion, searchProveedor, dateFilter, fechaDia, fechaDesde, fechaHasta, mes, anio });
-                };
-            }
+            const div = document.createElement('div');
+            div.id = 'loadMoreContainer';
+            div.style = 'text-align:center;margin:20px 0;';
+            div.innerHTML = `<button id="loadMoreBtn" class="registrar-btn">Cargar más</button>`;
+            document.querySelector('.registrar-table-container')?.appendChild(div);
+            document.getElementById('loadMoreBtn')?.addEventListener('click', () => {
+                currentPage++;
+                loadRegistros({ searchAdmision, searchPaciente, searchMedico, searchDescripcion, searchProveedor, dateFilter, fechaDia, fechaDesde, fechaHasta, mes, anio });
+            });
         }
     }
 
     const debouncedLoadRegistros = debounce(() => {
-        currentPage = 1;
-        lastVisible = null;
+        currentPage = 1; lastVisible = null;
         loadRegistros({ searchAdmision, searchPaciente, searchMedico, searchDescripcion, searchProveedor, dateFilter, fechaDia, fechaDesde, fechaHasta, mes, anio });
     }, 150);
 
-    const searchInputs = [
-        { input: buscarAdmisionInput, filter: 'searchAdmision' },
-        { input: buscarPacienteInput, filter: 'searchPaciente' },
-        { input: buscarMedicoInput, filter: 'searchMedico' },
-        { input: buscarDescripcionInput, filter: 'searchDescripcion' },
-        { input: buscarProveedorInput, filter: 'searchProveedor' }
-    ];
-
-    searchInputs.forEach(({ input, filter }) => {
+    ['buscarAdmision', 'buscarPaciente', 'buscarMedico', 'buscarDescripcion', 'buscarProveedor'].forEach(id => {
+        const input = document.getElementById(id);
         if (input) {
-            input.addEventListener('input', (e) => {
-                window[filter] = normalizeText(e.target.value);
-                debouncedLoadRegistros();
-            });
-            input.addEventListener('change', (e) => {
-                e.target.value = normalizeText(e.target.value);
-                window[filter] = e.target.value;
-                debouncedLoadRegistros();
-            });
+            input.addEventListener('input', e => { window[id.replace('buscar', 'search').toLowerCase()] = normalizeText(e.target.value); debouncedLoadRegistros(); });
+            input.addEventListener('change', e => { e.target.value = normalizeText(e.target.value); });
         }
     });
 
-    function setupDateFilters() {
-        if (dateDay) dateDay.addEventListener('change', (e) => { if (e.target.checked) { dateFilter = 'day'; fechaDia = fechaDiaInput?.value || ''; debouncedLoadRegistros(); } });
-        if (dateWeek) dateWeek.addEventListener('change', (e) => { if (e.target.checked) { dateFilter = 'week'; fechaDesde = fechaDesdeInput?.value || ''; fechaHasta = fechaHastaInput?.value || ''; debouncedLoadRegistros(); } });
-        if (dateMonth) dateMonth.addEventListener('change', (e) => { if (e.target.checked) { dateFilter = 'month'; mes = mesSelect?.value || ''; anio = anioSelect?.value || ''; debouncedLoadRegistros(); } });
-        if (fechaDiaInput) fechaDiaInput.addEventListener('change', (e) => { if (dateFilter === 'day') { fechaDia = e.target.value; debouncedLoadRegistros(); } });
-        if (fechaDesdeInput) fechaDesdeInput.addEventListener('change', (e) => { if (dateFilter === 'week') { fechaDesde = e.target.value; debouncedLoadRegistros(); } });
-        if (fechaHastaInput) fechaHastaInput.addEventListener('change', (e) => { if (dateFilter === 'week') { fechaHasta = e.target.value; debouncedLoadRegistros(); } });
-        if (mesSelect) mesSelect.addEventListener('change', (e) => { if (dateFilter === 'month') { mes = e.target.value; debouncedLoadRegistros(); } });
-        if (anioSelect) {
-            const currentYear = new Date().getFullYear();
-            anioSelect.innerHTML = '';
-            for (let year = currentYear - 5; year <= currentYear + 5; year++) {
-                const option = document.createElement('option');
-                option.value = year;
-                option.textContent = year;
-                if (year === currentYear) option.selected = true;
-                anioSelect.appendChild(option);
-            }
-            anioSelect.addEventListener('change', (e) => { if (dateFilter === 'month') { anio = e.target.value; debouncedLoadRegistros(); } });
-        }
+    // === MODALES ===
+    function closeModal(modal) {
+        if (!modal) return;
+        modal.style.display = 'none';
+        if (modal === editModal) { currentEditId = currentEditOldData = null; }
+        if (modal === deleteModal) { currentDeleteId = currentDeleteAdmision = null; }
+        if (modal === historyModal && historyContent) historyContent.innerHTML = '';
     }
 
-    function setupAtributoFilter() {
-        const atributoRadios = document.querySelectorAll('input[name="atributoFilter"]');
-        const editAtributoRadios = document.querySelectorAll('input[name="editAtributoFilter"]');
+    document.querySelectorAll('.modal .close, .modal-btn-secondary').forEach(btn => btn.addEventListener('click', () => closeModal(btn.closest('.modal'))));
+    window.addEventListener('click', e => { if (e.target.classList.contains('modal')) closeModal(e.target); });
+    cancelEditBtn?.addEventListener('click', () => closeModal(editModal));
+    cancelDeleteBtn?.addEventListener('click', () => closeModal(deleteModal));
 
-        const refreshReferencias = async (nuevoAtributo) => {
-            if (atributoFilter === nuevoAtributo) return;   // nada que hacer
+    // === BOTONES ===
+    if (actionsBtn && actionsMenu) {
+        actionsBtn.addEventListener('click', e => { e.stopPropagation(); actionsMenu.style.display = actionsMenu.style.display === 'block' ? 'none' : 'block'; });
+        document.addEventListener('click', e => { if (!actionsBtn.contains(e.target) && !actionsMenu.contains(e.target)) actionsMenu.style.display = 'none'; });
+    }
 
-            // ---- 1. Limpiar campos y dropdowns ----
-            const campos = ['codigo', 'descripcion', 'referencia', 'proveedor',
-                'precioUnitario', 'atributo', 'totalItems'];
-            campos.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    downloadAll?.addEventListener('click', async e => {
+        e.preventDefault(); e.stopPropagation();
+        window.showLoading('downloadAll');
+        try {
+            let q = query(collection(db, "registrar_consignacion"), orderBy("fechaCX", "asc"));
+            // Aplicar filtros completos aquí si es necesario...
+            const snap = await getDocs(q);
+            const data = snap.docs.map(d => ({ id: d.id, ...d.data(), fechaCX: parseFechaCX(d.data().fechaCX) }));
+            exportToExcel(data, `consignaciones_completas_${new Date().toISOString().split('T')[0]}`);
+        } catch (e) { showToast('Error al descargar', 'error'); }
+        finally { window.hideLoading('downloadAll'); }
+    });
 
-            const editCampos = ['editCodigo', 'editDescripcion', 'editReferencia',
-                'editProveedor', 'editPrecioUnitario', 'editAtributo', 'editTotalItems'];
-            editCampos.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    downloadCurrent?.addEventListener('click', e => { e.preventDefault(); exportToExcel(registros, `página_${currentPage}`); });
 
-            ['codigoDropdown', 'descripcionDropdown',
-                'editCodigoDropdown', 'editDescripcionDropdown'].forEach(id => {
-                    const d = document.getElementById(id);
-                    if (d) d.style.display = 'none';
-                });
+    limpiarBtn?.addEventListener('click', e => {
+        e.preventDefault();
+        [admisionInput, pacienteInput, medicoInput, fechaCXInput, codigoInput, descripcionInput, cantidadInput, referenciaInput, proveedorInput, precioUnitarioInput, atributoInput, totalItemsInput,
+         buscarAdmisionInput, buscarPacienteInput, buscarMedicoInput, buscarDescripcionInput, buscarProveedorInput].forEach(i => { if (i) i.value = ''; });
+        [dateDay, dateWeek, dateMonth].forEach(r => { if (r) r.checked = false; });
+        searchAdmision = searchPaciente = searchMedico = searchDescripcion = searchProveedor = dateFilter = fechaDia = fechaDesde = fechaHasta = mes = anio = '';
+        currentPage = 1; lastVisible = null;
+        debouncedLoadRegistros();
+    });
 
-            // ---- 2. Actualizar variable global ----
-            atributoFilter = nuevoAtributo;
-
-            // ---- 3. Cargar referencias y volver a crear autocompletado ----
-            window.showLoading('refreshReferencias');
-            try {
-                await loadReferencias();               // <-- carga datos + setupAutocomplete
-            } finally {
-                window.hideLoading('refreshReferencias');
-            }
+    registrarBtn?.addEventListener('click', async e => {
+        e.preventDefault();
+        const data = {
+            admision: normalizeText(admisionInput?.value),
+            paciente: normalizeText(pacienteInput?.value),
+            medico: normalizeText(medicoInput?.value),
+            fechaCX: new Date(fechaCXInput?.value),
+            codigo: normalizeText(codigoInput?.value),
+            descripcion: normalizeText(descripcionInput?.value),
+            cantidad: parseInt(cantidadInput?.value) || 0,
+            referencia: normalizeText(referenciaInput?.value),
+            proveedor: normalizeText(proveedorInput?.value),
+            precioUnitario: parseInt((precioUnitarioInput?.value || '').replace(/[^\d]/g, '')) || 0,
+            atributo: normalizeText(atributoInput?.value),
+            totalItems: parseInt((totalItemsInput?.value || '').replace(/[^\d]/g, '')) || 0
         };
 
-        const changeHandler = e => refreshReferencias(e.target.value);
+        if (Object.values(data).some(v => !v && v !== 0)) return showToast('Completa todos los campos', 'error');
+        if (isNaN(data.fechaCX)) return showToast('Fecha inválida', 'error');
+        if (await validateAdmisionCodigo(data.admision, data.codigo)) return showToast('Duplicado admisión + código', 'error');
+        const prod = await getProductoByCodigo(data.codigo);
+        if (!prod || prod.descripcion !== data.descripcion || prod.atributo !== data.atributo) return showToast('Producto no coincide', 'error');
 
-        atributoRadios.forEach(r => r.addEventListener('change', changeHandler));
-        editAtributoRadios.forEach(r => r.addEventListener('change', changeHandler));
+        window.showLoading('registrar');
+        try {
+            const ref = await addDoc(collection(db, "registrar_consignacion"), { ...data, userFullName: window.currentUserData?.fullName || 'Invitado', timestamp: new Date() });
+            await updateDoc(doc(db, "stats", "counts"), { totalRegistros: increment(1) });
+            await logAction(ref.id, 'CREAR', null, data);
+            showToast('Registro creado', 'success');
+            [codigoInput, descripcionInput, cantidadInput, referenciaInput, proveedorInput, precioUnitarioInput, atributoInput, totalItemsInput].forEach(i => i.value = '');
+            loadRegistros({ searchAdmision, searchPaciente, searchMedico, searchDescripcion, searchProveedor, dateFilter, fechaDia, fechaDesde, fechaHasta, mes, anio });
+        } catch (e) { showToast('Error al registrar', 'error'); }
+        finally { window.hideLoading('registrar'); }
+    });
 
-        // ---- inicialización ----
-        const checked = document.querySelector('input[name="atributoFilter"]:checked');
-        if (checked) refreshReferencias(checked.value);
-    }
-
-    setupDateFilters();
-    setupAtributoFilter();
-
-    setupAtributoFilter();
-
-    attachIconForceLoad('codigoToggle');
-    attachIconForceLoad('descripcionToggle');
-    attachIconForceLoad('editCodigoToggle');
-    attachIconForceLoad('editDescripcionToggle');
-
-
-    if (actionsBtn && actionsMenu) {
-        actionsBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            actionsMenu.style.display = actionsMenu.style.display === 'block' ? 'none' : 'block';
-        });
-        document.addEventListener('click', (e) => {
-            if (!actionsBtn.contains(e.target) && !actionsMenu.contains(e.target)) {
-                actionsMenu.style.display = 'none';
-            }
-        });
-    }
-
-    if (downloadAll) {
-        downloadAll.addEventListener('click', async (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            window.showLoading('downloadAll');
-            try {
-                let allQuery = query(collection(db, "registrar_consignacion"), orderBy("fechaCX", "asc"));
-                if (searchAdmision) {
-                    const n = normalizeText(searchAdmision);
-                    allQuery = query(allQuery, where("admision", ">=", n), where("admision", "<=", n + '\uf8ff'));
-                }
-                if (searchPaciente) {
-                    const n = normalizeText(searchPaciente);
-                    allQuery = query(allQuery, where("paciente", ">=", n), where("paciente", "<=", n + '\uf8ff'));
-                }
-                if (searchMedico) {
-                    const n = normalizeText(searchMedico);
-                    allQuery = query(allQuery, where("medico", ">=", n), where("medico", "<=", n + '\uf8ff'));
-                }
-                if (searchProveedor) {
-                    const n = normalizeText(searchProveedor);
-                    allQuery = query(allQuery, where("proveedor", ">=", n), where("proveedor", "<=", n + '\uf8ff'));
-                }
-                if (searchDescripcion) {
-                    const n = normalizeText(searchDescripcion);
-                    allQuery = query(allQuery, where("descripcion", ">=", n), where("descripcion", "<=", n + '\uf8ff'));
-                }
-                if (dateFilter === 'day' && fechaDia) {
-                    const start = new Date(fechaDia);
-                    const end = new Date(start); end.setDate(end.getDate() + 1);
-                    allQuery = query(allQuery, where("fechaCX", ">=", start), where("fechaCX", "<", end));
-                } else if (dateFilter === 'week' && fechaDesde && fechaHasta) {
-                    allQuery = query(allQuery, where("fechaCX", ">=", new Date(fechaDesde)), where("fechaCX", "<=", new Date(fechaHasta)));
-                } else if (dateFilter === 'month' && mes && anio) {
-                    const start = new Date(parseInt(anio), parseInt(mes) - 1, 1);
-                    const end = new Date(parseInt(anio), parseInt(mes), 0);
-                    allQuery = query(allQuery, where("fechaCX", ">=", start), where("fechaCX", "<=", end));
-                }
-                const snapshot = await getDocs(allQuery);
-                const allRegistros = snapshot.docs.map(doc => {
-                    const data = doc.data();
-                    return { id: doc.id, ...data, fechaCX: parseFechaCX(data.fechaCX) };
-                });
-                exportToExcel(allRegistros, `consignaciones_completas_${new Date().toISOString().split('T')[0]}`);
-            } catch (error) {
-                console.error('Error downloading all records:', error);
-                showToast('Error al descargar todos los registros: ' + error.message, 'error');
-            } finally {
-                window.hideLoading('downloadAll');
-            }
-        });
-    }
-
-    if (downloadCurrent) {
-        downloadCurrent.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            exportToExcel(registros, `consignaciones_pagina_${currentPage}_${new Date().toISOString().split('T')[0]}`);
-        });
-    }
-
-    if (limpiarBtn) {
-        limpiarBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            [admisionInput, pacienteInput, medicoInput, fechaCXInput, codigoInput, descripcionInput, cantidadInput, referenciaInput, proveedorInput, precioUnitarioInput, atributoInput, totalItemsInput].forEach(input => { if (input) input.value = ''; });
-            [buscarAdmisionInput, buscarPacienteInput, buscarMedicoInput, buscarDescripcionInput, buscarProveedorInput].forEach(input => { if (input) input.value = ''; });
-            [dateDay, dateWeek, dateMonth].forEach(radio => { if (radio) radio.checked = false; });
-            [fechaDiaInput, fechaDesdeInput, fechaHastaInput, mesSelect, anioSelect].forEach(input => { if (input) input.value = ''; });
-            searchAdmision = searchPaciente = searchMedico = searchDescripcion = searchProveedor = '';
-            dateFilter = null; fechaDia = fechaDesde = fechaHasta = mes = anio = null;
-            currentPage = 1; lastVisible = null;
-            [medicoDropdown, document.getElementById('codigoDropdown'), document.getElementById('descripcionDropdown')].forEach(dropdown => { if (dropdown) dropdown.style.display = 'none'; });
-            debouncedLoadRegistros();
-        });
-    }
-
-    if (registrarBtn) {
-        registrarBtn.addEventListener('click', async (e) => {
-            e.preventDefault();
-            const admision = normalizeText(admisionInput?.value);
-            const paciente = normalizeText(pacienteInput?.value);
-            const medico = normalizeText(medicoInput?.value);
-            const fechaCXRaw = fechaCXInput?.value;
-            if (!fechaCXRaw) { showToast('La fecha de CX es obligatoria.', 'error'); return; }
-            const fechaCX = new Date(fechaCXRaw);
-            if (isNaN(fechaCX.getTime())) { showToast('Fecha de CX inválida.', 'error'); return; }
-            const codigo = normalizeText(codigoInput?.value);
-            const descripcion = normalizeText(descripcionInput?.value);
-            const cantidad = parseInt(cantidadInput?.value) || 0;
-            const referencia = normalizeText(referenciaInput?.value);
-            const proveedor = normalizeText(proveedorInput?.value);
-            const precioUnitario = parseInt((precioUnitarioInput?.value || '').replace(/[^\d]/g, '')) || 0;
-            const atributo = normalizeText(atributoInput?.value);
-            const totalItems = parseInt((totalItemsInput?.value || '').replace(/[^\d]/g, '')) || 0;
-
-            if (!admision || !paciente || !medico || !codigo || !descripcion || !cantidad || !referencia || !proveedor || !precioUnitario || !atributo) {
-                showToast('Por favor, completa todos los campos requeridos.', 'error');
-                return;
-            }
-
-            const duplicado = await validateAdmisionCodigo(admision, codigo);
-            if (duplicado) { showToast(`Ya existe un registro con admisión "${admision}" y código "${codigo}".`, 'error'); return; }
-
-            const producto = await getProductoByCodigo(codigo);
-            if (!producto || producto.descripcion !== descripcion || producto.referencia !== referencia || producto.proveedor !== proveedor || producto.atributo !== atributo) {
-                showToast('Los datos del producto no coinciden con las referencias.', 'error');
-                return;
-            }
-
-            window.showLoading('registrarBtn');
-            try {
-                const docRef = await addDoc(collection(db, "registrar_consignacion"), {
-                    admision, paciente, medico, fechaCX, codigo, descripcion, cantidad, referencia, proveedor, precioUnitario, atributo, totalItems,
-                    userFullName: window.currentUserData?.fullName || 'Usuario Invitado',
-                    userId: auth.currentUser?.uid || null,
-                    timestamp: new Date()
-                });
-
-                await updateDoc(doc(db, "stats", "counts"), { totalRegistros: increment(1) });
-
-                await logAction(docRef.id, 'CREAR', null, { admision, paciente, medico, fechaCX, codigo, descripcion, cantidad, referencia, proveedor, precioUnitario, atributo, totalItems });
-
-                showToast('Registro creado exitosamente.', 'success');
-                clearForm();
-                loadRegistros({ searchAdmision, searchPaciente, searchMedico, searchDescripcion, searchProveedor, dateFilter, fechaDia, fechaDesde, fechaHasta, mes, anio });
-            } catch (error) {
-                console.error('Error al registrar:', error);
-                showToast('Error al registrar: ' + error.message, 'error');
-            } finally {
-                window.hideLoading('registrarBtn');
-            }
-        });
-    }
-
-    window.openEditModal = async function (id, registro) {
-        currentEditId = id;
-        currentEditOldData = { ...registro };
-        editAdmisionInput.value = registro.admision || '';
-        editPacienteInput.value = registro.paciente || '';
-        editMedicoInput.value = registro.medico || '';
-        editFechaCXInput.value = registro.fechaCX ? registro.fechaCX.toISOString().split('T')[0] : '';
-        editCodigoInput.value = registro.codigo || '';
-        editDescripcionInput.value = registro.descripcion || '';
-        editCantidadInput.value = registro.cantidad || '';
-        editReferenciaInput.value = registro.referencia || '';
-        editProveedorInput.value = registro.proveedor || '';
-        editPrecioUnitarioInput.value = formatNumberWithThousandsSeparator(registro.precioUnitario) || '';
-        editAtributoInput.value = registro.atributo || '';
-        editTotalItemsInput.value = formatNumberWithThousandsSeparator(registro.totalItems) || '';
-        const editAtributoRadios = document.querySelectorAll('input[name="editAtributoFilter"]');
-        editAtributoRadios.forEach(radio => radio.checked = radio.value === registro.atributo);
+    window.openEditModal = (id, r) => {
+        currentEditId = id; currentEditOldData = { ...r };
+        editAdmisionInput.value = r.admision; editPacienteInput.value = r.paciente; editMedicoInput.value = r.medico;
+        editFechaCXInput.value = r.fechaCX ? r.fechaCX.toISOString().split('T')[0] : '';
+        editCodigoInput.value = r.codigo; editDescripcionInput.value = r.descripcion; editCantidadInput.value = r.cantidad;
+        editReferenciaInput.value = r.referencia; editProveedorInput.value = r.proveedor;
+        editPrecioUnitarioInput.value = formatNumberWithThousandsSeparator(r.precioUnitario);
+        editAtributoInput.value = r.atributo; editTotalItemsInput.value = formatNumberWithThousandsSeparator(r.totalItems);
+        document.querySelectorAll('input[name="editAtributoFilter"]').forEach(rad => rad.checked = rad.value === r.atributo);
         editModal.style.display = 'block';
     };
 
-    if (saveEditBtn) {
-        saveEditBtn.addEventListener('click', async (e) => {
-            e.preventDefault();
-            const admision = normalizeText(editAdmisionInput?.value);
-            const paciente = normalizeText(editPacienteInput?.value);
-            const medico = normalizeText(editMedicoInput?.value);
-            const fechaCXRaw = editFechaCXInput?.value;
-            if (!fechaCXRaw) { showToast('La fecha de CX es obligatoria.', 'error'); return; }
-            const fechaCX = new Date(fechaCXRaw);
-            if (isNaN(fechaCX.getTime())) { showToast('Fecha de CX inválida.', 'error'); return; }
-            const codigo = normalizeText(editCodigoInput?.value);
-            const descripcion = normalizeText(editDescripcionInput?.value);
-            const cantidad = parseInt(editCantidadInput?.value) || 0;
-            const referencia = normalizeText(editReferenciaInput?.value);
-            const proveedor = normalizeText(editProveedorInput?.value);
-            const precioUnitario = parseInt((editPrecioUnitarioInput?.value || '').replace(/[^\d]/g, '')) || 0;
-            const atributo = normalizeText(editAtributoInput?.value);
-            const totalItems = parseInt((editTotalItemsInput?.value || '').replace(/[^\d]/g, '')) || 0;
+    saveEditBtn?.addEventListener('click', async () => {
+        const data = {
+            admision: normalizeText(editAdmisionInput?.value),
+            paciente: normalizeText(editPacienteInput?.value),
+            medico: normalizeText(editMedicoInput?.value),
+            fechaCX: new Date(editFechaCXInput?.value),
+            codigo: normalizeText(editCodigoInput?.value),
+            descripcion: normalizeText(editDescripcionInput?.value),
+            cantidad: parseInt(editCantidadInput?.value) || 0,
+            referencia: normalizeText(editReferenciaInput?.value),
+            proveedor: normalizeText(editProveedorInput?.value),
+            precioUnitario: parseInt((editPrecioUnitarioInput?.value || '').replace(/[^\d]/g, '')) || 0,
+            atributo: normalizeText(editAtributoInput?.value),
+            totalItems: parseInt((editTotalItemsInput?.value || '').replace(/[^\d]/g, '')) || 0
+        };
 
-            if (!admision || !paciente || !medico || !codigo || !descripcion || !cantidad || !referencia || !proveedor || !precioUnitario || !atributo) {
-                showToast('Por favor, completa todos los campos requeridos.', 'error');
-                return;
-            }
+        if (Object.values(data).some(v => !v && v !== 0)) return showToast('Completa todos', 'error');
+        if (isNaN(data.fechaCX)) return showToast('Fecha inválida', 'error');
+        if (await validateAdmisionCodigo(data.admision, data.codigo, currentEditId)) return showToast('Duplicado', 'error');
+        const prod = await getProductoByCodigo(data.codigo);
+        if (!prod || prod.descripcion !== data.descripcion || prod.atributo !== data.atributo) return showToast('Producto no coincide', 'error');
 
-            const duplicado = await validateAdmisionCodigo(admision, codigo, currentEditId);
-            if (duplicado) { showToast(`Ya existe otro registro con admisión "${admision}" y código "${codigo}".`, 'error'); return; }
+        window.showLoading('edit');
+        try {
+            await updateDoc(doc(db, "registrar_consignacion", currentEditId), { ...data, timestamp: new Date() });
+            await logAction(currentEditId, 'EDITAR', currentEditOldData, data);
+            showToast('Actualizado', 'success');
+            closeModal(editModal);
+            loadRegistros({ searchAdmision, searchPaciente, searchMedico, searchDescripcion, searchProveedor, dateFilter, fechaDia, fechaDesde, fechaHasta, mes, anio });
+        } catch { showToast('Error al editar', 'error'); }
+        finally { window.hideLoading('edit'); }
+    });
 
-            const producto = await getProductoByCodigo(codigo);
-            if (!producto || producto.descripcion !== descripcion || producto.referencia !== referencia || producto.proveedor !== proveedor || producto.atributo !== atributo) {
-                showToast('Los datos del producto no coinciden con las referencias.', 'error');
-                return;
-            }
-
-            window.showLoading('saveEditBtn');
-            try {
-                const docRef = doc(db, "registrar_consignacion", currentEditId);
-                const newData = {
-                    admision, paciente, medico, fechaCX, codigo, descripcion, cantidad, referencia, proveedor, precioUnitario, atributo, totalItems,
-                    userFullName: window.currentUserData?.fullName || 'Usuario Invitado',
-                    userId: auth.currentUser?.uid || null,
-                    timestamp: new Date()
-                };
-                await updateDoc(docRef, newData);
-                await logAction(currentEditId, 'EDITAR', currentEditOldData, newData);
-                showToast('Registro actualizado exitosamente.', 'success');
-                closeModal(editModal);
-                loadRegistros({ searchAdmision, searchPaciente, searchMedico, searchDescripcion, searchProveedor, dateFilter, fechaDia, fechaDesde, fechaHasta, mes, anio });
-            } catch (error) {
-                console.error('Error al actualizar:', error);
-                showToast('Error al actualizar: ' + error.message, 'error');
-            } finally {
-                window.hideLoading('saveEditBtn');
-            }
-        });
-    }
-
-    window.openDeleteModal = function (id, admision) {
-        currentDeleteId = id;
-        currentDeleteAdmision = admision;
-        const deleteModalText = document.getElementById('deleteModalText');
-        if (deleteModalText) deleteModalText.textContent = `¿Estás seguro de que deseas eliminar el registro con admisión "${admision}"?`;
+    window.openDeleteModal = (id, adm) => {
+        currentDeleteId = id; currentDeleteAdmision = adm;
+        document.getElementById('deleteModalText')?.replaceChildren(`¿Eliminar admisión "${adm}"?`);
         deleteModal.style.display = 'block';
     };
 
-    if (confirmDeleteBtn) {
-        confirmDeleteBtn.addEventListener('click', async (e) => {
-            e.preventDefault();
-            window.showLoading('confirmDeleteBtn');
-            try {
-                const docRef = doc(db, "registrar_consignacion", currentDeleteId);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    await logAction(currentDeleteId, 'ELIMINAR', docSnap.data());
-                    await deleteDoc(docRef);
-                    await updateDoc(doc(db, "stats", "counts"), { totalRegistros: increment(-1) });
-                    showToast(`Registro con admisión "${currentDeleteAdmision}" eliminado exitosamente.`, 'success');
-                    closeModal(deleteModal);
-                    loadRegistros({ searchAdmision, searchPaciente, searchMedico, searchDescripcion, searchProveedor, dateFilter, fechaDia, fechaDesde, fechaHasta, mes, anio });
-                } else {
-                    showToast('El registro ya no existe.', 'error');
-                }
-            } catch (error) {
-                console.error('Error al eliminar:', error);
-                showToast('Error al eliminar: ' + error.message, 'error');
-            } finally {
-                window.hideLoading('confirmDeleteBtn');
+    confirmDeleteBtn?.addEventListener('click', async () => {
+        window.showLoading('delete');
+        try {
+            const ref = doc(db, "registrar_consignacion", currentDeleteId);
+            const snap = await getDoc(ref);
+            if (snap.exists()) {
+                await logAction(currentDeleteId, 'ELIMINAR', snap.data());
+                await deleteDoc(ref);
+                await updateDoc(doc(db, "stats", "counts"), { totalRegistros: increment(-1) });
+                showToast('Eliminado', 'success');
+                closeModal(deleteModal);
+                loadRegistros({ searchAdmision, searchPaciente, searchMedico, searchDescripcion, searchProveedor, dateFilter, fechaDia, fechaDesde, fechaHasta, mes, anio });
             }
-        });
-    }
+        } catch { showToast('Error al eliminar', 'error'); }
+        finally { window.hideLoading('delete'); }
+    });
 
-    window.openHistoryModal = async function (id, admision) {
-        window.showLoading('openHistoryModal');
+    window.openHistoryModal = async (id, adm) => {
+        window.showLoading('history');
         try {
             const q = query(collection(db, "registrar_consignacion_historial"), where("registroId", "==", id), orderBy("timestamp", "desc"));
-            const querySnapshot = await getDocs(q);
-            historyContent.innerHTML = '';
-            if (querySnapshot.empty) {
-                historyContent.innerHTML = '<p>No hay historial disponible para este registro.</p>';
-            } else {
-                querySnapshot.forEach(doc => {
-                    const data = doc.data();
-                    const entry = document.createElement('div');
-                    entry.className = 'history-entry';
-                    let details = `<strong>Acción:</strong> ${data.action}<br>`;
-                    details += `<strong>Usuario:</strong> ${data.userFullName} (${data.username})<br>`;
-                    details += `<strong>Fecha:</strong> ${data.timestamp.toDate().toLocaleString('es-CL')}<br>`;
-                    if (data.action === 'EDITAR') {
-                        details += '<strong>Cambios:</strong><br>';
-                        const oldData = data.oldData || {};
-                        const newData = data.newData || {};
-                        for (const key in newData) {
-                            if (oldData[key] !== newData[key]) {
-                                details += `${key}: "${oldData[key] || ''}" → "${newData[key] || ''}"<br>`;
-                            }
-                        }
+            const snap = await getDocs(q);
+            historyContent.innerHTML = snap.empty ? '<p>Sin historial</p>' : snap.docs.map(d => {
+                const h = d.data();
+                let html = `<strong>${h.action}</strong> por <strong>${h.userFullName}</strong> el ${h.timestamp.toDate().toLocaleString('es-CL')}<br>`;
+                if (h.action === 'EDITAR') {
+                    html += '<strong>Cambios:</strong><br>';
+                    for (const k in h.newData) {
+                        if (h.oldData[k] !== h.newData[k]) html += `${k}: "${h.oldData[k] || ''}" → "${h.newData[k] || ''}"<br>`;
                     }
-                    entry.innerHTML = details;
-                    historyContent.appendChild(entry);
-                });
-            }
-            const historyModalTitle = document.getElementById('historyModalTitle');
-            if (historyModalTitle) historyModalTitle.textContent = `Historial del Registro: ${admision}`;
+                }
+                return `<div class="history-entry">${html}</div>`;
+            }).join('');
+            document.getElementById('historyModalTitle')?.replaceChildren(`Historial: ${adm}`);
             historyModal.style.display = 'block';
-        } catch (error) {
-            console.error('Error al cargar historial:', error);
-            showToast('Error al cargar historial: ' + error.message, 'error');
-        } finally {
-            window.hideLoading('openHistoryModal');
-        }
+        } catch { showToast('Error historial', 'error'); }
+        finally { window.hideLoading('history'); }
     };
 
     function setupMedicoAutocomplete(inputId, iconId, listId) {
@@ -1241,108 +889,55 @@ document.addEventListener('DOMContentLoaded', () => {
         const list = document.getElementById(listId);
         if (!input || !icon || !list) return;
 
-        function showMedicoSuggestions(value) {
-            list.innerHTML = '';
-            list.style.display = 'none';
-            if (!value.trim()) return;
-            const filtered = medicos.filter(medico => medico.nombre?.toUpperCase().includes(normalizeText(value)));
-            if (filtered.length === 0) return;
-            filtered.slice(0, 10).forEach(medico => {
+        const show = (val) => {
+            list.innerHTML = ''; list.style.display = 'none';
+            if (!val.trim()) return;
+            const filtered = medicos.filter(m => m.nombre?.toUpperCase().includes(normalizeText(val)));
+            if (!filtered.length) return;
+            filtered.slice(0, 10).forEach(m => {
                 const div = document.createElement('div');
                 div.className = 'autocomplete-item';
-                div.textContent = medico.nombre;
-                div.title = medico.nombre;
-                div.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    input.value = medico.nombre;
-                    list.style.display = 'none';
-                    input.dispatchEvent(new Event('change'));
-                    input.focus();
-                });
+                div.textContent = m.nombre;
+                div.onclick = () => { input.value = m.nombre; list.style.display = 'none'; input.dispatchEvent(new Event('change')); };
                 list.appendChild(div);
             });
             list.style.display = 'block';
-            list.style.maxHeight = '200px';
-            list.style.overflowY = 'auto';
-        }
+        };
 
-        function showAllMedicos() {
-            list.innerHTML = '';
-            list.style.display = 'none';
-            if (medicos.length === 0) return;
-            medicos.slice(0, 20).forEach(medico => {
-                const div = document.createElement('div');
-                div.className = 'autocomplete-item';
-                div.textContent = medico.nombre;
-                div.title = medico.nombre;
-                div.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    input.value = medico.nombre;
-                    list.style.display = 'none';
-                    input.dispatchEvent(new Event('change'));
-                    input.focus();
-                });
-                list.appendChild(div);
-            });
-            list.style.display = 'block';
-            list.style.maxHeight = '200px';
-            list.style.overflowY = 'auto';
-        }
-
-        input.addEventListener('input', (e) => showMedicoSuggestions(e.target.value));
-        input.addEventListener('focus', () => { if (input.value.trim()) showMedicoSuggestions(input.value); });
-        icon.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            list.style.display = list.style.display === 'block' ? 'none' : 'block';
-            if (list.style.display === 'block') showAllMedicos();
-            input.focus();
-        });
-        document.addEventListener('click', (e) => {
-            if (!input.contains(e.target) && !icon.contains(e.target) && !list.contains(e.target)) {
-                list.style.display = 'none';
-            }
-        });
+        input.addEventListener('input', e => show(e.target.value));
+        input.addEventListener('focus', () => input.value.trim() && show(input.value));
+        icon.addEventListener('click', e => { e.stopPropagation(); list.style.display = list.style.display === 'block' ? 'none' : 'block'; if (list.style.display === 'block') show(input.value); });
+        document.addEventListener('click', e => { if (!input.contains(e.target) && !icon.contains(e.target) && !list.contains(e.target)) list.style.display = 'none'; });
     }
 
     setupMedicoAutocomplete('medico', 'medicoToggle', 'medicoDropdown');
     setupMedicoAutocomplete('editMedico', 'editMedicoToggle', 'editMedicoDropdown');
 
-    // === INICIALIZAR UNA VEZ ===
+    // === INICIALIZACIÓN ===
+    setupDateFilters();
+    setupAtributoFilter();
+    attachIconForceLoad('codigoToggle');
+    attachIconForceLoad('descripcionToggle');
+    attachIconForceLoad('editCodigoToggle');
+    attachIconForceLoad('editDescripcionToggle');
     if (registrarTable) setupColumnResize();
 
     async function initialize() {
-        window.showLoading('initialize');
+        window.showLoading('init');
         try {
             await loadMedicos();
             await loadReferencias();
             await loadRegistros({ searchAdmision, searchPaciente, searchMedico, searchDescripcion, searchProveedor, dateFilter, fechaDia, fechaDesde, fechaHasta, mes, anio });
-        } catch (error) {
-            console.error('Error en initialize:', error);
-            showToast('Error al inicializar la aplicación: ' + error.message, 'error');
-        } finally {
-            window.hideLoading('initialize');
-        }
+        } catch (e) { console.error(e); showToast('Error al iniciar', 'error'); }
+        finally { window.hideLoading('init'); }
     }
 
-    onAuthStateChanged(auth, async (user) => {
+    onAuthStateChanged(auth, user => {
         if (user) {
-            try {
-                const userDoc = await getDoc(doc(db, "users", user.uid));
-                if (userDoc.exists()) {
-                    window.currentUserData = userDoc.data();
-                    initialize();
-                } else {
-                    initialize();
-                }
-            } catch (error) {
-                console.error('Error fetching user data:', error);
+            getDoc(doc(db, "users", user.uid)).then(snap => {
+                if (snap.exists()) window.currentUserData = snap.data();
                 initialize();
-            }
-        } else {
-            initialize();
-        }
+            }).catch(() => initialize());
+        } else initialize();
     });
 });
