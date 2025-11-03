@@ -79,6 +79,10 @@
                     </div>
                     <div class="descripcion-dropdown" id="descripcionDropdown"></div>
                 </div>
+                <div class="registrar-form-group registrar-form-type">
+                    <label><input type="radio" name="atributoFilter" value="CONSIGNACION" checked> Consignación</label>
+                    <label><input type="radio" name="atributoFilter" value="COTIZACION"> Cotización</label>
+                </div>
                 <div class="registrar-form-group">
                     <label class="registrar-label" for="cantidad">Cantidad:</label>
                     <input type="number" id="cantidad" min="1" autocomplete="off">
@@ -191,6 +195,7 @@
                         <th>Precio Unitario<div class="resize-handle"></div></th>
                         <th>Atributo<div class="resize-handle"></div></th>
                         <th>Total Items<div class="resize-handle"></div></th>
+                        <th>Usuario></div></th>
                         <th>Acciones<div class="resize-handle"></div></th>
                     </tr>
                 </thead>
@@ -198,16 +203,11 @@
             </table>
         </div>
         <div class="registrar-pagination">
-            <div class="registrar-pagination-info" id="paginationInfo"></div>
-            <div class="registrar-pagination-controls">
-                <button id="prevPage">Anterior</button>
-                <div class="registrar-page-numbers" id="pageNumbers"></div>
-                <button id="nextPage">Siguiente</button>
-            </div>
+            <div id="loadMoreContainer" style="display: none;"></div>
         </div>
-        <div class="registrar-loading" id="loading">
-            <div class="registrar-loading-spinner"></div>
-            <div class="registrar-loading-text">Cargando...</div>
+        <div id="loading" class="loading-modal">
+            <div class="spinner"></div>
+            <span class="loading-text">Cargando...</span>
         </div>
     </div>
     <div id="editModal" class="modal">
@@ -252,6 +252,10 @@
                         <i class="fas fa-clipboard-list descripcion-icon" id="editDescripcionToggle"></i>
                     </div>
                     <div class="descripcion-dropdown" id="editDescripcionDropdown"></div>
+                </div>
+                <div class="modal-form-group registrar-form-type">
+                    <label><input type="radio" name="editAtributoFilter" value="CONSIGNACION" checked> Consignación</label>
+                    <label><input type="radio" name="editAtributoFilter" value="COTIZACION"> Cotización</label>
                 </div>
                 <div class="modal-form-group">
                     <label for="editCantidad">Cantidad:</label>

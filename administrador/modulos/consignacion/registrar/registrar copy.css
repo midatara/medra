@@ -26,15 +26,15 @@ html, body {
     text-align: start;
     margin: 0 0 15px 0;
     font-size: 18px;
+    font-weight: bold;
+    color: #333;
 }
 
 .registrar-fields-container {
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
     gap: 10px;
     margin-bottom: 10px;
-    align-items: flex-start;
-    flex-wrap: wrap;
 }
 
 .registrar-first-row, .registrar-second-row, .registrar-search-row {
@@ -42,7 +42,7 @@ html, body {
     justify-content: flex-start;
     gap: 10px;
     align-items: flex-end;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     width: 100%;
 }
 
@@ -72,6 +72,39 @@ html, body {
     margin-left: auto;
 }
 
+.registrar-form-type {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    align-items: center;
+    flex: 0;
+    min-width: 160px;
+    max-width: 200px;
+    margin-bottom: 8px;
+}
+
+.registrar-form-type label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    font-weight: bold;
+    color: #333;
+    white-space: nowrap;
+}
+
+.registrar-form-type input[type="radio"] {
+    width: 14px;
+    height: 14px;
+    margin: 0;
+    cursor: pointer;
+}
+
+.registrar-form-type input[type="radio"]:focus {
+    outline: none;
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
+
 .registrar-label {
     font-size: 10px;
     font-weight: bold;
@@ -82,16 +115,16 @@ html, body {
 #admision, #paciente, #medico, #fechaCX, #codigo, #descripcion, #cantidad,
 #referencia, #proveedor, #precioUnitario, #atributo, #totalItems,
 #buscarAdmision, #buscarPaciente, #buscarDescripcion, #buscarProveedor, #buscarMedico,
-#fechaDia, #fechaDesde, #fechaHasta, #anioSelect,
+#fechaDia, #fechaDesde, #fechaHasta, #mesSelect, #anioSelect,
 #editAdmision, #editPaciente, #editMedico, #editFechaCX, #editCodigo, #editDescripcion, #editCantidad,
 #editReferencia, #editProveedor, #editPrecioUnitario, #editAtributo, #editTotalItems {
     width: 100%;
-    padding: 8px 8px;
+    padding: 4px 6px;
     border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 11px;
     box-sizing: border-box;
-    height: 32px;
+    height: 28px;
     line-height: 16px;
 }
 
@@ -109,14 +142,13 @@ html, body {
 
 .medico-icon, .codigo-icon, .descripcion-icon {
     position: absolute;
-    right: 8px;
+    right: 6px;
     top: 50%;
     transform: translateY(-50%);
     color: #007bff;
     cursor: pointer;
     font-size: 12px;
     z-index: 10;
-    pointer-events: auto;
     height: 100%;
     display: flex;
     align-items: center;
@@ -145,7 +177,9 @@ html, body {
     padding: 8px;
     font-size: 11px;
     cursor: pointer;
-    text-transform: none !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .medico-dropdown div:hover, .codigo-dropdown div:hover, .descripcion-dropdown div:hover {
@@ -160,16 +194,15 @@ html, body {
 
 #admision:focus, #paciente:focus, #medico:focus, #fechaCX:focus, #codigo:focus, #descripcion:focus, #cantidad:focus,
 #buscarAdmision:focus, #buscarPaciente:focus, #buscarDescripcion:focus, #buscarProveedor:focus, #buscarMedico:focus,
-#fechaDia:focus, #fechaDesde:focus, #fechaHasta:focus, #anioSelect:focus,
+#fechaDia:focus, #fechaDesde:focus, #fechaHasta:focus, #mesSelect:focus, #anioSelect:focus,
 #editAdmision:focus, #editPaciente:focus, #editMedico:focus, #editFechaCX:focus, #editCodigo:focus, #editDescripcion:focus, #editCantidad:focus {
-    box-shadow: 0 0 12px rgba(0, 123, 255, 0.5);
+    box-shadow: 0 0 8px rgba(0, 123, 255, 0.3);
     outline: none;
 }
 
 .registrar-date-search {
     min-width: 400px;
     max-width: 500px;
-    flex-shrink: 1;
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -180,7 +213,6 @@ html, body {
     flex-wrap: nowrap;
     gap: 6px;
     align-items: center;
-    flex-shrink: 1;
 }
 
 .registrar-date-options label {
@@ -189,18 +221,18 @@ html, body {
     gap: 4px;
     font-size: 10px;
     white-space: nowrap;
-    flex-shrink: 0;
 }
 
 .registrar-date-group {
     display: flex;
     gap: 6px;
     align-items: center;
-    flex-shrink: 1;
 }
 
 #dateDay, #dateWeek, #dateMonth {
-    min-width: 0;
+    width: 14px;
+    height: 14px;
+    margin: 0;
 }
 
 #fechaDia, #fechaDesde, #fechaHasta {
@@ -211,25 +243,14 @@ html, body {
 #mesSelect {
     width: 90px;
     min-width: 90px;
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    height: 32px;
-    box-sizing: border-box;
 }
 
 #anioSelect {
     width: 70px;
     min-width: 70px;
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    height: 32px;
-    box-sizing: border-box;
 }
 
 .registrar-actions-menu {
-    flex-shrink: 0;
     position: relative;
     align-self: center;
     min-width: 120px;
@@ -242,7 +263,7 @@ html, body {
     cursor: pointer;
     font-size: 12px;
     padding: 8px 16px;
-    display: inline-flex;
+    display: flex;
     align-items: center;
     gap: 5px;
 }
@@ -259,11 +280,10 @@ html, body {
     top: 100%;
     background-color: white;
     min-width: 200px;
-    box-shadow: 2px 8px 16px rgba(0,0,0,0.2);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
     z-index: 20;
     border-radius: 4px;
     overflow: hidden;
-    flex-direction: column;
 }
 
 .registrar-dropdown-menu a {
@@ -347,85 +367,74 @@ html, body {
     background-color: #f8f9fa;
 }
 
-.registrar-table th:nth-child(1), .registrar-table td:nth-child(1) { width: 70px; min-width: 70px; max-width: 70px; }
-.registrar-table th:nth-child(2), .registrar-table td:nth-child(2) { width: 130px; min-width: 130px; max-width: 130px; }
-.registrar-table th:nth-child(3), .registrar-table td:nth-child(3) { width: 200px; min-width: 200px; max-width: 200px; text-transform: none !important; }
-.registrar-table th:nth-child(4), .registrar-table td:nth-child(4) { width: 80px; min-width: 80px; max-width: 80px; }
-.registrar-table th:nth-child(5), .registrar-table td:nth-child(5) { width: 100px; min-width: 100px; max-width: 100px; }
-.registrar-table th:nth-child(6), .registrar-table td:nth-child(6) { width: 300px; min-width: 300px; max-width: 300px; }
-.registrar-table th:nth-child(7), .registrar-table td:nth-child(7) { width: 80px; min-width: 80px; max-width: 80px; }
-.registrar-table th:nth-child(8), .registrar-table td:nth-child(8) { width: 130px; min-width: 130px; max-width: 130px; }
-.registrar-table th:nth-child(9), .registrar-table td:nth-child(9) { width: 150px; min-width: 150px; max-width: 150px; }
-.registrar-table th:nth-child(10), .registrar-table td:nth-child(10) { width: 100px; min-width: 100px; max-width: 100px; }
-.registrar-table th:nth-child(11), .registrar-table td:nth-child(11) { width: 80px; min-width: 80px; max-width: 80px; }
-.registrar-table th:nth-child(12), .registrar-table td:nth-child(12) { width: 100px; min-width: 100px; max-width: 100px; }
-.registrar-table th:nth-child(13), .registrar-table td:nth-child(13) { width: 65px; min-width: 65px; max-width: 65px; }
+.registrar-table th:nth-child(1), .registrar-table td:nth-child(1) { width: 70px; min-width: 70px; max-width: 140px; }
+.registrar-table th:nth-child(2), .registrar-table td:nth-child(2) { width: 130px; min-width: 130px; max-width: 260px; }
+.registrar-table th:nth-child(3), .registrar-table td:nth-child(3) { width: 200px; min-width: 200px; max-width: 400px; }
+.registrar-table th:nth-child(4), .registrar-table td:nth-child(4) { width: 80px; min-width: 80px; max-width: 160px; }
+.registrar-table th:nth-child(5), .registrar-table td:nth-child(5) { width: 100px; min-width: 100px; max-width: 200px; }
+.registrar-table th:nth-child(6), .registrar-table td:nth-child(6) { width: 300px; min-width: 300px; max-width: 600px; }
+.registrar-table th:nth-child(7), .registrar-table td:nth-child(7) { width: 80px; min-width: 80px; max-width: 160px; }
+.registrar-table th:nth-child(8), .registrar-table td:nth-child(8) { width: 130px; min-width: 130px; max-width: 260px; }
+.registrar-table th:nth-child(9), .registrar-table td:nth-child(9) { width: 150px; min-width: 150px; max-width: 300px; }
+.registrar-table th:nth-child(10), .registrar-table td:nth-child(10) { width: 100px; min-width: 100px; max-width: 200px; }
+.registrar-table th:nth-child(11), .registrar-table td:nth-child(11) { width: 80px; min-width: 80px; max-width: 160px; }
+.registrar-table th:nth-child(12), .registrar-table td:nth-child(12) { width: 100px; min-width: 100px; max-width: 200px; }
+.registrar-table th:nth-child(13), .registrar-table td:nth-child(13) { width: 65px; min-width: 65px; max-width: 130px; }
 
-/* *** FIX MÁS FUERTE - ACCIONES EN UNA SOLA FILA *** */
 .registrar-actions {
-    display: flex !important;
-    flex-direction: row !important;
-    gap: 1px !important;
-    justify-content: flex-start !important;
-    align-items: center !important;
-    width: 100% !important;
-    height: 100% !important;
-    padding: 0 !important;
-    margin: 0 !important;
+    display: flex;
+    gap: 1px;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0;
+    margin: 0;
 }
 
 .registrar-actions button {
-    margin: 0 !important;
-    padding: 1px !important;
-    border: none !important;
-    border-radius: 2px !important;
-    cursor: pointer !important;
-    font-size: 9px !important;
-    width: 18px !important;
-    height: 18px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    flex-shrink: 0 !important;
-    line-height: 1 !important;
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+    font-size: 9px;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .registrar-table td:last-child {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: flex-start !important;
-    padding: 1px !important;
-    vertical-align: middle !important;
+    display: flex;
+    align-items: center;
+    padding: 1px;
 }
 
 .registrar-btn-edit {
-    background-color: #ffc107 !important;
-    color: #000 !important;
+    background-color: #ffc107;
+    color: #000;
 }
 
 .registrar-btn-edit:hover {
-    background-color: #e0a800 !important;
+    background-color: #e0a800;
 }
 
 .registrar-btn-delete {
-    background-color: #dc3545 !important;
-    color: white !important;
+    background-color: #dc3545;
+    color: white;
 }
 
 .registrar-btn-delete:hover {
-    background-color: #c82333 !important;
+    background-color: #c82333;
 }
 
 .registrar-btn-history {
-    background-color: #17a2b8 !important;
-    color: white !important;
+    background-color: #17a2b8;
+    color: white;
 }
 
 .registrar-btn-history:hover {
-    background-color: #138496 !important;
+    background-color: #138496;
 }
 
-/* RESTO DEL CSS SIN CAMBIOS... */
 .registrar-pagination {
     display: flex;
     justify-content: space-between;
@@ -433,7 +442,6 @@ html, body {
     padding: 10px;
     background: #f8f9fa;
     border-radius: 4px;
-    flex-wrap: nowrap;
     position: sticky;
     bottom: 0;
     z-index: 10;
@@ -449,7 +457,6 @@ html, body {
     display: flex;
     align-items: center;
     gap: 5px;
-    flex-shrink: 0;
 }
 
 .registrar-pagination-controls button {
@@ -484,7 +491,6 @@ html, body {
     cursor: pointer;
     font-size: 11px;
     border-radius: 4px;
-    color: #333;
 }
 
 .registrar-page-numbers button.active {
@@ -495,14 +501,11 @@ html, body {
 
 .registrar-page-numbers button:hover:not(.active) {
     background-color: #f0f0f0;
-    color: #333;
 }
 
 .registrar-page-numbers .registrar-dots {
     padding: 4px;
-    cursor: default;
     font-size: 11px;
-    line-height: 1.5;
 }
 
 #registrar-message {
@@ -525,49 +528,6 @@ html, body {
     border: 1px solid #c3e6cb;
 }
 
-.registrar-loading {
-    display: none;
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 120px;
-    height: 80px;
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: 8px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-    z-index: 1000;
-    justify-content: center;
-    align-items: center;
-    flex-direction: column;
-    padding: 16px;
-    backdrop-filter: blur(8px);
-}
-
-.registrar-loading.show {
-    display: flex;
-}
-
-.registrar-loading-spinner {
-    width: 32px;
-    height: 32px;
-    border: 3px solid #e3f2fd;
-    border-top: 3px solid #007bff;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-.registrar-loading-text {
-    margin-top: 8px;
-    font-size: 12px;
-    color: #333;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
 .registrar-toast-container {
     position: fixed;
     bottom: 20px;
@@ -584,7 +544,7 @@ html, body {
     color: white;
     padding: 12px 16px;
     border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     font-size: 12px;
     opacity: 0;
     transform: translateY(20px);
@@ -648,11 +608,14 @@ html, body {
     padding: 20px;
     overflow-y: auto;
     flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
 
 .close {
     color: #aaa;
-    font-size: 24px;
+    font-size: 20px;
     font-weight: bold;
     cursor: pointer;
 }
@@ -660,7 +623,6 @@ html, body {
 .close:hover,
 .close:focus {
     color: #000;
-    text-decoration: none;
 }
 
 .modal h2 {
@@ -670,21 +632,24 @@ html, body {
 }
 
 .modal-form-group {
-    margin-bottom: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 120px;
+    max-width: 160px;
 }
 
 .modal-form-group label {
-    display: block;
-    font-size: 12px;
+    font-size: 10px;
     font-weight: bold;
-    margin-bottom: 4px;
     color: #333;
 }
 
 .modal-form-group input,
 .modal-form-group select {
     width: 100%;
-    padding: 8px 8px;
+    padding: 8px;
     border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 11px;
@@ -692,22 +657,22 @@ html, body {
     height: 32px;
 }
 
-.modal .medico-input-container, 
-.modal .codigo-input-container, 
+.modal .medico-input-container,
+.modal .codigo-input-container,
 .modal .descripcion-input-container {
     position: relative;
     width: 100%;
 }
 
-.modal .medico-input-wrapper, 
-.modal .codigo-input-wrapper, 
+.modal .medico-input-wrapper,
+.modal .codigo-input-wrapper,
 .modal .descripcion-input-wrapper {
     position: relative;
     width: 100%;
 }
 
-.modal .medico-icon, 
-.modal .codigo-icon, 
+.modal .medico-icon,
+.modal .codigo-icon,
 .modal .descripcion-icon {
     position: absolute;
     right: 8px;
@@ -722,15 +687,9 @@ html, body {
     align-items: center;
 }
 
-.modal #editMedico, 
-.modal #editCodigo, 
-.modal #editDescripcion {
-    text-transform: none !important;
-}
-
 .modal-form-group input:focus,
 .modal-form-group select:focus {
-    box-shadow: 0 0 12px rgba(0, 123, 255, 0.5);
+    box-shadow: 0 0 8px rgba(0, 123, 255, 0.3);
     outline: none;
 }
 
@@ -738,7 +697,7 @@ html, body {
     display: flex;
     justify-content: flex-end;
     gap: 10px;
-    margin-top: 20px;
+    margin-top: 15px;
 }
 
 .modal-btn {
@@ -749,8 +708,6 @@ html, body {
     font-size: 12px;
     font-weight: bold;
     min-width: 100px;
-    text-align: center;
-    transition: background-color 0.2s ease, transform 0.1s ease;
 }
 
 .modal-btn:hover {
@@ -801,54 +758,89 @@ html, body {
 }
 
 @media screen and (max-width: 1200px) {
+    .registrar-first-row, .registrar-second-row, .registrar-search-row {
+        flex-wrap: wrap;
+    }
     .registrar-date-search {
         min-width: 300px;
         max-width: 400px;
     }
-    .registrar-date-options {
-        flex-wrap: wrap;
-        gap: 4px;
-    }
-    .registrar-date-group {
-        flex-wrap: wrap;
-    }
-    .registrar-first-row, .registrar-second-row {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    .registrar-form-group {
+    .registrar-form-group, .registrar-form-type {
         max-width: 100%;
+        min-width: 200px;
     }
     .registrar-form-group.button-group, .registrar-form-group.registrar-actions-menu {
-        flex: 0 0 auto;
-        max-width: 100%;
-        display: flex;
-        justify-content: center;
         margin-left: 0;
-    }
-    .modal-btn {
-        flex: 1;
-        min-width: 0;
+        align-self: stretch;
     }
 }
 
 @media screen and (max-width: 768px) {
-    .registrar-form-group {
+    .registrar-main-container {
+        padding: 5px 10px 10px 10px;
+    }
+    .registrar-form-group, .registrar-form-type {
         min-width: 100%;
     }
-    #fechaDia, #fechaDesde, #fechaHasta {
+    #fechaDia, #fechaDesde, #fechaHasta, #mesSelect, #anioSelect {
         width: 100%;
         min-width: 100%;
     }
-    #mesSelect, #anioSelect {
-        width: 100%;
-        min-width: 100%;
-    }
-    .registrar-form-group.button-group, .registrar-form-group.registrar-actions-menu {
+    .registrar-date-options {
         flex-direction: column;
-        gap: 10px;
+        align-items: flex-start;
+    }
+    .registrar-date-group {
+        flex-direction: column;
+        width: 100%;
+    }
+    .modal-form-group {
+        min-width: 100%;
+        max-width: 100%;
     }
     .modal-btn {
         width: 100%;
     }
+}
+
+.loading-modal {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 120px;
+    height: 80px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.loading-modal:not(.show) {
+    display: none !important;
+}
+
+.spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid #e3f2fd;
+    border-top: 3px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.loading-text {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #333;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
