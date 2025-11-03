@@ -72,7 +72,7 @@ html, body {
 
 #buscarEstado, #buscarPrevision, #buscarConvenio, #buscarAdmision, 
 #buscarPaciente, #buscarMedico, #buscarProveedor,
-#fechaDia, #fechaDesde, #fechaHasta, #mesSelect, #anioSelect {
+#anioSelect {
     width: 100%;
     padding: 4px 6px;
     border: 1px solid #ddd;
@@ -85,62 +85,31 @@ html, body {
 
 #buscarEstado:focus, #buscarPrevision:focus, #buscarConvenio:focus, #buscarAdmision:focus, 
 #buscarPaciente:focus, #buscarMedico:focus, #buscarProveedor:focus,
-#fechaDia:focus, #fechaDesde:focus, #fechaHasta:focus, #mesSelect:focus, #anioSelect:focus {
+#anioSelect:focus {
     box-shadow: 0 0 8px rgba(0, 123, 255, 0.3);
     outline: none;
 }
 
-.pacientes-date-search {
-    min-width: 400px;
-    max-width: 500px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    padding: 10px;
-    background: #f8f9fa;
+.meses-buttons button {
+    padding: 6px 12px;
+    border: 1px solid #007bff;
+    background: white;
+    color: #007bff;
     border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s;
 }
 
-.pacientes-date-options {
-    display: flex;
-    flex-wrap: nowrap;
-    gap: 20px;
-    align-items: center;
+.meses-buttons button:hover {
+    background: #007bff;
+    color: white;
 }
 
-.pacientes-date-options label {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 10px;
-    white-space: nowrap;
-}
-
-.pacientes-date-group {
-    display: flex;
-    gap: 6px;
-    align-items: center;
-}
-
-#dateDay, #dateWeek, #dateMonth {
-    width: 14px;
-    height: 14px;
-    margin: 0;
-}
-
-#fechaDia, #fechaDesde, #fechaHasta {
-    width: 100px;
-    min-width: 100px;
-}
-
-#mesSelect {
-    width: 90px;
-    min-width: 90px;
-}
-
-#anioSelect {
-    width: 70px;
-    min-width: 70px;
+.meses-buttons button.active {
+    background: #007bff;
+    color: white;
+    font-weight: bold;
 }
 
 .pacientes-table-container {
@@ -203,19 +172,18 @@ html, body {
     background-color: #f8f9fa;
 }
 
-/* Anchos de columnas optimizados */
-.pacientes-table th:nth-child(1), .pacientes-table td:nth-child(1) { width: 90px; min-width: 90px; max-width: 180px; } /* Fecha Ingreso */
-.pacientes-table th:nth-child(2), .pacientes-table td:nth-child(2) { width: 80px; min-width: 80px; max-width: 160px; } /* Estado */
-.pacientes-table th:nth-child(3), .pacientes-table td:nth-child(3) { width: 100px; min-width: 100px; max-width: 200px; } /* Previsión */
-.pacientes-table th:nth-child(4), .pacientes-table td:nth-child(4) { width: 110px; min-width: 110px; max-width: 220px; } /* Convenio */
-.pacientes-table th:nth-child(5), .pacientes-table td:nth-child(5) { width: 70px; min-width: 70px; max-width: 140px; } /* Admisión */
-.pacientes-table th:nth-child(6), .pacientes-table td:nth-child(6) { width: 180px; min-width: 180px; max-width: 360px; } /* Paciente */
-.pacientes-table th:nth-child(7), .pacientes-table td:nth-child(7) { width: 150px; min-width: 150px; max-width: 300px; } /* Médico */
-.pacientes-table th:nth-child(8), .pacientes-table td:nth-child(8) { width: 90px; min-width: 90px; max-width: 180px; } /* Fecha CX */
-.pacientes-table th:nth-child(9), .pacientes-table td:nth-child(9) { width: 120px; min-width: 120px; max-width: 240px; } /* Proveedor */
-.pacientes-table th:nth-child(10), .pacientes-table td:nth-child(10) { width: 100px; min-width: 100px; max-width: 200px; } /* Total */
-.pacientes-table th:nth-child(11), .pacientes-table td:nth-child(11) { width: 80px; min-width: 80px; max-width: 160px; } /* Atributo */
-.pacientes-table th:nth-child(12), .pacientes-table td:nth-child(12) { width: 80px; min-width: 80px; max-width: 160px; } /* Acciones */
+.pacientes-table th:nth-child(1), .pacientes-table td:nth-child(1) { width: 90px; min-width: 90px; max-width: 180px; }
+.pacientes-table th:nth-child(2), .pacientes-table td:nth-child(2) { width: 80px; min-width: 80px; max-width: 160px; }
+.pacientes-table th:nth-child(3), .pacientes-table td:nth-child(3) { width: 100px; min-width: 100px; max-width: 200px; }
+.pacientes-table th:nth-child(4), .pacientes-table td:nth-child(4) { width: 110px; min-width: 110px; max-width: 220px; }
+.pacientes-table th:nth-child(5), .pacientes-table td:nth-child(5) { width: 70px; min-width: 70px; max-width: 140px; }
+.pacientes-table th:nth-child(6), .pacientes-table td:nth-child(6) { width: 180px; min-width: 180px; max-width: 360px; }
+.pacientes-table th:nth-child(7), .pacientes-table td:nth-child(7) { width: 150px; min-width: 150px; max-width: 300px; }
+.pacientes-table th:nth-child(8), .pacientes-table td:nth-child(8) { width: 90px; min-width: 90px; max-width: 180px; }
+.pacientes-table th:nth-child(9), .pacientes-table td:nth-child(9) { width: 120px; min-width: 120px; max-width: 240px; }
+.pacientes-table th:nth-child(10), .pacientes-table td:nth-child(10) { width: 100px; min-width: 100px; max-width: 200px; }
+.pacientes-table th:nth-child(11), .pacientes-table td:nth-child(11) { width: 80px; min-width: 80px; max-width: 160px; }
+.pacientes-table th:nth-child(12), .pacientes-table td:nth-child(12) { width: 80px; min-width: 80px; max-width: 160px; }
 
 .pacientes-actions {
     display: flex;
@@ -388,10 +356,6 @@ html, body {
     .pacientes-search-row {
         flex-wrap: wrap;
     }
-    .pacientes-date-search {
-        min-width: 300px;
-        max-width: 400px;
-    }
     .pacientes-form-group {
         max-width: 100%;
         min-width: 200px;
@@ -403,18 +367,6 @@ html, body {
         padding: 5px 10px 10px 10px;
     }
     .pacientes-form-group {
-        min-width: 100%;
-    }
-    .pacientes-date-options {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    .pacientes-date-group {
-        flex-direction: column;
-        width: 100%;
-    }
-    #fechaDia, #fechaDesde, #fechaHasta, #mesSelect, #anioSelect {
-        width: 100%;
         min-width: 100%;
     }
 }

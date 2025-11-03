@@ -24,6 +24,8 @@ let pacientes = [];
 let currentPage = 1;
 const PAGE_SIZE = 50;
 let lastVisible = null;
+let selectedYear = null;
+let selectedMonth = null;
 
 let searchEstado = '';
 let searchPrevision = '';
@@ -32,13 +34,6 @@ let searchAdmision = '';
 let searchPaciente = '';
 let searchMedico = '';
 let searchProveedor = '';
-
-let dateFilter = null;
-let fechaDia = null;
-let fechaDesde = null;
-let fechaHasta = null;
-let mes = null;
-let anio = null;
 
 const loading = document.getElementById('loading');
 
@@ -85,15 +80,99 @@ function showToast(text, type = 'success') {
     }, 4000);
 }
 
+async function loadAniosYMeses() {
+    window.showLoading();
+    try {
+        const q = query(collection(db, "pacientes_consignaciones"), orderBy("fechaCX"));
+        const snapshot = await getDocs(q);
+        const mesesPorAnio = new Map();
+        snapshot.docs.forEach(doc => {
+            const fecha = doc.data().fechaCX?.toDate?.() || new Date(doc.data().fechaCX);
+            if (!fecha || isNaN(fecha)) return;
+            const year = fecha.getFullYear();
+            const month = fecha.getMonth();
+            if (!mesesPorAnio.has(year)) mesesPorAnio.set(year, new Set());
+            mesesPorAnio.get(year).add(month);
+        });
+
+        const anioSelect = document.getElementById('anioSelect');
+        anioSelect.innerHTML = '';
+        const currentYear = new Date().getFullYear();
+        let defaultYear = currentYear;
+        const years = Array.from(mesesPorAnio.keys()).sort((a, b) => b - a);
+        if (years.length === 0) {
+            anioSelect.innerHTML = '<option value="">Sin datos</option>';
+            document.getElementById('mesesContainer').innerHTML = '';
+            return;
+        }
+        years.forEach(y => {
+            const opt = document.createElement('option');
+            opt.value = y;
+            opt.textContent = y;
+            if (y === currentYear && mesesPorAnio.has(currentYear)) {
+                opt.selected = true;
+                defaultYear = y;
+            }
+            anioSelect.appendChild(opt);
+        });
+        selectedYear = defaultYear;
+        renderMesesButtons(mesesPorAnio.get(defaultYear));
+    } catch (e) {
+        console.error(e);
+        showToast('Error al cargar años/meses', 'error');
+    } finally {
+        window.hideLoading();
+    }
+}
+
+function renderMesesButtons(mesesSet) {
+    const container = document.getElementById('mesesContainer');
+    container.innerHTML = '';
+    if (!mesesSet || mesesSet.size === 0) {
+        container.innerHTML = '<span style="color:#999;">Sin registros</span>';
+        selectedMonth = null;
+        debouncedLoad();
+        return;
+    }
+    const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    Array.from(mesesSet).sort((a, b) => a - b).forEach(m => {
+        const btn = document.createElement('button');
+        btn.className = 'mes-btn';
+        btn.textContent = meses[m];
+        btn.dataset.month = m;
+        btn.onclick = () => {
+            document.querySelectorAll('.mes-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            selectedMonth = m;
+            currentPage = 1;
+            lastVisible = null;
+            loadPacientes();
+        };
+        container.appendChild(btn);
+    });
+    const firstBtn = container.querySelector('.mes-btn');
+    if (firstBtn) {
+        firstBtn.classList.add('active');
+        selectedMonth = parseInt(firstBtn.dataset.month);
+    } else {
+        selectedMonth = null;
+    }
+    debouncedLoad();
+}
+
 async function loadPacientes() {
     window.showLoading();
     try {
         let q = query(collection(db, "pacientes_consignaciones"), orderBy("fechaCX", "desc"));
+        if (selectedYear !== null && selectedMonth !== null) {
+            const start = new Date(selectedYear, selectedMonth, 1);
+            const end = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59, 999);
+            q = query(q, where("fechaCX", ">=", start), where("fechaCX", "<=", end));
+        }
         if (currentPage > 1 && lastVisible) {
             q = query(q, startAfter(lastVisible));
         }
         q = query(q, limit(PAGE_SIZE));
-
         const snapshot = await getDocs(q);
         const temp = snapshot.docs.map(doc => {
             const data = doc.data();
@@ -113,7 +192,6 @@ async function loadPacientes() {
         });
 
         let filtered = temp;
-
         if (searchEstado) filtered = filtered.filter(p => p._estado.includes(searchEstado));
         if (searchPrevision) filtered = filtered.filter(p => p._prevision.includes(searchPrevision));
         if (searchConvenio) filtered = filtered.filter(p => p._convenio.includes(searchConvenio));
@@ -122,29 +200,11 @@ async function loadPacientes() {
         if (searchMedico) filtered = filtered.filter(p => p._medico.includes(searchMedico));
         if (searchProveedor) filtered = filtered.filter(p => p._proveedor.includes(searchProveedor));
 
-        filtered = filtered.filter(p => {
-            if (!p.fechaCX) return false;
-            if (dateFilter === 'day' && fechaDia) {
-                return p.fechaCX.toLocaleDateString('es-CL') === new Date(fechaDia).toLocaleDateString('es-CL');
-            }
-            if (dateFilter === 'week' && fechaDesde && fechaHasta) {
-                const d1 = p.fechaCX;
-                const d2 = new Date(fechaDesde);
-                const d3 = new Date(fechaHasta);
-                d3.setHours(23, 59, 59, 999);
-                return d1 >= d2 && d1 <= d3;
-            }
-            if (dateFilter === 'month' && mes && anio) {
-                return p.fechaCX.getMonth() + 1 === parseInt(mes) && p.fechaCX.getFullYear() === parseInt(anio);
-            }
-            return true;
-        });
-
         pacientes = filtered;
         lastVisible = snapshot.docs[snapshot.docs.length - 1] || null;
         renderTable();
     } catch (e) {
-        console.error("Error al cargar pacientes:", e);
+        console.error(e);
         showToast('Error al cargar pacientes', 'error');
     } finally {
         window.hideLoading();
@@ -160,7 +220,6 @@ const debouncedLoad = debounce(() => {
 function renderTable() {
     const tbody = document.querySelector('#pacientesTable tbody');
     if (!tbody) return;
-
     if (pacientes.length === 0) {
         tbody.innerHTML = `
             <tr>
@@ -171,7 +230,6 @@ function renderTable() {
             </tr>`;
         return;
     }
-
     tbody.innerHTML = pacientes.map(p => `
         <tr>
             <td>${p.fechaIngreso?.toLocaleDateString?.('es-CL') || ''}</td>
@@ -192,10 +250,8 @@ function renderTable() {
             </td>
         </tr>
     `).join('');
-
     const loadMore = document.getElementById('loadMoreContainer');
     if (loadMore) loadMore.remove();
-
     if (lastVisible && pacientes.length >= PAGE_SIZE) {
         const div = document.createElement('div');
         div.id = 'loadMoreContainer';
@@ -212,32 +268,26 @@ function renderTable() {
 function setupColumnResize() {
     const headers = document.querySelectorAll('.pacientes-table th');
     const initialWidths = [90, 80, 100, 110, 70, 180, 150, 90, 120, 100, 80, 80];
-
     headers.forEach((header, index) => {
         if (!initialWidths[index]) return;
         header.style.width = `${initialWidths[index]}px`;
         header.style.minWidth = `${initialWidths[index]}px`;
-
         const cells = document.querySelectorAll(`.pacientes-table td:nth-child(${index + 1})`);
         cells.forEach(cell => {
             cell.style.width = `${initialWidths[index]}px`;
             cell.style.minWidth = `${initialWidths[index]}px`;
         });
-
         const handle = header.querySelector('.resize-handle');
         if (!handle) return;
-
         let isResizing = false, startX, startWidth;
-
         const start = (e) => {
             isResizing = true;
-            startX = e.clientX || e.touches[0].clientX;
+            startX = e.clientX || e.touches.touches[0].clientX;
             startWidth = header.getBoundingClientRect().width;
             document.body.style.userSelect = 'none';
             handle.classList.add('active');
             e.preventDefault();
         };
-
         const move = (e) => {
             if (!isResizing) return;
             const delta = (e.clientX || e.touches[0].clientX) - startX;
@@ -249,7 +299,6 @@ function setupColumnResize() {
                 cell.style.minWidth = `${newWidth}px`;
             });
         };
-
         const stop = () => {
             if (isResizing) {
                 isResizing = false;
@@ -257,7 +306,6 @@ function setupColumnResize() {
                 handle.classList.remove('active');
             }
         };
-
         handle.addEventListener('mousedown', start);
         document.addEventListener('mousemove', move);
         document.addEventListener('mouseup', stop);
@@ -265,47 +313,6 @@ function setupColumnResize() {
         document.addEventListener('touchmove', move);
         document.addEventListener('touchend', stop);
     });
-}
-
-function setupDateFilters() {
-    const update = () => {
-        dateFilter = null;
-        fechaDia = fechaDesde = fechaHasta = mes = anio = null;
-        const day = document.getElementById('dateDay');
-        const week = document.getElementById('dateWeek');
-        const month = document.getElementById('dateMonth');
-
-        if (day?.checked) {
-            dateFilter = 'day';
-            fechaDia = document.getElementById('fechaDia')?.value;
-        } else if (week?.checked) {
-            dateFilter = 'week';
-            fechaDesde = document.getElementById('fechaDesde')?.value;
-            fechaHasta = document.getElementById('fechaHasta')?.value;
-        } else if (month?.checked) {
-            dateFilter = 'month';
-            mes = document.getElementById('mesSelect')?.value;
-            anio = document.getElementById('anioSelect')?.value;
-        }
-        debouncedLoad();
-    };
-
-    ['dateDay', 'dateWeek', 'dateMonth', 'fechaDia', 'fechaDesde', 'fechaHasta', 'mesSelect', 'anioSelect'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.addEventListener('change', update);
-    });
-
-    const anioSelect = document.getElementById('anioSelect');
-    if (anioSelect && anioSelect.children.length === 0) {
-        const current = new Date().getFullYear();
-        for (let y = current - 5; y <= current + 5; y++) {
-            const opt = document.createElement('option');
-            opt.value = y;
-            opt.textContent = y;
-            if (y === current) opt.selected = true;
-            anioSelect.appendChild(opt);
-        }
-    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -318,7 +325,6 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 'buscarMedico', var: 'searchMedico' },
         { id: 'buscarProveedor', var: 'searchProveedor' }
     ];
-
     inputs.forEach(({ id, var: v }) => {
         const input = document.getElementById(id);
         if (input) {
@@ -329,10 +335,30 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    setupDateFilters();
-    setupColumnResize();
+    document.getElementById('anioSelect')?.addEventListener('change', async e => {
+        selectedYear = parseInt(e.target.value);
+        selectedMonth = null;
+        currentPage = 1;
+        lastVisible = null;
+        window.showLoading();
+        try {
+            const q = query(collection(db, "pacientes_consignaciones"), orderBy("fechaCX"));
+            const snapshot = await getDocs(q);
+            const mesesSet = new Set();
+            snapshot.docs.forEach(doc => {
+                const fecha = doc.data().fechaCX?.toDate?.() || new Date(doc.data().fechaCX);
+                if (fecha && fecha.getFullYear() === selectedYear) {
+                    mesesSet.add(fecha.getMonth());
+                }
+            });
+            renderMesesButtons(mesesSet);
+        } finally {
+            window.hideLoading();
+        }
+    });
 
+    setupColumnResize();
     onAuthStateChanged(auth, user => {
-        loadPacientes();
+        loadAniosYMeses();
     });
 });
