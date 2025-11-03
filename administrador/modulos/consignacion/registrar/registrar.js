@@ -305,7 +305,7 @@ function setupAutocomplete(inputId, iconId, listId, data, key) {
                 fillFields(item, inputId);
                 input.dispatchEvent(new Event('change'));
                 input.focus();
-            });
+            };
             list.appendChild(div);
         });
         list.style.display = 'block';
@@ -692,27 +692,29 @@ document.addEventListener('DOMContentLoaded', () => {
         window.showLoading('loadRegistros');
         try {
             let q = query(collection(db, "registrar_consignacion"), orderBy("timestamp", "desc"));
-            if (searchAdmision) {
-                q = query(q, where("admision", ">=", searchAdmision), where("admision", "<=", searchAdmision + '\uf8ff'));
-            }
-            if (searchPaciente) {
-                q = query(q, where("paciente", ">=", searchPaciente), where("paciente", "<=", searchPaciente + '\uf8ff'));
-            }
-            if (searchMedico) {
-                q = query(q, where("medico", ">=", searchMedico), where("medico", "<=", searchMedico + '\uf8ff'));
-            }
-            if (searchDescripcion) {
-                q = query(q, where("descripcion", ">=", searchDescripcion), where("descripcion", "<=", searchDescripcion + '\uf8ff'));
-            }
-            if (searchProveedor) {
-                q = query(q, where("proveedor", ">=", searchProveedor), where("proveedor", "<=", searchProveedor + '\uf8ff'));
-            }
             if (currentPage > 1 && lastVisible) {
                 q = query(q, startAfter(lastVisible));
             }
             q = query(q, limit(PAGE_SIZE));
+
             const snapshot = await getDocs(q);
-            let temp = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), fechaCX: parseFechaCX(doc.data().fechaCX) }));
+            let temp = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data(),
+                fechaCX: parseFechaCX(doc.data().fechaCX),
+                _admision: normalizeText(doc.data().admision),
+                _paciente: normalizeText(doc.data().paciente),
+                _medico: normalizeText(doc.data().medico),
+                _descripcion: normalizeText(doc.data().descripcion),
+                _proveedor: normalizeText(doc.data().proveedor)
+            }));
+
+            if (searchAdmision) temp = temp.filter(r => r._admision.includes(searchAdmision));
+            if (searchPaciente) temp = temp.filter(r => r._paciente.includes(searchPaciente));
+            if (searchMedico) temp = temp.filter(r => r._medico.includes(searchMedico));
+            if (searchDescripcion) temp = temp.filter(r => r._descripcion.includes(searchDescripcion));
+            if (searchProveedor) temp = temp.filter(r => r._proveedor.includes(searchProveedor));
+
             temp = temp.filter(r => {
                 if (!r.fechaCX) return false;
                 if (dateFilter === 'day' && fechaDia) {
@@ -732,6 +734,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 return true;
             });
+
             registros = temp;
             lastVisible = snapshot.docs[snapshot.docs.length - 1] || null;
             renderTable();
