@@ -63,6 +63,7 @@ export function initTraspasar() {
 function openTraspasarModal() {
     traspasarModal.style.display = 'block';
 }
+
 function closeTraspasarModal() {
     traspasarModal.style.display = 'none';
 }
@@ -81,7 +82,7 @@ async function ejecutarTraspaso() {
         }
 
         const batch = writeBatch(db);
-        const pacientesMap = new Map();   // key = admision_paciente
+        const pacientesMap = new Map(); // key = admision_proveedor
         const cargas = [];
         let total = 0;
 
@@ -89,8 +90,8 @@ async function ejecutarTraspaso() {
             const data = { id: d.id, ...d.data() };
             const fechaCX = data.fechaCX?.toDate?.() ?? new Date(data.fechaCX);
 
-            /* ---------- PACIENTES (agrupado) ---------- */
-            const key = `${data.admision}_${data.paciente}`;
+            /* ---------- PACIENTES: agrupar por admision + proveedor ---------- */
+            const key = `${data.admision}_${data.proveedor}`;
             if (pacientesMap.has(key)) {
                 const p = pacientesMap.get(key);
                 p.totalPaciente = (p.totalPaciente || 0) + data.totalItems;
@@ -110,7 +111,7 @@ async function ejecutarTraspaso() {
                 });
             }
 
-            /* ---------- CARGAS (uno por registro) ---------- */
+            /* ---------- CARGAS: uno por cada registro (sin agrupar) ---------- */
             cargas.push({
                 estado: 'CARGADO',
                 fechaCarga: new Date(),
@@ -134,31 +135,32 @@ async function ejecutarTraspaso() {
                 margen: 0
             });
 
+            // Marcar para eliminar
             batch.delete(d.ref);
             total++;
         });
 
-        /* ---------- Guardar pacientes ---------- */
+        /* ---------- Guardar pacientes (agrupados) ---------- */
         pacientesMap.forEach(p => {
             const ref = doc(collection(db, "pacientes"));
             batch.set(ref, { ...p, timestamp: new Date() });
         });
 
-        /* ---------- Guardar cargas ---------- */
+        /* ---------- Guardar cargas (individuales) ---------- */
         cargas.forEach(c => {
             const ref = doc(collection(db, "cargas"));
             batch.set(ref, { ...c, timestamp: new Date() });
         });
 
-        /* ---------- Actualizar contador ---------- */
+        /* ---------- Actualizar contador global ---------- */
         batch.update(doc(db, "stats", "counts"), { totalRegistros: increment(-total) });
 
         await batch.commit();
 
-        window.showToast?.(`Traspasados ${total} registros`, 'success');
+        window.showToast?.(`Traspasados ${total} registros correctamente`, 'success');
         closeTraspasarModal();
 
-        /* recargar tabla de registrar */
+        /* Recargar la tabla de registrar */
         if (window.debouncedLoadRegistros) window.debouncedLoadRegistros();
 
     } catch (err) {
