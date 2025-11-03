@@ -320,9 +320,11 @@
     </div>
     <div class="registrar-toast-container" id="toastContainer"></div>
     <script type="module" src="registrar.js"></script>
-    <script type="module">
+<script type="module">
     import { initTraspasar } from './traspasar.js';
-    window.initTraspasar = initTraspasar;
+    window.initTraspasar = initTraspasar;   // opcional, solo para depuración
+    initTraspasar();                       // <-- INICIALIZAR
 </script>
+
 </body>
 </html>
