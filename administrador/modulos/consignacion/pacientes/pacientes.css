@@ -370,3 +370,9 @@ html, body {
         min-width: 100%;
     }
 }
+
+.meses-buttons button {
+    padding: 5px 10px;
+    font-size: 12px;
+    min-width: 48px;
+}
