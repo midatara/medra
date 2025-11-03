@@ -51,7 +51,6 @@ let lastVisible = null;
 let firstVisible = null;
 let totalRecords = 0;
 
-// IMPORTANTE: Declarar las variables de búsqueda sin let/const para que sean globales
 window.searchAdmision = '';
 window.searchPaciente = '';
 window.searchMedico = '';
@@ -767,7 +766,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 _proveedor: normalizeText(doc.data().proveedor)
             }));
 
-            // FILTROS DE BÚSQUEDA CORREGIDOS - usando window.searchXXX
             if (window.searchAdmision) temp = temp.filter(r => r._admision.includes(window.searchAdmision));
             if (window.searchPaciente) temp = temp.filter(r => r._paciente.includes(window.searchPaciente));
             if (window.searchMedico) temp = temp.filter(r => r._medico.includes(window.searchMedico));
@@ -811,7 +809,6 @@ document.addEventListener('DOMContentLoaded', () => {
         loadRegistros();
     }, 300);
 
-    // EVENT LISTENERS PARA BÚSQUEDA CORREGIDOS
     const searchInputs = [
         { input: buscarAdmisionInput, var: 'searchAdmision' },
         { input: buscarPacienteInput, var: 'searchPaciente' },
@@ -824,7 +821,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (input) {
             input.addEventListener('input', e => {
                 window[varName] = normalizeText(e.target.value);
-                console.log(`${varName} actualizado a:`, window[varName]); // Debug
                 debouncedLoadRegistros();
             });
             input.addEventListener('change', e => {
