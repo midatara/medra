@@ -50,11 +50,14 @@ const PAGE_SIZE = 50;
 let lastVisible = null;
 let firstVisible = null;
 let totalRecords = 0;
-let searchAdmision = '';
-let searchPaciente = '';
-let searchMedico = '';
-let searchDescripcion = '';
-let searchProveedor = '';
+
+// IMPORTANTE: Declarar las variables de búsqueda sin let/const para que sean globales
+window.searchAdmision = '';
+window.searchPaciente = '';
+window.searchMedico = '';
+window.searchDescripcion = '';
+window.searchProveedor = '';
+
 let dateFilter = null;
 let fechaDia = null;
 let fechaDesde = null;
@@ -556,7 +559,6 @@ function parseFechaCX(fecha) {
     return new Date(fecha);
 }
 
-// === RENDER TABLE CORREGIDO (LÍNEA 308 FIJADA) ===
 function renderTable() {
     const registrarBody = document.getElementById('registrarTable')?.querySelector('tbody');
     if (!registrarBody) {
@@ -765,11 +767,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 _proveedor: normalizeText(doc.data().proveedor)
             }));
 
-            if (searchAdmision) temp = temp.filter(r => r._admision.includes(searchAdmision));
-            if (searchPaciente) temp = temp.filter(r => r._paciente.includes(searchPaciente));
-            if (searchMedico) temp = temp.filter(r => r._medico.includes(searchMedico));
-            if (searchDescripcion) temp = temp.filter(r => r._descripcion.includes(searchDescripcion));
-            if (searchProveedor) temp = temp.filter(r => r._proveedor.includes(searchProveedor));
+            // FILTROS DE BÚSQUEDA CORREGIDOS - usando window.searchXXX
+            if (window.searchAdmision) temp = temp.filter(r => r._admision.includes(window.searchAdmision));
+            if (window.searchPaciente) temp = temp.filter(r => r._paciente.includes(window.searchPaciente));
+            if (window.searchMedico) temp = temp.filter(r => r._medico.includes(window.searchMedico));
+            if (window.searchDescripcion) temp = temp.filter(r => r._descripcion.includes(window.searchDescripcion));
+            if (window.searchProveedor) temp = temp.filter(r => r._proveedor.includes(window.searchProveedor));
 
             temp = temp.filter(r => {
                 if (!r.fechaCX) return false;
@@ -808,6 +811,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loadRegistros();
     }, 300);
 
+    // EVENT LISTENERS PARA BÚSQUEDA CORREGIDOS
     const searchInputs = [
         { input: buscarAdmisionInput, var: 'searchAdmision' },
         { input: buscarPacienteInput, var: 'searchPaciente' },
@@ -815,10 +819,12 @@ document.addEventListener('DOMContentLoaded', () => {
         { input: buscarDescripcionInput, var: 'searchDescripcion' },
         { input: buscarProveedorInput, var: 'searchProveedor' }
     ];
+    
     searchInputs.forEach(({ input, var: varName }) => {
         if (input) {
             input.addEventListener('input', e => {
                 window[varName] = normalizeText(e.target.value);
+                console.log(`${varName} actualizado a:`, window[varName]); // Debug
                 debouncedLoadRegistros();
             });
             input.addEventListener('change', e => {
@@ -827,7 +833,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Evento de clics en la tabla (usando el tbody dinámico)
     document.getElementById('registrarTable')?.addEventListener('click', async (e) => {
         const btn = e.target.closest('button');
         if (!btn) return;
@@ -901,7 +906,7 @@ document.addEventListener('DOMContentLoaded', () => {
         [admisionInput, pacienteInput, medicoInput, fechaCXInput, codigoInput, descripcionInput, cantidadInput, referenciaInput, proveedorInput, precioUnitarioInput, atributoInput, totalItemsInput,
          buscarAdmisionInput, buscarPacienteInput, buscarMedicoInput, buscarDescripcionInput, buscarProveedorInput].forEach(i => { if (i) i.value = ''; });
         [dateDay, dateWeek, dateMonth].forEach(r => { if (r) r.checked = false; });
-        searchAdmision = searchPaciente = searchMedico = searchDescripcion = searchProveedor = '';
+        window.searchAdmision = window.searchPaciente = window.searchMedico = window.searchDescripcion = window.searchProveedor = '';
         dateFilter = fechaDia = fechaDesde = fechaHasta = mes = anio = null;
         currentPage = 1; lastVisible = null;
         debouncedLoadRegistros();
@@ -989,7 +994,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.openDeleteModal = (id, adm) => {
         currentDeleteId = id; currentDeleteAdmision = adm;
-        document.getElementById('deleteModalText')?.replaceChildren(`¿Eliminar admisión "${adm}"?`);
+        document.querySelector('.delete-modal-text').textContent = `¿Eliminar admisión "${adm}"?`;
         deleteModal.style.display = 'block';
     };
 
@@ -1026,7 +1031,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 return `<div class="history-entry">${html}</div>`;
             }).join('');
-            document.getElementById('historyModalTitle')?.replaceChildren(`Historial: ${adm}`);
+            historyModal.querySelector('.modal-header h2').textContent = `Historial: ${adm}`;
             historyModal.style.display = 'block';
         } catch { showToast('Error historial', 'error'); }
         finally { window.hideLoading('history'); }
