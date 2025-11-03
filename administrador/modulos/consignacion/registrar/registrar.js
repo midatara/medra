@@ -556,11 +556,67 @@ function parseFechaCX(fecha) {
     return new Date(fecha);
 }
 
+// === RENDER TABLE CORREGIDO (LÍNEA 308 FIJADA) ===
+function renderTable() {
+    const registrarBody = document.getElementById('registrarTable')?.querySelector('tbody');
+    if (!registrarBody) {
+        console.warn('No se encontró el tbody de la tabla');
+        return;
+    }
+
+    if (registros.length === 0) {
+        registrarBody.innerHTML = `
+            <tr>
+                <td colspan="14" style="text-align:center;padding:20px;color:#666;">
+                    <i class="fas fa-inbox" style="font-size:48px;display:block;margin-bottom:10px;"></i>
+                    No hay registros
+                </td>
+            </tr>`;
+    } else {
+        registrarBody.innerHTML = registros.map(r => `
+            <tr class="registrar-row">
+                <td class="registrar-cell admision">${escapeHtml(r.admision)}</td>
+                <td class="registrar-cell paciente">${escapeHtml(r.paciente)}</td>
+                <td class="registrar-cell medico">${escapeHtml(r.medico)}</td>
+                <td class="registrar-cell fecha">${r.fechaCX ? r.fechaCX.toLocaleDateString('es-CL') : ''}</td>
+                <td class="registrar-cell codigo">${escapeHtml(r.codigo)}</td>
+                <td class="registrar-cell descripcion">${escapeHtml(r.descripcion)}</td>
+                <td class="registrar-cell cantidad">${r.cantidad}</td>
+                <td class="registrar-cell referencia">${escapeHtml(r.referencia)}</td>
+                <td class="registrar-cell proveedor">${escapeHtml(r.proveedor)}</td>
+                <td class="registrar-cell precio">${formatNumberWithThousandsSeparator(r.precioUnitario)}</td>
+                <td class="registrar-cell atributo">${escapeHtml(r.atributo)}</td>
+                <td class="registrar-cell total">${formatNumberWithThousandsSeparator(r.totalItems)}</td>
+                <td class="registrar-cell usuario">${escapeHtml(r.userFullName || '—')}</td>
+                <td class="registrar-actions">
+                    <button class="registrar-btn-edit" data-id="${r.id}"><i class="fas fa-edit"></i></button>
+                    <button class="registrar-btn-delete" data-id="${r.id}" data-admision="${escapeHtml(r.admision)}"><i class="fas fa-trash"></i></button>
+                    <button class="registrar-btn-history" data-id="${r.id}" data-admision="${escapeHtml(r.admision)}"><i class="fas fa-history"></i></button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    const loadMore = document.getElementById('loadMoreContainer');
+    if (loadMore) loadMore.remove();
+
+    if (lastVisible && registros.length >= PAGE_SIZE) {
+        const div = document.createElement('div');
+        div.id = 'loadMoreContainer';
+        div.style = 'text-align:center;margin:20px 0;';
+        div.innerHTML = `<button id="loadMoreBtn" class="registrar-btn">Cargar más</button>`;
+        document.querySelector('.registrar-table-container')?.appendChild(div);
+        document.getElementById('loadMoreBtn')?.addEventListener('click', () => {
+            currentPage++;
+            loadRegistros();
+        });
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     if (loading) loading.classList.remove('show');
 
     const registrarTable = document.getElementById('registrarTable');
-    const registrarBody = registrarTable?.querySelector('tbody');
     const registrarBtn = document.getElementById('registrarBtn');
     const limpiarBtn = document.getElementById('limpiarBtn');
 
@@ -771,59 +827,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-function renderTable() {
-    if (!registrarBody) return;
-
-    if (registros.length === 0) {
-        registrarBody.innerHTML = `
-            <tr>
-                <td colspan="14" style="text-align:center;padding:20px;color:#666;">
-                    <i class="fas fa-inbox" style="font-size:48px;display:block;margin-bottom:10px;"></i>
-                    No hay registros
-                </td>
-            </tr>`;
-    } else {
-        registrarBody.innerHTML = registros.map(r => `
-            <tr class="registrar-row">
-                <td class="registrar-cell admision">${escapeHtml(r.admision)}</td>
-                <td class="registrar-cell paciente">${escapeHtml(r.paciente)}</td>
-                <td class="registrar-cell medico">${escapeHtml(r.medico)}</td>
-                <td class="registrar-cell fecha">${r.fechaCX ? r.fechaCX.toLocaleDateString('es-CL') : ''}</td>
-                <td class="registrar-cell codigo">${escapeHtml(r.codigo)}</td>
-                <td class="registrar-cell descripcion">${escapeHtml(r.descripcion)}</td>
-                <td class="registrar-cell cantidad">${r.cantidad}</td>
-                <td class="registrar-cell referencia">${escapeHtml(r.referencia)}</td>
-                <td class="registrar-cell proveedor">${escapeHtml(r.proveedor)}</td>
-                <td class="registrar-cell precio">${formatNumberWithThousandsSeparator(r.precioUnitario)}</td>
-                <td class="registrar-cell atributo">${escapeHtml(r.atributo)}</td>
-                <td class="registrar-cell total">${formatNumberWithThousandsSeparator(r.totalItems)}</td>
-                <td class="registrar-cell usuario">${escapeHtml(r.userFullName || '—')}</td>
-                <td class="registrar-actions">
-                    <button class="registrar-btn-edit" data-id="${r.id}"><i class="fas fa-edit"></i></button>
-                    <button class="registrar-btn-delete" data-id="${r.id}" data-admision="${escapeHtml(r.admision)}"><i class="fas fa-trash"></i></button>
-                    <button class="registrar-btn-history" data-id="${r.id}" data-admision="${escapeHtml(r.admision)}"><i class="fas fa-history"></i></button>
-                </td>
-            </tr>
-        `).join('');
-    }
-
-    const loadMore = document.getElementById('loadMoreContainer');
-    if (loadMore) loadMore.remove();
-
-    if (lastVisible && registros.length >= PAGE_SIZE) {
-        const div = document.createElement('div');
-        div.id = 'loadMoreContainer';
-        div.style = 'text-align:center;margin:20px 0;';
-        div.innerHTML = `<button id="loadMoreBtn" class="registrar-btn">Cargar más</button>`;
-        document.querySelector('.registrar-table-container')?.appendChild(div);
-        document.getElementById('loadMoreBtn')?.addEventListener('click', () => {
-            currentPage++;
-            loadRegistros();
-        });
-    }
-}
-
-    registrarBody.addEventListener('click', async (e) => {
+    // Evento de clics en la tabla (usando el tbody dinámico)
+    document.getElementById('registrarTable')?.addEventListener('click', async (e) => {
         const btn = e.target.closest('button');
         if (!btn) return;
         const id = btn.dataset.id;
