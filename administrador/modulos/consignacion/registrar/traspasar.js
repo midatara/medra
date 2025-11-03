@@ -1,6 +1,6 @@
 import {
     getFirestore, collection, getDocs, doc, setDoc, deleteDoc,
-    writeBatch, increment
+    writeBatch, increment, Timestamp
 } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
 
 const db = getFirestore();
@@ -200,12 +200,22 @@ async function ejecutarTraspaso() {
 
         pacientesMap.forEach(p => {
             const ref = doc(collection(db, "pacientes_consignaciones"));
-            batch.set(ref, { ...p, timestamp: new Date() });
+            batch.set(ref, { 
+                ...p, 
+                fechaCX: Timestamp.fromDate(p.fechaCX),
+                fechaIngreso: Timestamp.fromDate(p.fechaIngreso),
+                timestamp: Timestamp.fromDate(new Date())
+            });
         });
 
         cargas.forEach(c => {
             const ref = doc(collection(db, "cargas_consignaciones"));
-            batch.set(ref, { ...c, timestamp: new Date() });
+            batch.set(ref, { 
+                ...c, 
+                fechaCX: Timestamp.fromDate(c.fechaCX),
+                fechaCarga: Timestamp.fromDate(c.fechaCarga),
+                timestamp: Timestamp.fromDate(new Date())
+            });
         });
 
         batch.update(doc(db, "stats", "counts"), { totalRegistros: increment(-total) });
