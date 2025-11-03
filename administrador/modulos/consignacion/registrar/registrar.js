@@ -1069,5 +1069,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 initialize();
             }).catch(() => initialize());
         } else initialize();
+
+        // === EXPONER PARA TRASPASAR ===
+        window.loadRegistros = () => {
+            currentPage = 1;
+            lastVisible = null;
+            loadRegistros();
+        };
     });
 });
