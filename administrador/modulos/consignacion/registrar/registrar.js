@@ -695,10 +695,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // CORREGIDO: Quitar medicoInput y editMedicoInput de upperCaseInputs
     const upperCaseInputs = [
-        admisionInput, pacienteInput, medicoInput, codigoInput, descripcionInput,
+        admisionInput, pacienteInput, /* medicoInput → QUITADO */, codigoInput, descripcionInput,
         referenciaInput, proveedorInput, atributoInput,
-        editAdmisionInput, editPacienteInput, editMedicoInput, editCodigoInput,
+        editAdmisionInput, editPacienteInput, /* editMedicoInput → QUITADO */, editCodigoInput,
         editDescripcionInput, editReferenciaInput, editProveedorInput, editAtributoInput,
         buscarAdmisionInput, buscarPacienteInput, buscarMedicoInput, buscarDescripcionInput, buscarProveedorInput
     ];
@@ -908,19 +909,20 @@ document.addEventListener('DOMContentLoaded', () => {
         debouncedLoadRegistros();
     });
 
+    // CORREGIDO: Guardar médico tal cual (sin normalizeText)
     registrarBtn?.addEventListener('click', async e => {
         e.preventDefault();
         const data = {
             admision: normalizeText(admisionInput?.value),
             paciente: normalizeText(pacienteInput?.value),
-            medico: normalizeText(medicoInput?.value),
+            medico: medicoInput?.value.trim() || '',
             fechaCX: new Date(fechaCXInput?.value),
             codigo: normalizeText(codigoInput?.value),
             descripcion: normalizeText(descripcionInput?.value),
             cantidad: parseInt(cantidadInput?.value) || 0,
             referencia: normalizeText(referenciaInput?.value),
             proveedor: normalizeText(proveedorInput?.value),
-            precioUnitario: parseInt((precioUnitarioInput?.value || '').replace(/[^\d]/g, '')) || 0,
+            precioUnitario: parseInt((precioUnit |arioInput?.value || '').replace(/[^\d]/g, '')) || 0,
             atributo: normalizeText(atributoInput?.value),
             totalItems: parseInt((totalItemsInput?.value || '').replace(/[^\d]/g, '')) || 0
         };
@@ -945,21 +947,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.openEditModal = (id, r) => {
         currentEditId = id; currentEditOldData = { ...r };
-        editAdmisionInput.value = r.admision; editPacienteInput.value = r.paciente; editMedicoInput.value = r.medico;
+        editAdmisionInput.value = r.admision; 
+        editPacienteInput.value = r.paciente; 
+        editMedicoInput.value = r.medico; // ← Mantiene formato original
         editFechaCXInput.value = r.fechaCX ? r.fechaCX.toISOString().split('T')[0] : '';
-        editCodigoInput.value = r.codigo; editDescripcionInput.value = r.descripcion; editCantidadInput.value = r.cantidad;
-        editReferenciaInput.value = r.referencia; editProveedorInput.value = r.proveedor;
+        editCodigoInput.value = r.codigo; 
+        editDescripcionInput.value = r.descripcion; 
+        editCantidadInput.value = r.cantidad;
+        editReferenciaInput.value = r.referencia; 
+        editProveedorInput.value = r.proveedor;
         editPrecioUnitarioInput.value = formatNumberWithThousandsSeparator(r.precioUnitario);
-        editAtributoInput.value = r.atributo; editTotalItemsInput.value = formatNumberWithThousandsSeparator(r.totalItems);
+        editAtributoInput.value = r.atributo; 
+        editTotalItemsInput.value = formatNumberWithThousandsSeparator(r.totalItems);
         document.querySelectorAll('input[name="editAtributoFilter"]').forEach(rad => rad.checked = rad.value === r.atributo);
         editModal.style.display = 'block';
     };
 
+    // CORREGIDO: Guardar médico tal cual en edición
     saveEditBtn?.addEventListener('click', async () => {
         const data = {
             admision: normalizeText(editAdmisionInput?.value),
             paciente: normalizeText(editPacienteInput?.value),
-            medico: normalizeText(editMedicoInput?.value),
+            medico: editMedicoInput?.value.trim() || '',
             fechaCX: new Date(editFechaCXInput?.value),
             codigo: normalizeText(editCodigoInput?.value),
             descripcion: normalizeText(editDescripcionInput?.value),
