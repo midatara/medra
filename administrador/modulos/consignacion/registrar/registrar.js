@@ -695,11 +695,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // CORREGIDO: Quitar medicoInput y editMedicoInput de upperCaseInputs
     const upperCaseInputs = [
-        admisionInput, pacienteInput, /* medicoInput → QUITADO */, codigoInput, descripcionInput,
+        admisionInput, pacienteInput, codigoInput, descripcionInput,
         referenciaInput, proveedorInput, atributoInput,
-        editAdmisionInput, editPacienteInput, /* editMedicoInput → QUITADO */, editCodigoInput,
+        editAdmisionInput, editPacienteInput, editCodigoInput,
         editDescripcionInput, editReferenciaInput, editProveedorInput, editAtributoInput,
         buscarAdmisionInput, buscarPacienteInput, buscarMedicoInput, buscarDescripcionInput, buscarProveedorInput
     ];
@@ -909,7 +908,6 @@ document.addEventListener('DOMContentLoaded', () => {
         debouncedLoadRegistros();
     });
 
-    // CORREGIDO: Guardar médico tal cual (sin normalizeText)
     registrarBtn?.addEventListener('click', async e => {
         e.preventDefault();
         const data = {
@@ -949,7 +947,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentEditId = id; currentEditOldData = { ...r };
         editAdmisionInput.value = r.admision; 
         editPacienteInput.value = r.paciente; 
-        editMedicoInput.value = r.medico; // ← Mantiene formato original
+        editMedicoInput.value = r.medico; 
         editFechaCXInput.value = r.fechaCX ? r.fechaCX.toISOString().split('T')[0] : '';
         editCodigoInput.value = r.codigo; 
         editDescripcionInput.value = r.descripcion; 
@@ -963,7 +961,6 @@ document.addEventListener('DOMContentLoaded', () => {
         editModal.style.display = 'block';
     };
 
-    // CORREGIDO: Guardar médico tal cual en edición
     saveEditBtn?.addEventListener('click', async () => {
         const data = {
             admision: normalizeText(editAdmisionInput?.value),
