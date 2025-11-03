@@ -98,7 +98,7 @@ function debounce(func, wait) {
     };
 }
 
-// === CARGA DE DATOS ===
+// === CARGA DE MÉDICOS (SIEMPRE) ===
 async function loadMedicos() {
     window.showLoading('loadMedicos');
     try {
@@ -120,6 +120,7 @@ async function loadMedicos() {
     }
 }
 
+// === CARGA DE REFERENCIAS (POR ATRIBUTO) ===
 async function loadReferencias() {
     if (isLoadingReferencias) return;
     isLoadingReferencias = true;
@@ -134,7 +135,6 @@ async function loadReferencias() {
         querySnapshot.forEach(doc => referencias.push({ id: doc.id, ...doc.data() }));
         referencias.sort((a, b) => (a.codigo || '').localeCompare(b.codigo || ''));
 
-        // RECREAMOS AUTOCOMPLETADO DE CÓDIGO Y DESCRIPCIÓN
         setupAutocomplete('codigo', 'codigoToggle', 'codigoDropdown', referencias, 'codigo');
         setupAutocomplete('descripcion', 'descripcionToggle', 'descripcionDropdown', referencias, 'descripcion');
         setupAutocomplete('editCodigo', 'editCodigoToggle', 'editCodigoDropdown', referencias, 'codigo');
@@ -148,6 +148,7 @@ async function loadReferencias() {
     }
 }
 
+// === ÍCONOS: FORZAR RECARGA ===
 function attachIconForceLoad(iconId) {
     const icon = document.getElementById(iconId);
     if (!icon) return;
@@ -163,64 +164,126 @@ function attachIconForceLoad(iconId) {
         };
         const dropdown = document.getElementById(dropdownMap[iconId]);
 
-        // SI EL DROPDOWN ESTÁ VACÍO O EL ATRIBUTO NO COINCIDE → RECARGAR
         if (!dropdown || dropdown.children.length === 0) {
             window.showLoading('forceLoad');
             try {
                 await loadReferencias();
-                // Mostrar dropdown después de cargar
                 if (dropdown) dropdown.style.display = 'block';
             } finally {
                 window.hideLoading('forceLoad');
             }
         } else {
-            // Si ya tiene datos, solo mostrar/ocultar
             dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
         }
     });
 }
 
-async function getReferenciaByDescripcion(descripcion) {
-    if (!descripcion?.trim()) return null;
-    try {
-        const q = query(
-            collection(db, "referencias_implantes"),
-            where("descripcion", "==", normalizeText(descripcion)),
-            where("atributo", "==", atributoFilter)
-        );
-        const querySnapshot = await getDocs(q);
-        if (querySnapshot.empty) return null;
-        const doc = querySnapshot.docs[0];
-        return { id: doc.id, ...doc.data() };
-    } catch (error) {
-        console.error('Error getting referencia by descripcion:', error);
-        return null;
-    }
+// === AUTOCOMPLETADO MÉDICOS (FUERA DE DOMContentLoaded) ===
+function setupMedicoAutocomplete(inputId, iconId, listId) {
+    const input = document.getElementById(inputId);
+    const icon = document.getElementById(iconId);
+    const list = document.getElementById(listId);
+    if (!input || !icon || !list) return;
+
+    const showAll = () => {
+        list.innerHTML = '';
+        if (medicos.length === 0) {
+            list.innerHTML = '<div class="autocomplete-item" style="color:#999; font-style:italic;">Cargando médicos...</div>';
+            list.style.display = 'block';
+            return;
+        }
+        medicos.slice(0, 20).forEach(m => {
+            const div = document.createElement('div');
+            div.className = 'autocomplete-item';
+            div.textContent = m.nombre;
+            div.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                input.value = m.nombre;
+                list.style.display = 'none';
+                input.dispatchEvent(new Event('change'));
+                input.focus();
+            };
+            list.appendChild(div);
+        });
+        list.style.display = 'block';
+        list.style.maxHeight = '200px';
+        list.style.overflowY = 'auto';
+    };
+
+    const showSuggestions = (value) => {
+        list.innerHTML = '';
+        list.style.display = 'none';
+        if (!value.trim()) return;
+        const filtered = medicos.filter(m => m.nombre?.toUpperCase().includes(normalizeText(value)));
+        if (filtered.length === 0) return;
+        filtered.slice(0, 10).forEach(m => {
+            const div = document.createElement('div');
+            div.className = 'autocomplete-item';
+            div.textContent = m.nombre;
+            div.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                input.value = m.nombre;
+                list.style.display = 'none';
+                input.dispatchEvent(new Event('change'));
+                input.focus();
+            };
+            list.appendChild(div);
+        });
+        list.style.display = 'block';
+    };
+
+    input.addEventListener('input', e => showSuggestions(e.target.value));
+    input.addEventListener('focus', () => input.value.trim() && showSuggestions(input.value));
+
+    icon.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (list.style.display === 'block') {
+            list.style.display = 'none';
+        } else {
+            showAll();
+        }
+        input.focus();
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!input.contains(e.target) && !icon.contains(e.target) && !list.contains(e.target)) {
+            list.style.display = 'none';
+        }
+    });
 }
 
-async function getProductoByCodigo(codigo) {
-    if (!codigo?.trim()) return null;
-    try {
-        const q = query(
-            collection(db, "referencias_implantes"),
-            where("codigo", "==", normalizeText(codigo)),
-            where("atributo", "==", atributoFilter)
-        );
-        const querySnapshot = await getDocs(q);
-        if (querySnapshot.empty) return null;
-        const doc = querySnapshot.docs[0];
-        return { id: doc.id, ...doc.data() };
-    } catch (error) {
-        console.error('Error getting product by code:', error);
-        return null;
-    }
-}
+// === FILTRO DE ATRIBUTO ===
+function setupAtributoFilter() {
+    const radios = document.querySelectorAll('input[name="atributoFilter"], input[name="editAtributoFilter"]');
 
-function parseFechaCX(fecha) {
-    if (!fecha) return null;
-    if (fecha && typeof fecha.toDate === 'function') return fecha.toDate();
-    if (fecha instanceof Date) return fecha;
-    return new Date(fecha);
+    const refresh = async (nuevoAtributo) => {
+        const normalized = normalizeText(nuevoAtributo);
+        if (atributoFilter === normalized) return;
+
+        ['codigo', 'descripcion', 'referencia', 'proveedor', 'precioUnitario', 'atributo', 'totalItems',
+         'editCodigo', 'editDescripcion', 'editReferencia', 'editProveedor', 'editPrecioUnitario', 'editAtributo', 'editTotalItems']
+            .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+
+        ['codigoDropdown', 'descripcionDropdown', 'editCodigoDropdown', 'editDescripcionDropdown']
+            .forEach(id => { const d = document.getElementById(id); if (d) d.style.display = 'none'; });
+
+        atributoFilter = normalized;
+
+        window.showLoading('atributoChange');
+        try {
+            await loadReferencias();
+        } finally {
+            window.hideLoading('atributoChange');
+        }
+    };
+
+    radios.forEach(r => r.addEventListener('change', e => refresh(e.target.value)));
+
+    const checked = document.querySelector('input[name="atributoFilter"]:checked');
+    if (checked) refresh(checked.value);
 }
 
 // === AUTOCOMPLETADO ===
@@ -489,6 +552,49 @@ function exportToExcel(data, filename) {
     link.click();
 }
 
+async function getReferenciaByDescripcion(descripcion) {
+    if (!descripcion?.trim()) return null;
+    try {
+        const q = query(
+            collection(db, "referencias_implantes"),
+            where("descripcion", "==", normalizeText(descripcion)),
+            where("atributo", "==", atributoFilter)
+        );
+        const querySnapshot = await getDocs(q);
+        if (querySnapshot.empty) return null;
+        const doc = querySnapshot.docs[0];
+        return { id: doc.id, ...doc.data() };
+    } catch (error) {
+        console.error('Error getting referencia by descripcion:', error);
+        return null;
+    }
+}
+
+async function getProductoByCodigo(codigo) {
+    if (!codigo?.trim()) return null;
+    try {
+        const q = query(
+            collection(db, "referencias_implantes"),
+            where("codigo", "==", normalizeText(codigo)),
+            where("atributo", "==", atributoFilter)
+        );
+        const querySnapshot = await getDocs(q);
+        if (querySnapshot.empty) return null;
+        const doc = querySnapshot.docs[0];
+        return { id: doc.id, ...doc.data() };
+    } catch (error) {
+        console.error('Error getting product by code:', error);
+        return null;
+    }
+}
+
+function parseFechaCX(fecha) {
+    if (!fecha) return null;
+    if (fecha && typeof fecha.toDate === 'function') return fecha.toDate();
+    if (fecha instanceof Date) return fecha;
+    return new Date(fecha);
+}
+
 // === DOMContentLoaded ===
 document.addEventListener('DOMContentLoaded', () => {
     if (loading) loading.classList.remove('show');
@@ -553,10 +659,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
     const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
 
-    const medicoToggle = document.getElementById('medicoToggle');
-    const medicoDropdown = document.getElementById('medicoDropdown');
-    const editMedicoToggle = document.getElementById('editMedicoToggle');
-    const editMedicoDropdown = document.getElementById('editMedicoDropdown');
     const historyContent = document.getElementById('historyContent');
 
     let currentEditId = null;
@@ -613,42 +715,6 @@ document.addEventListener('DOMContentLoaded', () => {
             anioSelect.addEventListener('change', e => { if (dateFilter === 'month') { anio = e.target.value; debouncedLoadRegistros(); } });
         }
     }
-
-    // === FILTRO DE ATRIBUTO ===
-function setupAtributoFilter() {
-    const radios = document.querySelectorAll('input[name="atributoFilter"], input[name="editAtributoFilter"]');
-
-    const refresh = async (nuevoAtributo) => {
-        const normalized = normalizeText(nuevoAtributo);
-        if (atributoFilter === normalized) return;
-
-        // LIMPIAR CAMPOS DE PRODUCTO
-        ['codigo', 'descripcion', 'referencia', 'proveedor', 'precioUnitario', 'atributo', 'totalItems',
-         'editCodigo', 'editDescripcion', 'editReferencia', 'editProveedor', 'editPrecioUnitario', 'editAtributo', 'editTotalItems']
-            .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-
-        // OCULTAR DROPDOWNS
-        ['codigoDropdown', 'descripcionDropdown', 'editCodigoDropdown', 'editDescripcionDropdown']
-            .forEach(id => { const d = document.getElementById(id); if (d) d.style.display = 'none'; });
-
-        // ACTUALIZAR FILTRO
-        atributoFilter = normalized;
-
-        // RECARGAR REFERENCIAS
-        window.showLoading('atributoChange');
-        try {
-            await loadReferencias();
-        } finally {
-            window.hideLoading('atributoChange');
-        }
-    };
-
-    radios.forEach(r => r.addEventListener('change', e => refresh(e.target.value)));
-
-    // INICIALIZAR CON EL VALOR SELECCIONADO
-    const checked = document.querySelector('input[name="atributoFilter"]:checked');
-    if (checked) refresh(checked.value);
-}
 
     // === CARGA DE REGISTROS ===
     async function loadRegistros(filters) {
@@ -770,7 +836,6 @@ function setupAtributoFilter() {
         window.showLoading('downloadAll');
         try {
             let q = query(collection(db, "registrar_consignacion"), orderBy("fechaCX", "asc"));
-            // Aplicar filtros completos aquí si es necesario...
             const snap = await getDocs(q);
             const data = snap.docs.map(d => ({ id: d.id, ...d.data(), fechaCX: parseFechaCX(d.data().fechaCX) }));
             exportToExcel(data, `consignaciones_completas_${new Date().toISOString().split('T')[0]}`);
@@ -915,86 +980,7 @@ function setupAtributoFilter() {
         finally { window.hideLoading('history'); }
     };
 
-    function setupMedicoAutocomplete(inputId, iconId, listId) {
-    const input = document.getElementById(inputId);
-    const icon = document.getElementById(iconId);
-    const list = document.getElementById(listId);
-    if (!input || !icon || !list) return;
-
-    const showAll = () => {
-        list.innerHTML = '';
-        if (medicos.length === 0) {
-            list.innerHTML = '<div class="autocomplete-item" style="color:#999; font-style:italic;">Cargando médicos...</div>';
-            list.style.display = 'block';
-            return;
-        }
-        medicos.slice(0, 20).forEach(m => {
-            const div = document.createElement('div');
-            div.className = 'autocomplete-item';
-            div.textContent = m.nombre;
-            div.onclick = (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                input.value = m.nombre;
-                list.style.display = 'none';
-                input.dispatchEvent(new Event('change'));
-                input.focus();
-            };
-            list.appendChild(div);
-        });
-        list.style.display = 'block';
-        list.style.maxHeight = '200px';
-        list.style.overflowY = 'auto';
-    };
-
-    const showSuggestions = (value) => {
-        list.innerHTML = '';
-        list.style.display = 'none';
-        if (!value.trim()) return;
-        const filtered = medicos.filter(m => m.nombre?.toUpperCase().includes(normalizeText(value)));
-        if (filtered.length === 0) return;
-        filtered.slice(0, 10).forEach(m => {
-            const div = document.createElement('div');
-            div.className = 'autocomplete-item';
-            div.textContent = m.nombre;
-            div.onclick = (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                input.value = m.nombre;
-                list.style.display = 'none';
-                input.dispatchEvent(new Event('change'));
-                input.focus();
-            };
-            list.appendChild(div);
-        });
-        list.style.display = 'block';
-    };
-
-    input.addEventListener('input', e => showSuggestions(e.target.value));
-    input.addEventListener('focus', () => input.value.trim() && showSuggestions(input.value));
-
-    icon.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (list.style.display === 'block') {
-            list.style.display = 'none';
-        } else {
-            showAll();
-        }
-        input.focus();
-    });
-
-    document.addEventListener('click', (e) => {
-        if (!input.contains(e.target) && !icon.contains(e.target) && !list.contains(e.target)) {
-            list.style.display = 'none';
-        }
-    });
-}
-
-    setupMedicoAutocomplete('medico', 'medicoToggle', 'medicoDropdown');
-    setupMedicoAutocomplete('editMedico', 'editMedicoToggle', 'editMedicoDropdown');
-
-    // === INICIALIZACIÓN ===
+    // === INICIALIZACIÓN FINAL ===
     setupDateFilters();
     setupAtributoFilter();
     attachIconForceLoad('codigoToggle');
@@ -1004,15 +990,15 @@ function setupAtributoFilter() {
     if (registrarTable) setupColumnResize();
 
     async function initialize() {
-    window.showLoading('init');
-    try {
-        await loadMedicos();      // ← Siempre carga médicos
-        await loadReferencias();  // ← Según atributo seleccionado
-        await loadRegistros({ ... });
-    } finally {
-        window.hideLoading('init');
+        window.showLoading('init');
+        try {
+            await loadMedicos();
+            await loadReferencias();
+            await loadRegistros({ searchAdmision, searchPaciente, searchMedico, searchDescripcion, searchProveedor, dateFilter, fechaDia, fechaDesde, fechaHasta, mes, anio });
+        } finally {
+            window.hideLoading('init');
+        }
     }
-}
 
     onAuthStateChanged(auth, user => {
         if (user) {
