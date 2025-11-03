@@ -1,0 +1,420 @@
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    overflow: hidden;
+    font-size: 12px;
+}
+
+.pacientes-main-container {
+    width: 100%;
+    height: 100%;
+    background: white;
+    padding: 5px 20px 20px 20px;
+    box-sizing: border-box;
+    overflow-y: auto;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.pacientes-title {
+    text-align: start;
+    margin: 0 0 15px 0;
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+}
+
+.pacientes-search-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.pacientes-search-row {
+    display: flex;
+    justify-content: flex-start;
+    gap: 10px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+.pacientes-form-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    flex: 1;
+    min-width: 140px;
+    max-width: 180px;
+}
+
+.pacientes-form-group.button-group {
+    flex: 0;
+    min-width: auto;
+    max-width: none;
+    margin-bottom: 8px;
+}
+
+.pacientes-label {
+    font-size: 10px;
+    font-weight: bold;
+    color: #333;
+    white-space: nowrap;
+}
+
+#buscarEstado, #buscarPrevision, #buscarConvenio, #buscarAdmision, 
+#buscarPaciente, #buscarMedico, #buscarProveedor,
+#fechaDia, #fechaDesde, #fechaHasta, #mesSelect, #anioSelect {
+    width: 100%;
+    padding: 4px 6px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 11px;
+    box-sizing: border-box;
+    height: 28px;
+    line-height: 16px;
+}
+
+#buscarEstado:focus, #buscarPrevision:focus, #buscarConvenio:focus, #buscarAdmision:focus, 
+#buscarPaciente:focus, #buscarMedico:focus, #buscarProveedor:focus,
+#fechaDia:focus, #fechaDesde:focus, #fechaHasta:focus, #mesSelect:focus, #anioSelect:focus {
+    box-shadow: 0 0 8px rgba(0, 123, 255, 0.3);
+    outline: none;
+}
+
+.pacientes-date-search {
+    min-width: 400px;
+    max-width: 500px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+.pacientes-date-options {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 20px;
+    align-items: center;
+}
+
+.pacientes-date-options label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    white-space: nowrap;
+}
+
+.pacientes-date-group {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+#dateDay, #dateWeek, #dateMonth {
+    width: 14px;
+    height: 14px;
+    margin: 0;
+}
+
+#fechaDia, #fechaDesde, #fechaHasta {
+    width: 100px;
+    min-width: 100px;
+}
+
+#mesSelect {
+    width: 90px;
+    min-width: 90px;
+}
+
+#anioSelect {
+    width: 70px;
+    min-width: 70px;
+}
+
+.pacientes-table-container {
+    width: 100%;
+    max-height: 500px;
+    overflow-y: auto;
+    overflow-x: auto;
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    flex-grow: 1;
+}
+
+.pacientes-table {
+    table-layout: fixed;
+    border-collapse: collapse;
+    font-size: 11px;
+    width: auto;
+    box-sizing: border-box;
+}
+
+.pacientes-table th, .pacientes-table td {
+    padding: 4px;
+    text-align: left;
+    border: 1px solid #ddd;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-sizing: border-box;
+}
+
+.pacientes-table th {
+    background-color: #f2f2f2;
+    font-size: 11px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    cursor: default;
+    user-select: none;
+}
+
+.pacientes-table th .resize-handle {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 5px;
+    height: 100%;
+    cursor: col-resize;
+    background: transparent;
+    z-index: 11;
+}
+
+.pacientes-table th .resize-handle:hover,
+.pacientes-table th .resize-handle.active {
+    background: #007bff;
+    width: 5px;
+}
+
+.pacientes-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+/* Anchos de columnas optimizados */
+.pacientes-table th:nth-child(1), .pacientes-table td:nth-child(1) { width: 90px; min-width: 90px; max-width: 180px; } /* Fecha Ingreso */
+.pacientes-table th:nth-child(2), .pacientes-table td:nth-child(2) { width: 80px; min-width: 80px; max-width: 160px; } /* Estado */
+.pacientes-table th:nth-child(3), .pacientes-table td:nth-child(3) { width: 100px; min-width: 100px; max-width: 200px; } /* Previsión */
+.pacientes-table th:nth-child(4), .pacientes-table td:nth-child(4) { width: 110px; min-width: 110px; max-width: 220px; } /* Convenio */
+.pacientes-table th:nth-child(5), .pacientes-table td:nth-child(5) { width: 70px; min-width: 70px; max-width: 140px; } /* Admisión */
+.pacientes-table th:nth-child(6), .pacientes-table td:nth-child(6) { width: 180px; min-width: 180px; max-width: 360px; } /* Paciente */
+.pacientes-table th:nth-child(7), .pacientes-table td:nth-child(7) { width: 150px; min-width: 150px; max-width: 300px; } /* Médico */
+.pacientes-table th:nth-child(8), .pacientes-table td:nth-child(8) { width: 90px; min-width: 90px; max-width: 180px; } /* Fecha CX */
+.pacientes-table th:nth-child(9), .pacientes-table td:nth-child(9) { width: 120px; min-width: 120px; max-width: 240px; } /* Proveedor */
+.pacientes-table th:nth-child(10), .pacientes-table td:nth-child(10) { width: 100px; min-width: 100px; max-width: 200px; } /* Total */
+.pacientes-table th:nth-child(11), .pacientes-table td:nth-child(11) { width: 80px; min-width: 80px; max-width: 160px; } /* Atributo */
+.pacientes-table th:nth-child(12), .pacientes-table td:nth-child(12) { width: 80px; min-width: 80px; max-width: 160px; } /* Acciones */
+
+.pacientes-actions {
+    display: flex;
+    gap: 1px;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0;
+    margin: 0;
+}
+
+.pacientes-actions button {
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+    font-size: 9px;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pacientes-table td:last-child {
+    display: flex;
+    align-items: center;
+    padding: 1px;
+}
+
+.pacientes-btn-history {
+    background-color: #17a2b8;
+    color: white;
+}
+
+.pacientes-btn-history:hover {
+    background-color: #138496;
+}
+
+.pacientes-pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+}
+
+#pacientes-message {
+    margin-bottom: 10px;
+    padding: 8px;
+    border-radius: 4px;
+    display: none;
+    font-size: 11px;
+}
+
+.pacientes-message-error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.pacientes-message-success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.pacientes-toast-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 350px;
+}
+
+.pacientes-toast {
+    background-color: #333;
+    color: white;
+    padding: 12px 16px;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    font-size: 12px;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    width: 100%;
+    box-sizing: border-box;
+    word-wrap: break-word;
+}
+
+.pacientes-toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.pacientes-toast.success {
+    background-color: #28a745;
+}
+
+.pacientes-toast.error {
+    background-color: #dc3545;
+}
+
+.modal-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+.modal-btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.modal-btn-secondary:hover {
+    background-color: #5a6268;
+}
+
+.loading-modal {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 120px;
+    height: 80px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.loading-modal:not(.show) {
+    display: none !important;
+}
+
+.spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid #e3f2fd;
+    border-top: 3px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.loading-text {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #333;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@media screen and (max-width: 1200px) {
+    .pacientes-search-row {
+        flex-wrap: wrap;
+    }
+    .pacientes-date-search {
+        min-width: 300px;
+        max-width: 400px;
+    }
+    .pacientes-form-group {
+        max-width: 100%;
+        min-width: 200px;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .pacientes-main-container {
+        padding: 5px 10px 10px 10px;
+    }
+    .pacientes-form-group {
+        min-width: 100%;
+    }
+    .pacientes-date-options {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .pacientes-date-group {
+        flex-direction: column;
+        width: 100%;
+    }
+    #fechaDia, #fechaDesde, #fechaHasta, #mesSelect, #anioSelect {
+        width: 100%;
+        min-width: 100%;
+    }
+}

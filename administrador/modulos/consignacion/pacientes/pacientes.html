@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pacientes</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
+        import { 
+            getFirestore, collection, getDocs, query, where, doc, 
+            orderBy, getDoc, limit, startAfter 
+        } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
+        
+        window.firebaseModules = {
+            initializeApp,
+            getAuth, 
+            onAuthStateChanged,
+            setPersistence,
+            browserSessionPersistence,
+            getFirestore,
+            collection,
+            getDocs,
+            query,
+            where,
+            doc,
+            orderBy,
+            getDoc,
+            limit,
+            startAfter
+        };
+    </script>
+    <link rel="stylesheet" href="pacientes.css">
+</head>
+<body>
+    <div class="pacientes-main-container">
+        <h1 class="pacientes-title">Pacientes</h1>
+        <div id="pacientes-message"></div>
+        
+        <div class="pacientes-search-container">
+            <div class="pacientes-search-row">
+                <div class="pacientes-form-group">
+                    <label class="pacientes-label" for="buscarEstado">Estado:</label>
+                    <input type="text" id="buscarEstado">
+                </div>
+                <div class="pacientes-form-group">
+                    <label class="pacientes-label" for="buscarPrevision">Previsión:</label>
+                    <input type="text" id="buscarPrevision">
+                </div>
+                <div class="pacientes-form-group">
+                    <label class="pacientes-label" for="buscarConvenio">Convenio:</label>
+                    <input type="text" id="buscarConvenio">
+                </div>
+                <div class="pacientes-form-group">
+                    <label class="pacientes-label" for="buscarAdmision">Admisión:</label>
+                    <input type="text" id="buscarAdmision">
+                </div>
+                <div class="pacientes-form-group">
+                    <label class="pacientes-label" for="buscarPaciente">Paciente:</label>
+                    <input type="text" id="buscarPaciente">
+                </div>
+                <div class="pacientes-form-group">
+                    <label class="pacientes-label" for="buscarMedico">Médico:</label>
+                    <input type="text" id="buscarMedico">
+                </div>
+                <div class="pacientes-form-group">
+                    <label class="pacientes-label" for="buscarProveedor">Proveedor:</label>
+                    <input type="text" id="buscarProveedor">
+                </div>
+                <div class="pacientes-form-group button-group">
+                    <button id="limpiarBtn" class="modal-btn modal-btn-secondary">Limpiar</button>
+                </div>
+            </div>
+            
+            <div class="pacientes-date-search">
+                <label class="pacientes-label">Buscar por Fecha CX:</label>
+                <div class="pacientes-date-options">
+                    <div class="pacientes-date-group">
+                        <label><input type="radio" name="dateFilter" id="dateDay" value="day"> Día</label>
+                        <input type="date" id="fechaDia">
+                    </div>
+                    <div class="pacientes-date-group">
+                        <label><input type="radio" name="dateFilter" id="dateWeek" value="week"> Semana</label>
+                        <input type="date" id="fechaDesde">
+                        <input type="date" id="fechaHasta">
+                    </div>
+                    <div class="pacientes-date-group">
+                        <label><input type="radio" name="dateFilter" id="dateMonth" value="month"> Mes</label>
+                        <select id="mesSelect">
+                            <option value="01">Enero</option>
+                            <option value="02">Febrero</option>
+                            <option value="03">Marzo</option>
+                            <option value="04">Abril</option>
+                            <option value="05">Mayo</option>
+                            <option value="06">Junio</option>
+                            <option value="07">Julio</option>
+                            <option value="08">Agosto</option>
+                            <option value="09">Septiembre</option>
+                            <option value="10">Octubre</option>
+                            <option value="11">Noviembre</option>
+                            <option value="12">Diciembre</option>
+                        </select>
+                        <select id="anioSelect"></select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="pacientes-table-container">
+            <table class="pacientes-table" id="pacientesTable">
+                <thead>
+                    <tr>
+                        <th>Fecha Ingreso<div class="resize-handle"></div></th>
+                        <th>Estado<div class="resize-handle"></div></th>
+                        <th>Previsión<div class="resize-handle"></div></th>
+                        <th>Convenio<div class="resize-handle"></div></th>
+                        <th>Admisión<div class="resize-handle"></div></th>
+                        <th>Nombre Paciente<div class="resize-handle"></div></th>
+                        <th>Médico<div class="resize-handle"></div></th>
+                        <th>Fecha CX<div class="resize-handle"></div></th>
+                        <th>Proveedor<div class="resize-handle"></div></th>
+                        <th>Total Paciente<div class="resize-handle"></div></th>
+                        <th>Atributo<div class="resize-handle"></div></th>
+                        <th>Acciones<div class="resize-handle"></div></th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        
+        <div class="pacientes-pagination">
+            <div id="loadMoreContainer" style="display: none;"></div>
+        </div>
+        
+        <div id="loading" class="loading-modal">
+            <div class="spinner"></div>
+            <span class="loading-text">Cargando...</span>
+        </div>
+    </div>
+
+    <div class="pacientes-toast-container" id="toastContainer"></div>
+    <script type="module" src="pacientes.js"></script>
+</body>
+</html>
