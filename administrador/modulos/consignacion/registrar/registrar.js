@@ -305,7 +305,7 @@ function setupAutocomplete(inputId, iconId, listId, data, key) {
                 fillFields(item, inputId);
                 input.dispatchEvent(new Event('change'));
                 input.focus();
-            };
+            });
             list.appendChild(div);
         });
         list.style.display = 'block';
