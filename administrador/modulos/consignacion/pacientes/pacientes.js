@@ -1,9 +1,11 @@
-// pacientes.js
-import { window.firebaseModules as fm } from './pacientes.html'; // si no funciona, usa los imports directos
-const {
-    initializeApp, getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence,
-    getFirestore, collection, getDocs, query, where, doc, orderBy, getDoc, limit, startAfter
-} = window.firebaseModules || {};
+// pacientes.js  →  VERSIÓN FINAL CORREGIDA
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
+import { 
+    getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence 
+} from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
+import { 
+    getFirestore, collection, getDocs, query, where, doc, orderBy, limit, startAfter 
+} from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
@@ -54,7 +56,7 @@ function normalizeText(text) {
 
 function escapeHtml(text) {
     const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
-    return text?.replace(/[&<>"']/g, m => map<br> m]) || '';
+    return text?.replace(/[&<>"']/g, m => map[m]) || '';
 }
 
 function formatNumberWithThousandsSeparator(number) {
@@ -320,10 +322,6 @@ document.addEventListener('DOMContentLoaded', () => {
     setupColumnResize();
 
     onAuthStateChanged(auth, user => {
-        if (user) {
-            loadPacientes();
-        } else {
-            loadPacientes();
-        }
+        loadPacientes();
     });
 });
