@@ -773,11 +773,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderTable() {
         if (!registrarBody) return;
+
         if (registros.length === 0) {
-            registrarBody.innerHTML = `<tr><td colspan="14" style="text-align:center;padding:20px;color:#666;">
-                <i class="fas fa-inbox" style="font-size:48px;display:block;margin-bottom:10px;"></i>
-                No hay registros
-            </td></tr>`;
+            registrarBody.innerHTML = `
+                <tr>
+                    <td colspan="14" style="text-align:center;padding:20px;color:#666;">
+                        <i class="fas fa-inbox" style="font-size:48px;display:block;margin-bottom:10px;"></i>
+                        No hay registros
+                    </td>
+                </tr>`;
         } else {
             registrarBody.innerHTML = registros.map(r => `
                 <tr class="registrar-row">
@@ -799,7 +803,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         <button class="registrar-btn-delete" data-id="${r.id}" data-admision="${escapeHtml(r.admision)}"><i class="fas fa-trash"></i></button>
                         <button class="registrar-btn-history" data-id="${r.id}" data-admision="${escapeHtml(r.admision)}"><i class="fas fa-history"></i></button>
                     </td>
-                </tr>`).join('');
+                </tr>
+            `).join('');
         }
 
         const loadMore = document.getElementById('loadMoreContainer');
