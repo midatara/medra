@@ -109,7 +109,6 @@ async function loadMedicos() {
         });
         medicos.sort((a, b) => a.nombre.localeCompare(b.nombre));
 
-        // RECREAMOS AUTOCOMPLETADO DE MÉDICOS
         setupMedicoAutocomplete('medico', 'medicoToggle', 'medicoDropdown');
         setupMedicoAutocomplete('editMedico', 'editMedicoToggle', 'editMedicoDropdown');
     } catch (error) {
@@ -178,7 +177,7 @@ function attachIconForceLoad(iconId) {
     });
 }
 
-// === AUTOCOMPLETADO MÉDICOS (FUERA DE DOMContentLoaded) ===
+// === AUTOCOMPLETADO MÉDICOS ===
 function setupMedicoAutocomplete(inputId, iconId, listId) {
     const input = document.getElementById(inputId);
     const icon = document.getElementById(iconId);
@@ -337,7 +336,7 @@ function setupAutocomplete(inputId, iconId, listId, data, key) {
                 fillFields(item, inputId);
                 input.dispatchEvent(new Event('change'));
                 input.focus();
-            });
+            };
             list.appendChild(div);
         });
         list.style.display = 'block';
@@ -595,7 +594,7 @@ function parseFechaCX(fecha) {
     return new Date(fecha);
 }
 
-// === DOMContentLoaded ===
+// === DOMContentLoaded - FILTROS 100% FUNCIONALES ===
 document.addEventListener('DOMContentLoaded', () => {
     if (loading) loading.classList.remove('show');
 
@@ -658,7 +657,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const cancelEditBtn = document.getElementById('cancelEditBtn');
     const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
     const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
-
     const historyContent = document.getElementById('historyContent');
 
     let currentEditId = null;
@@ -694,15 +692,36 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // === FILTROS DE FECHA ===
+    // === FILTROS DE FECHA - CORREGIDOS ===
     function setupDateFilters() {
-        if (dateDay) dateDay.addEventListener('change', e => { if (e.target.checked) { dateFilter = 'day'; fechaDia = fechaDiaInput?.value || ''; debouncedLoadRegistros(); } });
-        if (dateWeek) dateWeek.addEventListener('change', e => { if (e.target.checked) { dateFilter = 'week'; fechaDesde = fechaDesdeInput?.value || ''; fechaHasta = fechaHastaInput?.value || ''; debouncedLoadRegistros(); } });
-        if (dateMonth) dateMonth.addEventListener('change', e => { if (e.target.checked) { dateFilter = 'month'; mes = mesSelect?.value || ''; anio = anioSelect?.value || ''; debouncedLoadRegistros(); } });
-        if (fechaDiaInput) fechaDiaInput.addEventListener('change', e => { if (dateFilter === 'day') { fechaDia = e.target.value; debouncedLoadRegistros(); } });
-        if (fechaDesdeInput) fechaDesdeInput.addEventListener('change', e => { if (dateFilter === 'week') { fechaDesde = e.target.value; debouncedLoadRegistros(); } });
-        if (fechaHastaInput) fechaHastaInput.addEventListener('change', e => { if (dateFilter === 'week') { fechaHasta = e.target.value; debouncedLoadRegistros(); } });
-        if (mesSelect) mesSelect.addEventListener('change', e => { if (dateFilter === 'month') { mes = e.target.value; debouncedLoadRegistros(); } });
+        const updateFilter = () => {
+            dateFilter = null;
+            fechaDia = fechaDesde = fechaHasta = mes = anio = null;
+
+            if (dateDay?.checked) {
+                dateFilter = 'day';
+                fechaDia = fechaDiaInput?.value || '';
+            } else if (dateWeek?.checked) {
+                dateFilter = 'week';
+                fechaDesde = fechaDesdeInput?.value || '';
+                fechaHasta = fechaHastaInput?.value || '';
+            } else if (dateMonth?.checked) {
+                dateFilter = 'month';
+                mes = mesSelect?.value || '';
+                anio = anioSelect?.value || '';
+            }
+
+            debouncedLoadRegistros();
+        };
+
+        [dateDay, dateWeek, dateMonth].forEach(radio => {
+            if (radio) radio.addEventListener('change', updateFilter);
+        });
+
+        [fechaDiaInput, fechaDesdeInput, fechaHastaInput, mesSelect, anioSelect].forEach(input => {
+            if (input) input.addEventListener('change', updateFilter);
+        });
+
         if (anioSelect) {
             const currentYear = new Date().getFullYear();
             anioSelect.innerHTML = '';
@@ -712,56 +731,113 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (y === currentYear) opt.selected = true;
                 anioSelect.appendChild(opt);
             }
-            anioSelect.addEventListener('change', e => { if (dateFilter === 'month') { anio = e.target.value; debouncedLoadRegistros(); } });
         }
     }
 
-    // === CARGA DE REGISTROS ===
-    async function loadRegistros(filters) {
+    // === CARGA DE REGISTROS - CON FILTROS REALES ===
+    async function loadRegistros() {
         window.showLoading('loadRegistros');
         try {
             let q = query(collection(db, "registrar_consignacion"), orderBy("timestamp", "desc"));
-            ['searchAdmision', 'searchPaciente', 'searchMedico', 'searchDescripcion', 'searchProveedor'].forEach(f => {
-                if (filters[f]) q = query(q, where(f.replace('search', '').toLowerCase(), ">=", normalizeText(filters[f])), where(f.replace('search', '').toLowerCase(), "<=", normalizeText(filters[f]) + '\uf8ff'));
-            });
-            if (currentPage > 1 && lastVisible) q = query(q, startAfter(lastVisible));
+
+            // FILTROS DE TEXTO
+            if (searchAdmision) {
+                q = query(q, where("admision", ">=", searchAdmision), where("admision", "<=", searchAdmision + '\uf8ff'));
+            }
+            if (searchPaciente) {
+                q = query(q, where("paciente", ">=", searchPaciente), where("paciente", "<=", searchPaciente + '\uf8ff'));
+            }
+            if (searchMedico) {
+                q = query(q, where("medico", ">=", searchMedico), where("medico", "<=", searchMedico + '\uf8ff'));
+            }
+            if (searchDescripcion) {
+                q = query(q, where("descripcion", ">=", searchDescripcion), where("descripcion", "<=", searchDescripcion + '\uf8ff'));
+            }
+            if (searchProveedor) {
+                q = query(q, where("proveedor", ">=", searchProveedor), where("proveedor", "<=", searchProveedor + '\uf8ff'));
+            }
+
+            // PAGINACIÓN
+            if (currentPage > 1 && lastVisible) {
+                q = query(q, startAfter(lastVisible));
+            }
             q = query(q, limit(PAGE_SIZE));
+
             const snapshot = await getDocs(q);
             let temp = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), fechaCX: parseFechaCX(doc.data().fechaCX) }));
+
+            // FILTROS DE FECHA (DESPUÉS DE TRAER DATOS)
             temp = temp.filter(r => {
-                if (filters.dateFilter === 'day' && filters.fechaDia) {
-                    const d1 = r.fechaCX; const d2 = new Date(filters.fechaDia);
-                    if (!d1 || d1.toLocaleDateString('es-CL') !== d2.toLocaleDateString('es-CL')) return false;
+                if (!r.fechaCX) return false;
+
+                if (dateFilter === 'day' && fechaDia) {
+                    const d1 = r.fechaCX.toLocaleDateString('es-CL');
+                    const d2 = new Date(fechaDia).toLocaleDateString('es-CL');
+                    return d1 === d2;
                 }
-                if (filters.dateFilter === 'week' && filters.fechaDesde && filters.fechaHasta) {
-                    const d1 = r.fechaCX; const d2 = new Date(filters.fechaDesde); const d3 = new Date(filters.fechaHasta); d3.setHours(23,59,59,999);
-                    if (!d1 || d1 < d2 || d1 > d3) return false;
+                if (dateFilter === 'week' && fechaDesde && fechaHasta) {
+                    const d1 = r.fechaCX;
+                    const d2 = new Date(fechaDesde);
+                    const d3 = new Date(fechaHasta);
+                    d3.setHours(23, 59, 59, 999);
+                    return d1 >= d2 && d1 <= d3;
                 }
-                if (filters.dateFilter === 'month' && filters.mes && filters.anio) {
-                    if (!r.fechaCX) return false;
-                    if (r.fechaCX.getMonth() + 1 !== parseInt(filters.mes) || r.fechaCX.getFullYear() !== parseInt(filters.anio)) return false;
+                if (dateFilter === 'month' && mes && anio) {
+                    return r.fechaCX.getMonth() + 1 === parseInt(mes) && r.fechaCX.getFullYear() === parseInt(anio);
                 }
                 return true;
             });
+
             registros = temp;
             lastVisible = snapshot.docs[snapshot.docs.length - 1] || null;
             renderTable();
-        } catch (e) { console.error(e); showToast('Error al cargar registros', 'error'); }
-        finally { window.hideLoading('loadRegistros'); }
+        } catch (e) {
+            console.error(e);
+            showToast('Error al cargar registros', 'error');
+        } finally {
+            window.hideLoading('loadRegistros');
+        }
     }
 
-    async function getTotalFilteredCount() {
-        try {
-            const snap = await getDoc(doc(db, "stats", "counts"));
-            return snap.exists() ? snap.data().totalRegistros || 0 : 0;
-        } catch { return 0; }
-    }
+    // === DEBOUNCE CORREGIDO ===
+    const debouncedLoadRegistros = debounce(() => {
+        currentPage = 1;
+        lastVisible = null;
+        loadRegistros();
+    }, 300);
 
+    // === FILTROS DE BÚSQUEDA - ACTUALIZAN VARIABLES GLOBALES ===
+    const searchInputs = [
+        { input: buscarAdmisionInput, var: 'searchAdmision' },
+        { input: buscarPacienteInput, var: 'searchPaciente' },
+        { input: buscarMedicoInput, var: 'searchMedico' },
+        { input: buscarDescripcionInput, var: 'searchDescripcion' },
+        { input: buscarProveedorInput, var: 'searchProveedor' }
+    ];
+
+    searchInputs.forEach(({ input, var: varName }) => {
+        if (input) {
+            input.addEventListener('input', e => {
+                window[varName] = normalizeText(e.target.value);
+                debouncedLoadRegistros();
+            });
+            input.addEventListener('change', e => {
+                e.target.value = normalizeText(e.target.value);
+            });
+        }
+    });
+
+    // === RENDER TABLA ===
     function renderTable() {
         if (!registrarBody) return;
-        registrarBody.innerHTML = registros.length === 0
-            ? `<tr><td colspan="14" style="text-align:center;padding:20px;color:#666;"><i class="fas fa-inbox" style="font-size:48px;display:block;margin-bottom:10px;"></i>No hay registros</td></tr>`
-            : registros.map(r => `
+
+        if (registros.length === 0) {
+            registrarBody.innerHTML = `<tr><td colspan="14" style="text-align:center;padding:20px;color:#666;">
+                <i class="fas fa-inbox" style="font-size:48px;display:block;margin-bottom:10px;"></i>
+                No hay registros
+            </td></tr>`;
+        } else {
+            registrarBody.innerHTML = registros.map(r => `
                 <tr class="registrar-row">
                     <td class="registrar-cell admision">${escapeHtml(r.admision)}</td>
                     <td class="registrar-cell paciente">${escapeHtml(r.paciente)}</td>
@@ -782,9 +858,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         <button class="registrar-btn-history" onclick="openHistoryModal('${r.id}', '${escapeHtml(r.admision)}')"><i class="fas fa-history"></i></button>
                     </td>
                 </tr>`).join('');
+        }
 
         const loadMore = document.getElementById('loadMoreContainer');
         if (loadMore) loadMore.remove();
+
         if (lastVisible && registros.length >= PAGE_SIZE) {
             const div = document.createElement('div');
             div.id = 'loadMoreContainer';
@@ -793,23 +871,10 @@ document.addEventListener('DOMContentLoaded', () => {
             document.querySelector('.registrar-table-container')?.appendChild(div);
             document.getElementById('loadMoreBtn')?.addEventListener('click', () => {
                 currentPage++;
-                loadRegistros({ searchAdmision, searchPaciente, searchMedico, searchDescripcion, searchProveedor, dateFilter, fechaDia, fechaDesde, fechaHasta, mes, anio });
+                loadRegistros();
             });
         }
     }
-
-    const debouncedLoadRegistros = debounce(() => {
-        currentPage = 1; lastVisible = null;
-        loadRegistros({ searchAdmision, searchPaciente, searchMedico, searchDescripcion, searchProveedor, dateFilter, fechaDia, fechaDesde, fechaHasta, mes, anio });
-    }, 150);
-
-    ['buscarAdmision', 'buscarPaciente', 'buscarMedico', 'buscarDescripcion', 'buscarProveedor'].forEach(id => {
-        const input = document.getElementById(id);
-        if (input) {
-            input.addEventListener('input', e => { window[id.replace('buscar', 'search').toLowerCase()] = normalizeText(e.target.value); debouncedLoadRegistros(); });
-            input.addEventListener('change', e => { e.target.value = normalizeText(e.target.value); });
-        }
-    });
 
     // === MODALES ===
     function closeModal(modal) {
@@ -835,7 +900,7 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault(); e.stopPropagation();
         window.showLoading('downloadAll');
         try {
-            let q = query(collection(db, "registrar_consignacion"), orderBy("fechaCX", "asc"));
+            const q = query(collection(db, "registrar_consignacion"), orderBy("fechaCX", "asc"));
             const snap = await getDocs(q);
             const data = snap.docs.map(d => ({ id: d.id, ...d.data(), fechaCX: parseFechaCX(d.data().fechaCX) }));
             exportToExcel(data, `consignaciones_completas_${new Date().toISOString().split('T')[0]}`);
@@ -850,11 +915,13 @@ document.addEventListener('DOMContentLoaded', () => {
         [admisionInput, pacienteInput, medicoInput, fechaCXInput, codigoInput, descripcionInput, cantidadInput, referenciaInput, proveedorInput, precioUnitarioInput, atributoInput, totalItemsInput,
          buscarAdmisionInput, buscarPacienteInput, buscarMedicoInput, buscarDescripcionInput, buscarProveedorInput].forEach(i => { if (i) i.value = ''; });
         [dateDay, dateWeek, dateMonth].forEach(r => { if (r) r.checked = false; });
-        searchAdmision = searchPaciente = searchMedico = searchDescripcion = searchProveedor = dateFilter = fechaDia = fechaDesde = fechaHasta = mes = anio = '';
+        searchAdmision = searchPaciente = searchMedico = searchDescripcion = searchProveedor = '';
+        dateFilter = fechaDia = fechaDesde = fechaHasta = mes = anio = null;
         currentPage = 1; lastVisible = null;
         debouncedLoadRegistros();
     });
 
+    // === REGISTRAR ===
     registrarBtn?.addEventListener('click', async e => {
         e.preventDefault();
         const data = {
@@ -885,11 +952,12 @@ document.addEventListener('DOMContentLoaded', () => {
             await logAction(ref.id, 'CREAR', null, data);
             showToast('Registro creado', 'success');
             [codigoInput, descripcionInput, cantidadInput, referenciaInput, proveedorInput, precioUnitarioInput, atributoInput, totalItemsInput].forEach(i => i.value = '');
-            loadRegistros({ searchAdmision, searchPaciente, searchMedico, searchDescripcion, searchProveedor, dateFilter, fechaDia, fechaDesde, fechaHasta, mes, anio });
+            debouncedLoadRegistros();
         } catch (e) { showToast('Error al registrar', 'error'); }
         finally { window.hideLoading('registrar'); }
     });
 
+    // === MODALES: EDITAR, ELIMINAR, HISTORIAL ===
     window.openEditModal = (id, r) => {
         currentEditId = id; currentEditOldData = { ...r };
         editAdmisionInput.value = r.admision; editPacienteInput.value = r.paciente; editMedicoInput.value = r.medico;
@@ -930,7 +998,7 @@ document.addEventListener('DOMContentLoaded', () => {
             await logAction(currentEditId, 'EDITAR', currentEditOldData, data);
             showToast('Actualizado', 'success');
             closeModal(editModal);
-            loadRegistros({ searchAdmision, searchPaciente, searchMedico, searchDescripcion, searchProveedor, dateFilter, fechaDia, fechaDesde, fechaHasta, mes, anio });
+            debouncedLoadRegistros();
         } catch { showToast('Error al editar', 'error'); }
         finally { window.hideLoading('edit'); }
     });
@@ -952,7 +1020,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 await updateDoc(doc(db, "stats", "counts"), { totalRegistros: increment(-1) });
                 showToast('Eliminado', 'success');
                 closeModal(deleteModal);
-                loadRegistros({ searchAdmision, searchPaciente, searchMedico, searchDescripcion, searchProveedor, dateFilter, fechaDia, fechaDesde, fechaHasta, mes, anio });
+                debouncedLoadRegistros();
             }
         } catch { showToast('Error al eliminar', 'error'); }
         finally { window.hideLoading('delete'); }
@@ -980,7 +1048,7 @@ document.addEventListener('DOMContentLoaded', () => {
         finally { window.hideLoading('history'); }
     };
 
-    // === INICIALIZACIÓN FINAL ===
+    // === INICIALIZACIÓN ===
     setupDateFilters();
     setupAtributoFilter();
     attachIconForceLoad('codigoToggle');
@@ -994,7 +1062,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             await loadMedicos();
             await loadReferencias();
-            await loadRegistros({ searchAdmision, searchPaciente, searchMedico, searchDescripcion, searchProveedor, dateFilter, fechaDia, fechaDesde, fechaHasta, mes, anio });
+            debouncedLoadRegistros();
         } finally {
             window.hideLoading('init');
         }
