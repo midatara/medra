@@ -1,4 +1,3 @@
-// traspasar.js  (ES‑module) - VERSIÓN FINAL CON UI
 import {
     getFirestore, collection, getDocs, doc, setDoc, deleteDoc,
     writeBatch, increment
@@ -11,14 +10,10 @@ let confirmBtn = null;
 let cancelBtn = null;
 let modalBody = null;
 
-/* ------------------------------------------------------------------ */
-/*  Función pública que se llama desde registrar.html                */
-/* ------------------------------------------------------------------ */
 export function initTraspasar() {
     traspasarBtn = document.getElementById('traspasarBtn');
     if (!traspasarBtn) return;
 
-    /* ---------- Crear modal una sola vez ---------- */
     if (!document.getElementById('traspasarModal')) {
         traspasarModal = document.createElement('div');
         traspasarModal.className = 'modal';
@@ -30,7 +25,7 @@ export function initTraspasar() {
                     <span class="close">×</span>
                 </div>
                 <div class="modal-content-body" id="traspasoBody">
-                    <p>¿Desea traspasar <strong>Todos los registros</strong> a <code>pacientes</code> y <code>cargas</code>?</p>
+                    <p>¿Desea traspasar <strong>Todos los registros</strong> a <code>pacientes_consignaciones</code> y <code>cargas_consignaciones</code>?</p>
                     <p style="color:#856404;background:#fff3cd;padding:10px;border-radius:4px;font-size:11px;">
                         <strong>Advertencia:</strong> Los registros se eliminarán de <code>registrar_consignacion</code>.
                     </p>
@@ -47,14 +42,12 @@ export function initTraspasar() {
     confirmBtn = document.getElementById('confirmTraspasarBtn');
     cancelBtn = document.getElementById('cancelTraspasarBtn');
 
-    /* ---------- Eventos ---------- */
     traspasarBtn.addEventListener('click', openTraspasarModal);
     traspasarModal.querySelector('.close').addEventListener('click', closeTraspasarModal);
     cancelBtn.addEventListener('click', closeTraspasarModal);
     confirmBtn.addEventListener('click', ejecutarTraspaso);
     traspasarModal.addEventListener('click', e => { if (e.target === traspasarModal) closeTraspasarModal(); });
 
-    /* ---------- Habilitar/deshabilitar botón ---------- */
     window.updateTraspasarButton = (hayRegistros) => {
         if (traspasarBtn) {
             traspasarBtn.disabled = !hayRegistros;
@@ -64,9 +57,6 @@ export function initTraspasar() {
     };
 }
 
-/* ------------------------------------------------------------------ */
-/*  Funciones internas                                               */
-/* ------------------------------------------------------------------ */
 function openTraspasarModal() {
     traspasarModal.style.display = 'block';
     resetModal();
@@ -78,7 +68,7 @@ function closeTraspasarModal() {
 
 function resetModal() {
     modalBody.innerHTML = `
-        <p>¿Desea traspasar <strong>Todos los registros</strong> a <code>pacientes</code> y <code>cargas</code>?</p>
+        <p>¿Desea traspasar <strong>Todos los registros</strong> a <code>pacientes_consignaciones</code> y <code>cargas_consignaciones</code>?</p>
         <p style="color:#856404;background:#fff3cd;padding:10px;border-radius:4px;font-size:11px;">
             <strong>Advertencia:</strong> Los registros se eliminarán de <code>registrar_consignacion</code>.
         </p>
@@ -118,7 +108,7 @@ function showTraspasoSuccess(count) {
         </div>`;
     document.getElementById('closeSuccessBtn').onclick = () => {
         closeTraspasarModal();
-        if (window.loadRegistros) window.loadRegistros(); // ← LIMPIA LA TABLA
+        if (window.loadRegistros) window.loadRegistros();
     };
 }
 
@@ -127,7 +117,7 @@ function showTraspasoError(msg) {
         <div style="text-align:center;padding:20px;">
             <i class="fas fa-exclamation-triangle" style="font-size:48px;color:#dc3545;margin-bottom:15px;display:block;"></i>
             <p style="margin:0;font-weight:bold;color:#dc3545;">Error en el traspaso</p>
-            <p style="margin:10px 0 0;font-size:12px;color:#333;">${escapeHtml(msg)}</p>
+            <p style="margin:10px 0 0;font-size:12px;color:#333;">${msg}</p>
             <div class="modal-buttons" style="margin-top:20px;">
                 <button id="closeErrorBtn" class="modal-btn modal-btn-secondary">Cerrar</button>
             </div>
@@ -138,9 +128,6 @@ function showTraspasoError(msg) {
     traspasarBtn.disabled = false;
 }
 
-/* ------------------------------------------------------------------ */
-/*  Traspaso real                                                    */
-/* ------------------------------------------------------------------ */
 async function ejecutarTraspaso() {
     showTraspasoLoading();
 
@@ -157,65 +144,74 @@ async function ejecutarTraspaso() {
         let total = 0;
 
         snapshot.docs.forEach(d => {
-    const data = { id: d.id, ...d.data() };
+            const data = { id: d.id, ...d.data() };
 
-    // === CORREGIR FECHA CX (SIN TOCAR registrar.js) ===
-    let fechaCX = data.fechaCX?.toDate?.() ?? new Date(data.fechaCX);
-    if (fechaCX) {
-        // Forzar a mediodía local → evita desfase horario
-        fechaCX = new Date(fechaCX.getFullYear(), fechaCX.getMonth(), fechaCX.getDate(), 12, 0, 0);
-    }
+            let fechaCX = data.fechaCX?.toDate?.() ?? new Date(data.fechaCX);
+            if (fechaCX) {
+                fechaCX = new Date(fechaCX.getFullYear(), fechaCX.getMonth(), fechaCX.getDate(), 12, 0, 0);
+            }
 
-    // === PACIENTES ===
-    const key = `${data.admision}_${data.proveedor}`;
-    if (pacientesMap.has(key)) {
-        const p = pacientesMap.get(key);
-        p.totalPaciente = (p.totalPaciente || 0) + data.totalItems;
-    } else {
-        pacientesMap.set(key, {
-            fechaIngreso: new Date(),
-            estado: 'ACTIVO',
-            prevision: '',
-            convenio: '',
-            admision: data.admision,
-            nombrePaciente: data.paciente,
-            medico: data.medico,
-            fechaCX, // ← YA CORREGIDA
-            proveedor: data.proveedor,
-            totalPaciente: data.totalItems,
-            atributo: data.atributo
+            const key = `${data.admision}_${data.proveedor}`;
+            if (pacientesMap.has(key)) {
+                const p = pacientesMap.get(key);
+                p.totalPaciente = (p.totalPaciente || 0) + data.totalItems;
+            } else {
+                pacientesMap.set(key, {
+                    fechaIngreso: new Date(),
+                    estado: 'ACTIVO',
+                    prevision: '',
+                    convenio: '',
+                    admision: data.admision,
+                    nombrePaciente: data.paciente,
+                    medico: data.medico,
+                    fechaCX,
+                    proveedor: data.proveedor,
+                    totalPaciente: data.totalItems,
+                    atributo: data.atributo
+                });
+            }
+
+            cargas.push({
+                estado: 'CARGADO',
+                fechaCarga: new Date(),
+                referencia: data.referencia,
+                idRegistro: data.id,
+                codigo: data.codigo,
+                cantidad: data.cantidad,
+                venta: data.precioUnitario,
+                prevision: '',
+                admision: data.admision,
+                paciente: data.paciente,
+                medico: data.medico,
+                fechaCX,
+                proveedor: data.proveedor,
+                codigoProducto: data.codigo,
+                descripcion: data.descripcion,
+                cantidadProducto: data.cantidad,
+                precio: data.precioUnitario,
+                atributo: data.atributo,
+                totalItem: data.totalItems,
+                margen: 0
+            });
+
+            batch.delete(d.ref);
+            total++;
         });
-    }
 
-    // === CARGAS ===
-    cargas.push({
-        // ...
-        fechaCX, // ← CORREGIDA
-        // ...
-    });
-
-    batch.delete(d.ref);
-    total++;
-});
-
-        // Guardar pacientes
         pacientesMap.forEach(p => {
-            const ref = doc(collection(db, "pacientes"));
+            const ref = doc(collection(db, "pacientes_consignaciones"));
             batch.set(ref, { ...p, timestamp: new Date() });
         });
 
-        // Guardar cargas
         cargas.forEach(c => {
-            const ref = doc(collection(db, "cargas"));
+            const ref = doc(collection(db, "cargas_consignaciones"));
             batch.set(ref, { ...c, timestamp: new Date() });
         });
 
-        // Actualizar contador
         batch.update(doc(db, "stats", "counts"), { totalRegistros: increment(-total) });
 
         await batch.commit();
 
-        // ÉXITO
         showTraspasoSuccess(total);
         window.showToast?.(`Traspasados ${total} registros`, 'success');
 

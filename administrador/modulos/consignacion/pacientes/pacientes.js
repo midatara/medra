@@ -1,4 +1,3 @@
-// pacientes.js  →  VERSIÓN FINAL CORREGIDA Y FUNCIONAL
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
 import { 
     getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence 
@@ -21,7 +20,6 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 setPersistence(auth, browserSessionPersistence);
 
-// === ESTADO DE LA APLICACIÓN ===
 let pacientes = [];
 let currentPage = 1;
 const PAGE_SIZE = 50;
@@ -42,10 +40,8 @@ let fechaHasta = null;
 let mes = null;
 let anio = null;
 
-// === ELEMENTOS DOM ===
 const loading = document.getElementById('loading');
 
-// === FUNCIONES GLOBALES (para toast/loading) ===
 window.showLoading = () => {
     if (loading) loading.classList.add('show');
 };
@@ -53,7 +49,6 @@ window.hideLoading = () => {
     if (loading) loading.classList.remove('show');
 };
 
-// === UTILIDADES ===
 function normalizeText(text) {
     return text?.trim().toUpperCase() || '';
 }
@@ -90,11 +85,10 @@ function showToast(text, type = 'success') {
     }, 4000);
 }
 
-// === CARGA DE DATOS ===
 async function loadPacientes() {
     window.showLoading();
     try {
-        let q = query(collection(db, "pacientes"), orderBy("fechaCX", "desc"));
+        let q = query(collection(db, "pacientes_consignaciones"), orderBy("fechaCX", "desc"));
         if (currentPage > 1 && lastVisible) {
             q = query(q, startAfter(lastVisible));
         }
@@ -107,7 +101,7 @@ async function loadPacientes() {
                 id: doc.id,
                 ...data,
                 fechaCX: data.fechaCX?.toDate?.() || new Date(data.fechaCX || Date.now()),
-                fechaIngreso: data.fechaIngreso?.toDate?.() || new Date(), // CORREGIDO
+                fechaIngreso: data.fechaIngreso?.toDate?.() || new Date(),
                 _admision: normalizeText(data.admision),
                 _paciente: normalizeText(data.nombrePaciente),
                 _medico: normalizeText(data.medico),
@@ -120,7 +114,6 @@ async function loadPacientes() {
 
         let filtered = temp;
 
-        // Filtros de texto
         if (searchEstado) filtered = filtered.filter(p => p._estado.includes(searchEstado));
         if (searchPrevision) filtered = filtered.filter(p => p._prevision.includes(searchPrevision));
         if (searchConvenio) filtered = filtered.filter(p => p._convenio.includes(searchConvenio));
@@ -129,7 +122,6 @@ async function loadPacientes() {
         if (searchMedico) filtered = filtered.filter(p => p._medico.includes(searchMedico));
         if (searchProveedor) filtered = filtered.filter(p => p._proveedor.includes(searchProveedor));
 
-        // Filtros de fecha
         filtered = filtered.filter(p => {
             if (!p.fechaCX) return false;
             if (dateFilter === 'day' && fechaDia) {
@@ -165,7 +157,6 @@ const debouncedLoad = debounce(() => {
     loadPacientes();
 }, 300);
 
-// === RENDERIZADO DE TABLA ===
 function renderTable() {
     const tbody = document.querySelector('#pacientesTable tbody');
     if (!tbody) return;
@@ -202,7 +193,6 @@ function renderTable() {
         </tr>
     `).join('');
 
-    // Paginación
     const loadMore = document.getElementById('loadMoreContainer');
     if (loadMore) loadMore.remove();
 
@@ -219,7 +209,6 @@ function renderTable() {
     }
 }
 
-// === RESIZE DE COLUMNAS ===
 function setupColumnResize() {
     const headers = document.querySelectorAll('.pacientes-table th');
     const initialWidths = [90, 80, 100, 110, 70, 180, 150, 90, 120, 100, 80, 80];
@@ -278,7 +267,6 @@ function setupColumnResize() {
     });
 }
 
-// === FILTROS DE FECHA ===
 function setupDateFilters() {
     const update = () => {
         dateFilter = null;
@@ -320,7 +308,6 @@ function setupDateFilters() {
     }
 }
 
-// === INICIALIZACIÓN ===
 document.addEventListener('DOMContentLoaded', () => {
     const inputs = [
         { id: 'buscarEstado', var: 'searchEstado' },
@@ -345,7 +332,6 @@ document.addEventListener('DOMContentLoaded', () => {
     setupDateFilters();
     setupColumnResize();
 
-    // Cargar al iniciar (sin esperar login obligatorio)
     onAuthStateChanged(auth, user => {
         loadPacientes();
     });
