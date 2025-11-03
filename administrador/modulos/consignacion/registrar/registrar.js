@@ -922,7 +922,7 @@ document.addEventListener('DOMContentLoaded', () => {
             cantidad: parseInt(cantidadInput?.value) || 0,
             referencia: normalizeText(referenciaInput?.value),
             proveedor: normalizeText(proveedorInput?.value),
-            precioUnitario: parseInt((precioUnit |arioInput?.value || '').replace(/[^\d]/g, '')) || 0,
+            precioUnitario: parseInt((precioUnitarioInput?.value || '').replace(/[^\d]/g, '')) || 0,
             atributo: normalizeText(atributoInput?.value),
             totalItems: parseInt((totalItemsInput?.value || '').replace(/[^\d]/g, '')) || 0
         };
