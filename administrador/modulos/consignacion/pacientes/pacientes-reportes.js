@@ -1,5 +1,5 @@
 // pacientes-reportes.js
-import { collection, getDocs, query, where, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
+import { collection, getDocs, query, where, doc, updateDoc, orderBy } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
 
 let db = null;
 const cacheReportes = new Map();
@@ -21,30 +21,49 @@ export async function completarDatosPacientes(pacientes) {
         try {
             const q = query(
                 collection(db, "reportes"),
-                where("admision", "==", p.admision.trim())
+                where("admision", "==", p.admision.trim()),
+                orderBy("fecha", "desc")
             );
             const snapshot = await getDocs(q);
 
-            let datos = { prevision: '', convenio: '', cirugia: '' };
+            const cirugias = [];
+            let isapre = '';
+            let convenio = '';
 
-            if (!snapshot.empty) {
-                const reporte = snapshot.docs[0].data(); // Tomamos el primero
-                datos = {
-                    prevision: reporte.isapre || '',
-                    convenio: reporte.convenio || '',
-                    cirugia: reporte.descripcion || ''
-                };
-
-                // GUARDAR EN FIRESTORE (solo si hay cambios)
-                const pacienteRef = doc(db, "pacientes_consignaciones", p.id);
-                const updates = {};
-                if (p.prevision !== datos.prevision) updates.prevision = datos.prevision;
-                if (p.convenio !== datos.convenio) updates.convenio = datos.convenio;
-                if (p.cirugia !== datos.cirugia) updates.cirugia = datos.cirugia;
-
-                if (Object.keys(updates).length > 0) {
-                    await updateDoc(pacienteRef, updates);
+            snapshot.docs.forEach(d => {
+                const r = d.data();
+                if (r.descripcion && !cirugias.some(c => c.descripcion === r.descripcion)) {
+                    cirugias.push({
+                        descripcion: r.descripcion.trim(),
+                        fecha: r.fecha || ''
+                    });
                 }
+                if (!isapre && r.isapre) isapre = r.isapre;
+                if (!convenio && r.convenio) convenio = r.convenio;
+            });
+
+            const cirugiaSeleccionada = cirugias.length > 0 ? cirugias[0].descripcion : '';
+
+            const datos = {
+                prevision: isapre,
+                convenio: convenio,
+                cirugias: cirugias,
+                cirugiaSeleccionada: cirugiaSeleccionada
+            };
+
+            const pacienteRef = doc(db, "pacientes_consignaciones", p.id);
+            const updates = {};
+            if (p.prevision !== datos.prevision) updates.prevision = datos.prevision;
+            if (p.convenio !== datos.convenio) updates.convenio = datos.convenio;
+            if (!p.cirugias || JSON.stringify(p.cirugias) !== JSON.stringify(cirugias)) {
+                updates.cirugias = cirugias;
+            }
+            if (p.cirugiaSeleccionada !== cirugiaSeleccionada) {
+                updates.cirugiaSeleccionada = cirugiaSeleccionada;
+            }
+
+            if (Object.keys(updates).length > 0) {
+                await updateDoc(pacienteRef, updates);
             }
 
             cacheReportes.set(p.admision, datos);

@@ -3,7 +3,7 @@ import {
     getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence
 } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
 import {
-    getFirestore, collection, getDocs, query, where, orderBy
+    getFirestore, collection, getDocs, query, where, orderBy, doc, updateDoc
 } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -177,7 +177,6 @@ async function loadPacientes() {
         }
         const snapshot = await getDocs(q);
 
-        // === CARGAR PACIENTES SIN DATOS DE REPORTES ===
         const pacientesBase = snapshot.docs.map(doc => {
             const data = doc.data();
             return {
@@ -191,11 +190,12 @@ async function loadPacientes() {
                 _proveedor: normalizeText(data.proveedor),
                 _estado: normalizeText(data.estado),
                 _prevision: normalizeText(data.prevision),
-                _convenio: normalizeText(data.convenio)
+                _convenio: normalizeText(data.convenio),
+                cirugias: data.cirugias || [],
+                cirugiaSeleccionada: data.cirugiaSeleccionada || ''
             };
         });
 
-        // === COMPLETAR CON DATOS DE REPORTES ===
         try {
             const { completarDatosPacientes } = await import('./pacientes-reportes.js');
             allPacientesDelMes = await completarDatosPacientes(pacientesBase);
@@ -258,7 +258,7 @@ function renderTable() {
     if (pacientes.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="12" style="text-align:center;padding:20px;color:#666;">
+                <td colspan="13" style="text-align:center;padding:20px;color:#666;">
                     <i class="fas fa-inbox" style="font-size:48px;display:block;margin-bottom:10px;"></i>
                     No hay pacientes
                 </td>
@@ -277,7 +277,12 @@ function renderTable() {
             <td>${p.fechaCX?.toLocaleDateString?.('es-CL') || ''}</td>
             <td>${escapeHtml(p.proveedor)}</td>
             <td>${formatNumberWithThousandsSeparator(p.totalPaciente)}</td>
-            <td>${escapeHtml(p.cirugia || '')}</td>
+            <td class="cirugia-cell" data-id="${p.id}">
+                ${p.cirugias && p.cirugias.length > 0
+                    ? `<span class="cirugia-count">${p.cirugias.length}</span> | ${escapeHtml(p.cirugiaSeleccionada)}`
+                    : ''
+                }
+            </td>
             <td>${escapeHtml(p.atributo)}</td>
             <td class="pacientes-actions">
                 <button class="pacientes-btn-history" data-id="${p.id}" title="Ver historial">
@@ -338,6 +343,31 @@ function setupColumnResize() {
     });
 }
 
+// === MODAL DE CIRUGÍA ===
+let pacienteActualId = null;
+
+function abrirModalCirugia(id) {
+    const paciente = allPacientesDelMes.find(p => p.id === id);
+    if (!paciente || !paciente.cirugias || paciente.cirugias.length === 0) return;
+
+    pacienteActualId = id;
+    const container = document.getElementById('cirugiaOptions');
+    container.innerHTML = paciente.cirugias.map((c, i) => `
+        <label style="display:block;margin:8px 0;cursor:pointer;">
+            <input type="radio" name="cirugia" value="${escapeHtml(c.descripcion)}" ${c.descripcion === paciente.cirugiaSeleccionada ? 'checked' : ''}>
+            <strong>${escapeHtml(c.descripcion)}</strong>
+            ${c.fecha ? `<small style="color:#666;">(${new Date(c.fecha).toLocaleDateString('es-CL')})</small>` : ''}
+        </label>
+    `).join('');
+
+    document.getElementById('cirugiaModal').style.display = 'flex';
+}
+
+function cerrarModalCirugia() {
+    document.getElementById('cirugiaModal').style.display = 'none';
+    pacienteActualId = null;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const inputs = [
         { id: 'buscarEstado', filter: 'estado' },
@@ -377,6 +407,41 @@ document.addEventListener('DOMContentLoaded', () => {
             renderMesesButtons(mesesSet);
         } finally {
             window.hideLoading();
+        }
+    });
+
+    // Modal eventos
+    document.getElementById('cirugiaModal')?.addEventListener('click', (e) => {
+        if (e.target === document.getElementById('cirugiaModal')) cerrarModalCirugia();
+    });
+    document.querySelector('.close')?.addEventListener('click', cerrarModalCirugia);
+    document.getElementById('cancelarCirugia')?.addEventListener('click', cerrarModalCirugia);
+
+    document.getElementById('guardarCirugia')?.addEventListener('click', async () => {
+        const seleccionado = document.querySelector('input[name="cirugia"]:checked');
+        if (!seleccionado || !pacienteActualId) return;
+
+        const nuevaCirugia = seleccionado.value;
+        try {
+            const pacienteRef = doc(db, "pacientes_consignaciones", pacienteActualId);
+            await updateDoc(pacienteRef, { cirugiaSeleccionada: nuevaCirugia });
+            
+            const paciente = allPacientesDelMes.find(p => p.id === pacienteActualId);
+            if (paciente) paciente.cirugiaSeleccionada = nuevaCirugia;
+
+            renderTable();
+            cerrarModalCirugia();
+            showToast('Cirugía actualizada', 'success');
+        } catch (err) {
+            showToast('Error al guardar', 'error');
+        }
+    });
+
+    // Delegación para clics en contador
+    document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('cirugia-count')) {
+            const cell = e.target.closest('.cirugia-cell');
+            if (cell) abrirModalCirugia(cell.dataset.id);
         }
     });
 
