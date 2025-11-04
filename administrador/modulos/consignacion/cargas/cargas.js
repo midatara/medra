@@ -303,7 +303,7 @@ function setupColumnResize() {
             if (isResizing) {
                 isResizing = false;
                 document.body.style.userSelect = '';
-                handle.class35.classList.remove('active');
+                handle.classList.remove('active');
             }
         };
         handle.addEventListener('mousedown', start);
