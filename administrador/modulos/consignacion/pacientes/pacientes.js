@@ -5,6 +5,7 @@ import {
 import {
     getFirestore, collection, getDocs, query, where, orderBy
 } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
+import { completarDatosPacientes } from './pacientes-reportes.js'; // ← OPCIONAL (solo si prefieres import estático)
 
 const firebaseConfig = {
     apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
@@ -171,7 +172,8 @@ async function loadPacientes() {
             q = query(q, where("fechaCX", ">=", start), where("fechaCX", "<=", end));
         }
         const snapshot = await getDocs(q);
-        allPacientesDelMes = snapshot.docs.map(doc => {
+        // === CARGAR PACIENTES SIN DATOS DE REPORTES ===
+        const pacientesBase = snapshot.docs.map(doc => {
             const data = doc.data();
             return {
                 id: doc.id,
@@ -187,6 +189,19 @@ async function loadPacientes() {
                 _convenio: normalizeText(data.convenio)
             };
         });
+
+        // === COMPLETAR CON DATOS DE REPORTES ===
+        window.showLoading();
+        try {
+            const { completarDatosPacientes } = await import('./pacientes-reportes.js');
+            allPacientesDelMes = await completarDatosPacientes(pacientesBase);
+        } catch (err) {
+            console.error('Error al completar datos de reportes:', err);
+            allPacientesDelMes = pacientesBase;
+        } finally {
+            window.hideLoading();
+        }
+
         currentPage = 1;
         applyFiltersAndPaginate();
     } catch (e) {
