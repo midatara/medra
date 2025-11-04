@@ -20,7 +20,6 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 setPersistence(auth, browserSessionPersistence);
 
-// === INICIALIZAR MÓDULO DE REPORTES ===
 import('./pacientes-reportes.js').then(module => {
     module.initReportesDb(db);
 });
@@ -205,16 +204,17 @@ async function loadPacientes() {
         }
 
         currentPage = 1;
-        applyFiltersAndPaginate();
+        applyFiltersAndPaginate(() => {
+            window.hideLoading();
+        });
     } catch (e) {
         console.error(e);
         showToast('Error al cargar pacientes', 'error');
-    } finally {
         window.hideLoading();
     }
 }
 
-function applyFiltersAndPaginate() {
+function applyFiltersAndPaginate(callback = null) {
     let filtered = [...allPacientesDelMes];
 
     if (searchFilters.estado) filtered = filtered.filter(p => p._estado.includes(searchFilters.estado));
@@ -229,22 +229,24 @@ function applyFiltersAndPaginate() {
     const endIdx = startIdx + PAGE_SIZE;
     pacientes = filtered.slice(startIdx, endIdx);
 
-    renderTable();
+    renderTable(() => {
+        const loadMore = document.getElementById('loadMoreContainer');
+        if (loadMore) loadMore.remove();
 
-    const loadMore = document.getElementById('loadMoreContainer');
-    if (loadMore) loadMore.remove();
+        if (endIdx < filtered.length) {
+            const div = document.createElement('div');
+            div.id = 'loadMoreContainer';
+            div.style = 'text-align:center;margin:15px 0;';
+            div.innerHTML = `<button id="loadMoreBtn" class="modal-btn modal-btn-secondary">Cargar más</button>`;
+            document.querySelector('.pacientes-pagination')?.appendChild(div);
+            document.getElementById('loadMoreBtn')?.addEventListener('click', () => {
+                currentPage++;
+                applyFiltersAndPaginate();
+            });
+        }
 
-    if (endIdx < filtered.length) {
-        const div = document.createElement('div');
-        div.id = 'loadMoreContainer';
-        div.style = 'text-align:center;margin:15px 0;';
-        div.innerHTML = `<button id="loadMoreBtn" class="modal-btn modal-btn-secondary">Cargar más</button>`;
-        document.querySelector('.pacientes-pagination')?.appendChild(div);
-        document.getElementById('loadMoreBtn')?.addEventListener('click', () => {
-            currentPage++;
-            applyFiltersAndPaginate();
-        });
-    }
+        if (callback) callback();
+    });
 }
 
 const debouncedLoad = debounce(() => {
@@ -252,9 +254,13 @@ const debouncedLoad = debounce(() => {
     applyFiltersAndPaginate();
 }, 300);
 
-function renderTable() {
+function renderTable(callback = null) {
     const tbody = document.querySelector('#pacientesTable tbody');
-    if (!tbody) return;
+    if (!tbody) {
+        if (callback) callback();
+        return;
+    }
+
     if (pacientes.length === 0) {
         tbody.innerHTML = `
             <tr>
@@ -263,9 +269,11 @@ function renderTable() {
                     No hay pacientes
                 </td>
             </tr>`;
+        if (callback) setTimeout(callback, 0);
         return;
     }
-    tbody.innerHTML = pacientes.map(p => `
+
+    const html = pacientes.map(p => `
         <tr>
             <td>${p.fechaIngreso?.toLocaleDateString?.('es-CL') || ''}</td>
             <td>${escapeHtml(p.estado)}</td>
@@ -291,6 +299,14 @@ function renderTable() {
             </td>
         </tr>
     `).join('');
+
+    tbody.innerHTML = html;
+
+    requestAnimationFrame(() => {
+        setTimeout(() => {
+            if (callback) callback();
+        }, 0);
+    });
 }
 
 function setupColumnResize() {
@@ -343,7 +359,6 @@ function setupColumnResize() {
     });
 }
 
-// === MODAL DE CIRUGÍA ===
 let pacienteActualId = null;
 
 function abrirModalCirugia(id) {
@@ -410,7 +425,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Modal eventos
     document.getElementById('cirugiaModal')?.addEventListener('click', (e) => {
         if (e.target === document.getElementById('cirugiaModal')) cerrarModalCirugia();
     });
@@ -437,7 +451,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Delegación para clics en contador
     document.addEventListener('click', (e) => {
         if (e.target.classList.contains('cirugia-count')) {
             const cell = e.target.closest('.cirugia-cell');
