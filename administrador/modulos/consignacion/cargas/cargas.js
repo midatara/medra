@@ -33,13 +33,18 @@ const searchFilters = {
     paciente: ''
 };
 
-const loading = document.getElementById('loading');
-
 window.showLoading = () => {
-    if (loading) loading.classList.add('show');
+    const loading = document.getElementById('loading');
+    if (loading && !loading.classList.contains('show')) {
+        loading.classList.add('show');
+    }
 };
+
 window.hideLoading = () => {
-    if (loading) loading.classList.remove('show');
+    const loading = document.getElementById('loading');
+    if (loading && loading.classList.contains('show')) {
+        loading.classList.remove('show');
+    }
 };
 
 function normalizeText(text) {
