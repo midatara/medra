@@ -361,7 +361,7 @@ function renderTable(callback = null) {
             <td>${escapeHtml(c.idRegistro)}</td>
             <td>${escapeHtml(c.codigo)}</td>
             <td>${c.cantidad}</td>
-            <td>${escapeHtml(c.venta)}</td>
+            <td>${c.venta != null ? formatNumberWithThousandsSeparator(c.venta) : ''}</td>
             <td>${escapeHtml(c.prevision)}</td>
             <td>${escapeHtml(c.convenio)}</td>
             <td>${escapeHtml(c.admision)}</td>
