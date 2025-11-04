@@ -3,7 +3,7 @@ import {
     getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence
 } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
 import {
-    getFirestore, collection, getDocs, query, where, orderBy, doc, updateDoc
+    getFirestore, collection, getDocs, query, where, orderBy
 } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -20,17 +20,12 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 setPersistence(auth, browserSessionPersistence);
 
-import('./cargas-reportes.js').then(module => {
-    module.initReportesDb(db);
-});
-
 let allCargasDelMes = [];
 let cargas = [];
 let currentPage = 1;
 const PAGE_SIZE = 50;
 let selectedYear = null;
 let selectedMonth = null;
-let selectedCargaIds = new Set();
 
 const searchFilters = {
     estado: '',
@@ -38,25 +33,34 @@ const searchFilters = {
     paciente: ''
 };
 
-const loading = document.getElementById('loading');
 window.showLoading = () => {
-    if (loading) loading.classList.add('show');
+    const loading = document.getElementById('loading');
+    if (loading && !loading.classList.contains('show')) {
+        loading.classList.add('show');
+    }
 };
+
 window.hideLoading = () => {
-    if (loading) loading.classList.remove('show');
+    const loading = document.getElementById('loading');
+    if (loading && loading.classList.contains('show')) {
+        loading.classList.remove('show');
+    }
 };
 
 function normalizeText(text) {
     return text?.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") || '';
 }
+
 function escapeHtml(text) {
     const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
     return text?.toString().replace(/[&<>"']/g, m => map[m]) || '';
 }
+
 function formatNumberWithThousandsSeparator(number) {
     if (!number) return '';
     return Number(number).toLocaleString('es-CL');
 }
+
 function debounce(func, wait) {
     let timeout;
     return (...args) => {
@@ -64,6 +68,7 @@ function debounce(func, wait) {
         timeout = setTimeout(() => func.apply(this, args), wait);
     };
 }
+
 function showToast(text, type = 'success') {
     const container = document.getElementById('toastContainer');
     if (!container) return;
@@ -76,40 +81,6 @@ function showToast(text, type = 'success') {
         toast.classList.remove('show');
         setTimeout(() => toast.remove(), 300);
     }, 4000);
-}
-
-function updateCambiarEstadoButton() {
-    const container = document.getElementById('cambiarEstadoContainer');
-    if (!container) return;
-    container.style.display = selectedCargaIds.size > 0 ? 'block' : 'none';
-}
-
-async function cambiarEstadoMasivo(nuevoEstado) {
-    if (selectedCargaIds.size === 0) return;
-    window.showLoading();
-    try {
-        const updates = Array.from(selectedCargaIds).map(id => {
-            const ref = doc(db, "cargas_consignaciones", id);
-            return updateDoc(ref, { estado: nuevoEstado });
-        });
-        await Promise.all(updates);
-        allCargasDelMes.forEach(c => {
-            if (selectedCargaIds.has(c.id)) {
-                c.estado = nuevoEstado;
-                c._estado = normalizeText(nuevoEstado);
-            }
-        });
-        selectedCargaIds.clear();
-        updateCambiarEstadoButton();
-        document.getElementById('selectAll').checked = false;
-        applyFiltersAndPaginate();
-        showToast(`Estado cambiado a "${nuevoEstado}" para ${updates.length} carga(s)`, 'success');
-    } catch (err) {
-        console.error(err);
-        showToast('Error al cambiar estado', 'error');
-    } finally {
-        window.hideLoading();
-    }
 }
 
 async function loadAniosYMeses() {
@@ -126,15 +97,15 @@ async function loadAniosYMeses() {
             if (!mesesPorAnio.has(year)) mesesPorAnio.set(year, new Set());
             mesesPorAnio.get(year).add(month);
         });
+
         const anioSelect = document.getElementById('anioSelect');
-        anioSelect.innerHTML = '';
+        anioSelect.innerHTML = ''; 
         const currentYear = new Date().getFullYear();
         let defaultYear = currentYear;
         const years = Array.from(mesesPorAnio.keys()).sort((a, b) => b - a);
         if (years.length === 0) {
             anioSelect.innerHTML = '<option value="">Sin datos</option>';
             document.getElementById('mesesContainer').innerHTML = '';
-            window.hideLoading();
             return;
         }
         years.forEach(y => {
@@ -148,23 +119,22 @@ async function loadAniosYMeses() {
             anioSelect.appendChild(opt);
         });
         selectedYear = defaultYear;
-        await renderMesesButtons(mesesPorAnio.get(defaultYear));
+        renderMesesButtons(mesesPorAnio.get(defaultYear));
     } catch (e) {
         console.error(e);
         showToast('Error al cargar años/meses', 'error');
+    } finally {
         window.hideLoading();
     }
 }
 
-async function renderMesesButtons(mesesSet) {
+function renderMesesButtons(mesesSet) {
     const container = document.getElementById('mesesContainer');
     container.innerHTML = '';
     if (!mesesSet || mesesSet.size === 0) {
         container.innerHTML = '<span style="color:#999;">Sin registros</span>';
         selectedMonth = null;
-        await applyFiltersAndPaginateAsync();
-        actualizarSelectEstados();
-        window.hideLoading();
+        applyFiltersAndPaginate();
         return;
     }
     const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
@@ -173,14 +143,12 @@ async function renderMesesButtons(mesesSet) {
         btn.className = 'mes-btn';
         btn.textContent = meses[m];
         btn.dataset.month = m;
-        btn.onclick = async () => {
+        btn.onclick = () => {
             document.querySelectorAll('.mes-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             selectedMonth = m;
             currentPage = 1;
-            selectedCargaIds.clear();
-            updateCambiarEstadoButton();
-            await loadCargas();
+            loadCargas();
         };
         container.appendChild(btn);
     });
@@ -191,7 +159,7 @@ async function renderMesesButtons(mesesSet) {
     } else {
         selectedMonth = null;
     }
-    await loadCargas();
+    loadCargas();
 }
 
 async function loadCargas() {
@@ -204,35 +172,20 @@ async function loadCargas() {
             q = query(q, where("fechaCX", ">=", start), where("fechaCX", "<=", end));
         }
         const snapshot = await getDocs(q);
-        const cargasBase = snapshot.docs.map(doc => {
+        allCargasDelMes = snapshot.docs.map(doc => {
             const data = doc.data();
             return {
                 id: doc.id,
                 ...data,
-                fechaCX: data.fechaCX?.toDate?.() || new Date(data.fechaCX || Date.now()),
-                fechaCarga: data.fechaCarga?.toDate?.() || new Date(),
+                fechaCX: data.fechaCX?.toDate?.() || new Date(),
+                fechaCarga: data.fechaCarga?.toDate?.() || null,
                 _admision: normalizeText(data.admision),
-                _paciente: normalizeText(data.paciente),
-                _medico: normalizeText(data.medico),
-                _proveedor: normalizeText(data.proveedor),
                 _estado: normalizeText(data.estado),
-                _prevision: normalizeText(data.prevision),
-                cirugias: data.cirugias || [],
-                cirugiaSeleccionada: data.cirugiaSeleccionada || ''
+                _paciente: normalizeText(data.paciente)
             };
         });
-        try {
-            const { completarDatosCargas } = await import('./cargas-reportes.js');
-            allCargasDelMes = await completarDatosCargas(cargasBase);
-        } catch (err) {
-            console.error('Error al completar datos de reportes:', err);
-            allCargasDelMes = cargasBase;
-        }
-        selectedCargaIds.clear();
-        updateCambiarEstadoButton();
         currentPage = 1;
-        await applyFiltersAndPaginateAsync();
-        actualizarSelectEstados();
+        applyFiltersAndPaginate();
     } catch (e) {
         console.error(e);
         showToast('Error al cargar cargas', 'error');
@@ -241,64 +194,57 @@ async function loadCargas() {
     }
 }
 
-async function applyFiltersAndPaginateAsync() {
-    return new Promise(resolve => applyFiltersAndPaginate(resolve));
-}
-function applyFiltersAndPaginate(callback = null) {
+function applyFiltersAndPaginate() {
     let filtered = [...allCargasDelMes];
+
     if (searchFilters.estado) filtered = filtered.filter(c => c._estado.includes(searchFilters.estado));
     if (searchFilters.admision) filtered = filtered.filter(c => c._admision.includes(searchFilters.admision));
     if (searchFilters.paciente) filtered = filtered.filter(c => c._paciente.includes(searchFilters.paciente));
+
     const startIdx = (currentPage - 1) * PAGE_SIZE;
     const endIdx = startIdx + PAGE_SIZE;
     cargas = filtered.slice(startIdx, endIdx);
-    renderTable(() => {
-        actualizarSelectEstados();
-        const loadMore = document.getElementById('loadMoreContainer');
-        if (loadMore) loadMore.remove();
-        if (endIdx < filtered.length) {
-            const div = document.createElement('div');
-            div.id = 'loadMoreContainer';
-            div.style = 'text-align:center;margin:15px 0;';
-            div.innerHTML = `<button id="loadMoreBtn" class="modal-btn modal-btn-secondary">Cargar más</button>`;
-            document.querySelector('.cargar-pagination')?.appendChild(div);
-            document.getElementById('loadMoreBtn')?.addEventListener('click', () => {
-                currentPage++;
-                applyFiltersAndPaginate();
-            });
-        }
-        if (callback) callback();
-    });
+
+    renderTable();
+
+    const loadMore = document.getElementById('loadMoreContainer');
+    if (loadMore) loadMore.remove();
+
+    if (endIdx < filtered.length) {
+        const div = document.createElement('div');
+        div.id = 'loadMoreContainer';
+        div.style = 'text-align:center;margin:15px 0;';
+        div.innerHTML = `<button id="loadMoreBtn" class="modal-btn modal-btn-secondary">Cargar más</button>`;
+        document.querySelector('.cargar-pagination')?.appendChild(div);
+        document.getElementById('loadMoreBtn')?.addEventListener('click', () => {
+            currentPage++;
+            applyFiltersAndPaginate();
+        });
+    }
 }
+
 const debouncedLoad = debounce(() => {
     currentPage = 1;
     applyFiltersAndPaginate();
 }, 300);
 
-function renderTable(callback = null) {
+function renderTable() {
     const tbody = document.querySelector('#cargarTable tbody');
-    if (!tbody) {
-        if (callback) callback();
-        return;
-    }
+    if (!tbody) return;
     if (cargas.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="22" style="text-align:center;padding:20px;color:#666;">
+                <td colspan="21" style="text-align:center;padding:20px;color:#666;">
                     <i class="fas fa-inbox" style="font-size:48px;display:block;margin-bottom:10px;"></i>
                     No hay cargas
                 </td>
             </tr>`;
-        if (callback) {
-            requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(callback, 100)));
-        }
         return;
     }
-    const html = cargas.map(c => `
-        <tr data-id="${c.id}" class="${selectedCargaIds.has(c.id) ? 'row-selected' : ''}">
-            <td class="checkbox-cell">
-                <input type="checkbox" class="row-checkbox" data-id="${c.id}" ${selectedCargaIds.has(c.id) ? 'checked' : ''}>
-                <button class="cargar-btn-history" data-id="${c.id}" title="Ver historial" style="margin-left:4px;">
+    tbody.innerHTML = cargas.map(c => `
+        <tr>
+            <td class="cargar-actions">
+                <button class="cargar-btn-history" data-id="${c.id}" title="Ver historial">
                     <i class="fas fa-history"></i>
                 </button>
             </td>
@@ -310,7 +256,6 @@ function renderTable(callback = null) {
             <td>${c.cantidad}</td>
             <td>${escapeHtml(c.venta)}</td>
             <td>${escapeHtml(c.prevision)}</td>
-            <td>${escapeHtml(c.convenio)}</td>
             <td>${escapeHtml(c.admision)}</td>
             <td>${escapeHtml(c.paciente)}</td>
             <td>${escapeHtml(c.medico)}</td>
@@ -325,36 +270,11 @@ function renderTable(callback = null) {
             <td>${c.margen === '' || c.margen == null ? '-' : c.margen}</td>
         </tr>
     `).join('');
-    tbody.innerHTML = html;
-
-    document.querySelectorAll('.row-checkbox').forEach(cb => {
-        cb.addEventListener('change', e => {
-            const id = e.target.dataset.id;
-            if (e.target.checked) selectedCargaIds.add(id);
-            else selectedCargaIds.delete(id);
-            updateCambiarEstadoButton();
-            e.target.closest('tr').classList.toggle('row-selected', e.target.checked);
-        });
-    });
-    document.getElementById('selectAll')?.addEventListener('change', e => {
-        const checked = e.target.checked;
-        document.querySelectorAll('.row-checkbox').forEach(cb => {
-            cb.checked = checked;
-            const id = cb.dataset.id;
-            if (checked) selectedCargaIds.add(id);
-            else selectedCargaIds.delete(id);
-            cb.closest('tr').classList.toggle('row-selected', checked);
-        });
-        updateCambiarEstadoButton();
-    });
-    if (callback) {
-        requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(callback, 100)));
-    }
 }
 
 function setupColumnResize() {
     const headers = document.querySelectorAll('.cargar-table th');
-    const initialWidths = [60, 80, 90, 100, 60, 90, 70, 80, 90, 110, 80, 150, 140, 90, 120, 90, 200, 70, 80, 80, 90, 80];
+    const initialWidths = [70, 80, 90, 100, 60, 90, 70, 80, 90, 80, 150, 140, 90, 120, 90, 200, 70, 80, 80, 90, 80];
     headers.forEach((header, index) => {
         if (!initialWidths[index]) return;
         header.style.width = `${initialWidths[index]}px`;
@@ -367,7 +287,7 @@ function setupColumnResize() {
         const handle = header.querySelector('.resize-handle');
         if (!handle) return;
         let isResizing = false, startX, startWidth;
-        const start = e => {
+        const start = (e) => {
             isResizing = true;
             startX = e.clientX || e.touches?.[0]?.clientX;
             startWidth = header.getBoundingClientRect().width;
@@ -375,7 +295,7 @@ function setupColumnResize() {
             handle.classList.add('active');
             e.preventDefault();
         };
-        const move = e => {
+        const move = (e) => {
             if (!isResizing) return;
             const delta = (e.clientX || e.touches?.[0]?.clientX) - startX;
             let newWidth = Math.max(initialWidths[index], Math.min(initialWidths[index] * 2, startWidth + delta));
@@ -402,37 +322,17 @@ function setupColumnResize() {
     });
 }
 
-function actualizarSelectEstados() {
-    const select = document.getElementById('buscarEstado');
-    if (!select || !allCargasDelMes.length) {
-        select.innerHTML = '<option value="">Todos</option>';
-        return;
-    }
-    const estadosUnicos = new Set();
-    allCargasDelMes.forEach(c => {
-        if (c.estado) estadosUnicos.add(c.estado.trim());
-    });
-    const valorActual = select.value;
-    select.innerHTML = '<option value="">Todos</option>';
-    Array.from(estadosUnicos).sort().forEach(estado => {
-        const opt = document.createElement('option');
-        opt.value = normalizeText(estado);
-        opt.textContent = estado;
-        if (normalizeText(estado) === valorActual) opt.selected = true;
-        select.appendChild(opt);
-    });
-}
-
 document.addEventListener('DOMContentLoaded', () => {
     const inputs = [
-        { id: 'buscarEstado', filter: 'estado', event: 'change' },
-        { id: 'buscarAdmision', filter: 'admision', event: 'input' },
-        { id: 'buscarPaciente', filter: 'paciente', event: 'input' }
+        { id: 'buscarEstado', filter: 'estado' },
+        { id: 'buscarAdmision', filter: 'admision' },
+        { id: 'buscarPaciente', filter: 'paciente' }
     ];
-    inputs.forEach(({ id, filter, event }) => {
-        const el = document.getElementById(id);
-        if (el) {
-            el.addEventListener(event, e => {
+    
+    inputs.forEach(({ id, filter }) => {
+        const input = document.getElementById(id);
+        if (input) {
+            input.addEventListener('input', e => {
                 searchFilters[filter] = normalizeText(e.target.value);
                 debouncedLoad();
             });
@@ -443,8 +343,6 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedYear = parseInt(e.target.value);
         selectedMonth = null;
         currentPage = 1;
-        selectedCargaIds.clear();
-        updateCambiarEstadoButton();
         window.showLoading();
         try {
             const q = query(collection(db, "cargas_consignaciones"), orderBy("fechaCX"));
@@ -456,30 +354,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     mesesSet.add(fecha.getMonth());
                 }
             });
-            await renderMesesButtons(mesesSet);
-        } catch (err) {
-            console.error(err);
+            renderMesesButtons(mesesSet);
+        } finally {
             window.hideLoading();
         }
-    });
-
-    const modalEstado = document.getElementById('cambiarEstadoModal');
-    document.getElementById('btnCambiarEstado')?.addEventListener('click', () => {
-        modalEstado.classList.add('show'); 
-    });
-    modalEstado.addEventListener('click', e => {
-        if (e.target === modalEstado) modalEstado.classList.remove('show'); 
-    });
-    document.querySelector('#cambiarEstadoModal .close')?.addEventListener('click', () => {
-        modalEstado.classList.remove('show'); 
-    });
-    document.getElementById('cancelarEstado')?.addEventListener('click', () => {
-        modalEstado.classList.remove('show'); 
-    });
-    document.getElementById('guardarEstado')?.addEventListener('click', () => {
-        const nuevoEstado = document.getElementById('nuevoEstadoSelect').value;
-        cambiarEstadoMasivo(nuevoEstado);
-        modalEstado.classList.remove('show'); 
     });
 
     setupColumnResize();

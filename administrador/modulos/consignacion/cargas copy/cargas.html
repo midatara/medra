@@ -10,7 +10,7 @@
         import { getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
         import { 
             getFirestore, collection, getDocs, query, where, doc, 
-            orderBy, getDoc, limit, startAfter, updateDoc 
+            orderBy, getDoc, limit, startAfter 
         } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
         
         window.firebaseModules = {
@@ -28,8 +28,7 @@
             orderBy,
             getDoc,
             limit,
-            startAfter,
-            updateDoc
+            startAfter
         };
     </script>
     <link rel="stylesheet" href="cargas.css">
@@ -43,9 +42,7 @@
             <div class="cargar-search-row">
                 <div class="cargar-form-group">
                     <label class="cargar-label" for="buscarEstado">Estado:</label>
-                    <select id="buscarEstado">
-                        <option value="">Todos</option>
-                    </select>
+                    <input type="text" id="buscarEstado" autocomplete="off">
                 </div>
                 <div class="cargar-form-group">
                     <label class="cargar-label" for="buscarAdmision">Admisión:</label>
@@ -62,16 +59,13 @@
                     <select id="anioSelect" style="width:80px;padding:4px 6px;font-size:11px;border:1px solid #ddd;border-radius:4px;height:28px;"></select>
                 </div>
                 <div id="mesesContainer" class="meses-buttons" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
-                <div id="cambiarEstadoContainer" class="cambiar-estado-btn">
-                    <button id="btnCambiarEstado" class="btn-cambiar-estado">Cambiar Estado</button>
-                </div>
             </div>
         </div>
         <div class="cargar-table-container">
             <table class="cargar-table" id="cargarTable">
                 <thead>
                     <tr>
-                        <th><input type="checkbox" id="selectAll"></th>
+                        <th>Acciones<div class="resize-handle"></div></th>
                         <th>Estado<div class="resize-handle"></div></th>
                         <th>Fecha Carga<div class="resize-handle"></div></th>
                         <th>Referencia<div class="resize-handle"></div></th>
@@ -80,7 +74,6 @@
                         <th>Cantidad<div class="resize-handle"></div></th>
                         <th>Venta<div class="resize-handle"></div></th>
                         <th>Previsión<div class="resize-handle"></div></th>
-                        <th>Convenio<div class="resize-handle"></div></th>
                         <th>Admisión<div class="resize-handle"></div></th>
                         <th>Paciente<div class="resize-handle"></div></th>
                         <th>Médico<div class="resize-handle"></div></th>
@@ -108,30 +101,6 @@
             <span class="loading-text">Cargando...</span>
         </div>
     </div>
-
-    <div id="cambiarEstadoModal" class="modal">
-        <div class="modal-content">
-            <span class="close">×</span>
-            <h3>Cambiar Estado</h3>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label for="nuevoEstadoSelect">Seleccionar nuevo estado:</label>
-                    <select id="nuevoEstadoSelect" class="modal-select">
-                        <option value="INGRESADO">INGRESADO</option>
-                        <option value="CARGADO">CARGADO</option>
-                        <option value="PENDIENTE">PENDIENTE</option>
-                        <option value="MODIFICAR">MODIFICAR</option>
-                        <option value="ERROR">ERROR</option>
-                    </select>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button id="cancelarEstado" class="modal-btn modal-btn-secondary">Cancelar</button>
-                <button id="guardarEstado" class="modal-btn modal-btn-primary">Guardar</button>
-            </div>
-        </div>
-    </div>
-
     <div class="cargar-toast-container" id="toastContainer"></div>
     <script type="module" src="cargas.js"></script>
 </body>
