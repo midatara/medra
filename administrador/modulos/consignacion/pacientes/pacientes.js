@@ -30,12 +30,12 @@ let currentPage = 1;
 const PAGE_SIZE = 50;
 let selectedYear = null;
 let selectedMonth = null;
-let selectedPacienteIds = new Set(); // <-- NUEVO: pacientes seleccionados
+let selectedPacienteIds = new Set();               // pacientes seleccionados
 
+/* ---------- FILTROS (Convenio eliminado) ---------- */
 const searchFilters = {
     estado: '',
     prevision: '',
-    convenio: '',
     admision: '',
     paciente: '',
     medico: '',
@@ -54,17 +54,14 @@ window.hideLoading = () => {
 function normalizeText(text) {
     return text?.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") || '';
 }
-
 function escapeHtml(text) {
     const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
     return text?.toString().replace(/[&<>"']/g, m => map[m]) || '';
 }
-
 function formatNumberWithThousandsSeparator(number) {
     if (!number) return '';
     return Number(number).toLocaleString('es-CL');
 }
-
 function debounce(func, wait) {
     let timeout;
     return (...args) => {
@@ -72,7 +69,6 @@ function debounce(func, wait) {
         timeout = setTimeout(() => func.apply(this, args), wait);
     };
 }
-
 function showToast(text, type = 'success') {
     const container = document.getElementById('toastContainer');
     if (!container) return;
@@ -87,18 +83,14 @@ function showToast(text, type = 'success') {
     }, 4000);
 }
 
-// === NUEVA FUNCIÓN: actualizar visibilidad del botón Cambiar Estado ===
+/* ---------- BOTÓN CAMBIAR ESTADO ---------- */
 function updateCambiarEstadoButton() {
     const container = document.getElementById('cambiarEstadoContainer');
     if (!container) return;
-    if (selectedPacienteIds.size > 0) {
-        container.style.display = 'block';
-    } else {
-        container.style.display = 'none';
-    }
+    container.style.display = selectedPacienteIds.size > 0 ? 'block' : 'none';
 }
 
-// === NUEVA FUNCIÓN: cambiar estado masivo ===
+/* ---------- CAMBIO MASIVO DE ESTADO ---------- */
 async function cambiarEstadoMasivo(nuevoEstado) {
     if (selectedPacienteIds.size === 0) return;
     window.showLoading();
@@ -109,7 +101,6 @@ async function cambiarEstadoMasivo(nuevoEstado) {
         });
         await Promise.all(updates);
 
-        // Actualizar en memoria
         allPacientesDelMes.forEach(p => {
             if (selectedPacienteIds.has(p.id)) {
                 p.estado = nuevoEstado;
@@ -120,7 +111,6 @@ async function cambiarEstadoMasivo(nuevoEstado) {
         selectedPacienteIds.clear();
         updateCambiarEstadoButton();
         document.getElementById('selectAll').checked = false;
-
         applyFiltersAndPaginate();
         showToast(`Estado cambiado a "${nuevoEstado}" para ${updates.length} paciente(s)`, 'success');
     } catch (err) {
@@ -131,12 +121,14 @@ async function cambiarEstadoMasivo(nuevoEstado) {
     }
 }
 
+/* ---------- CARGA DE AÑOS / MESES ---------- */
 async function loadAniosYMeses() {
     window.showLoading();
     try {
         const q = query(collection(db, "pacientes_consignaciones"), orderBy("fechaCX"));
         const snapshot = await getDocs(q);
         const mesesPorAnio = new Map();
+
         snapshot.docs.forEach(doc => {
             const fecha = doc.data().fechaCX?.toDate?.() || new Date(doc.data().fechaCX);
             if (!fecha || isNaN(fecha)) return;
@@ -151,12 +143,14 @@ async function loadAniosYMeses() {
         const currentYear = new Date().getFullYear();
         let defaultYear = currentYear;
         const years = Array.from(mesesPorAnio.keys()).sort((a, b) => b - a);
+
         if (years.length === 0) {
             anioSelect.innerHTML = '<option value="">Sin datos</option>';
             document.getElementById('mesesContainer').innerHTML = '';
             window.hideLoading();
             return;
         }
+
         years.forEach(y => {
             const opt = document.createElement('option');
             opt.value = y;
@@ -167,6 +161,7 @@ async function loadAniosYMeses() {
             }
             anioSelect.appendChild(opt);
         });
+
         selectedYear = defaultYear;
         await renderMesesButtons(mesesPorAnio.get(defaultYear));
     } catch (e) {
@@ -176,16 +171,20 @@ async function loadAniosYMeses() {
     }
 }
 
+/* ---------- BOTONES DE MESES ---------- */
 async function renderMesesButtons(mesesSet) {
     const container = document.getElementById('mesesContainer');
     container.innerHTML = '';
+
     if (!mesesSet || mesesSet.size === 0) {
         container.innerHTML = '<span style="color:#999;">Sin registros</span>';
         selectedMonth = null;
         await applyFiltersAndPaginateAsync();
+        actualizarSelectEstados();
         window.hideLoading();
         return;
     }
+
     const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
     Array.from(mesesSet).sort((a, b) => a - b).forEach(m => {
         const btn = document.createElement('button');
@@ -203,6 +202,7 @@ async function renderMesesButtons(mesesSet) {
         };
         container.appendChild(btn);
     });
+
     const firstBtn = container.querySelector('.mes-btn');
     if (firstBtn) {
         firstBtn.classList.add('active');
@@ -210,9 +210,11 @@ async function renderMesesButtons(mesesSet) {
     } else {
         selectedMonth = null;
     }
+
     await loadPacientes();
 }
 
+/* ---------- CARGA DE PACIENTES DEL MES ---------- */
 async function loadPacientes() {
     window.showLoading();
     try {
@@ -222,8 +224,8 @@ async function loadPacientes() {
             const end = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59, 999);
             q = query(q, where("fechaCX", ">=", start), where("fechaCX", "<=", end));
         }
-        const snapshot = await getDocs(q);
 
+        const snapshot = await getDocs(q);
         const pacientesBase = snapshot.docs.map(doc => {
             const data = doc.data();
             return {
@@ -237,7 +239,6 @@ async function loadPacientes() {
                 _proveedor: normalizeText(data.proveedor),
                 _estado: normalizeText(data.estado),
                 _prevision: normalizeText(data.prevision),
-                _convenio: normalizeText(data.convenio),
                 cirugias: data.cirugias || [],
                 cirugiaSeleccionada: data.cirugiaSeleccionada || ''
             };
@@ -255,6 +256,7 @@ async function loadPacientes() {
         updateCambiarEstadoButton();
         currentPage = 1;
         await applyFiltersAndPaginateAsync();
+        actualizarSelectEstados();               // <-- nuevo
     } catch (e) {
         console.error(e);
         showToast('Error al cargar pacientes', 'error');
@@ -263,18 +265,15 @@ async function loadPacientes() {
     }
 }
 
+/* ---------- PAGINACIÓN + FILTROS ---------- */
 async function applyFiltersAndPaginateAsync() {
-    return new Promise((resolve) => {
-        applyFiltersAndPaginate(resolve);
-    });
+    return new Promise(resolve => applyFiltersAndPaginate(resolve));
 }
-
 function applyFiltersAndPaginate(callback = null) {
     let filtered = [...allPacientesDelMes];
 
     if (searchFilters.estado) filtered = filtered.filter(p => p._estado.includes(searchFilters.estado));
     if (searchFilters.prevision) filtered = filtered.filter(p => p._prevision.includes(searchFilters.prevision));
-    if (searchFilters.convenio) filtered = filtered.filter(p => p._convenio.includes(searchFilters.convenio));
     if (searchFilters.admision) filtered = filtered.filter(p => p._admision.includes(searchFilters.admision));
     if (searchFilters.paciente) filtered = filtered.filter(p => p._paciente.includes(searchFilters.paciente));
     if (searchFilters.medico) filtered = filtered.filter(p => p._medico.includes(searchFilters.medico));
@@ -285,6 +284,7 @@ function applyFiltersAndPaginate(callback = null) {
     pacientes = filtered.slice(startIdx, endIdx);
 
     renderTable(() => {
+        actualizarSelectEstados();               // <-- nuevo
         const loadMore = document.getElementById('loadMoreContainer');
         if (loadMore) loadMore.remove();
 
@@ -299,16 +299,15 @@ function applyFiltersAndPaginate(callback = null) {
                 applyFiltersAndPaginate();
             });
         }
-
         if (callback) callback();
     });
 }
-
 const debouncedLoad = debounce(() => {
     currentPage = 1;
     applyFiltersAndPaginate();
 }, 300);
 
+/* ---------- RENDERIZADO DE LA TABLA ---------- */
 function renderTable(callback = null) {
     const tbody = document.querySelector('#pacientesTable tbody');
     if (!tbody) {
@@ -325,11 +324,7 @@ function renderTable(callback = null) {
                 </td>
             </tr>`;
         if (callback) {
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    setTimeout(callback, 100);
-                });
-            });
+            requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(callback, 100)));
         }
         return;
     }
@@ -364,21 +359,18 @@ function renderTable(callback = null) {
 
     tbody.innerHTML = html;
 
-    // === NUEVO: eventos de checkbox ===
+    /* ---- CHECKBOXES ---- */
     document.querySelectorAll('.row-checkbox').forEach(cb => {
-        cb.addEventListener('change', (e) => {
+        cb.addEventListener('change', e => {
             const id = e.target.dataset.id;
-            if (e.target.checked) {
-                selectedPacienteIds.add(id);
-            } else {
-                selectedPacienteIds.delete(id);
-            }
+            if (e.target.checked) selectedPacienteIds.add(id);
+            else selectedPacienteIds.delete(id);
             updateCambiarEstadoButton();
             e.target.closest('tr').classList.toggle('row-selected', e.target.checked);
         });
     });
 
-    document.getElementById('selectAll')?.addEventListener('change', (e) => {
+    document.getElementById('selectAll')?.addEventListener('change', e => {
         const checked = e.target.checked;
         document.querySelectorAll('.row-checkbox').forEach(cb => {
             cb.checked = checked;
@@ -391,14 +383,11 @@ function renderTable(callback = null) {
     });
 
     if (callback) {
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                setTimeout(callback, 100);
-            });
-        });
+        requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(callback, 100)));
     }
 }
 
+/* ---------- REDIMENSIONAR COLUMNAS ---------- */
 function setupColumnResize() {
     const headers = document.querySelectorAll('.pacientes-table th');
     const initialWidths = [50, 90, 80, 100, 110, 70, 180, 150, 90, 120, 100, 80, 80];
@@ -414,7 +403,7 @@ function setupColumnResize() {
         const handle = header.querySelector('.resize-handle');
         if (!handle) return;
         let isResizing = false, startX, startWidth;
-        const start = (e) => {
+        const start = e => {
             isResizing = true;
             startX = e.clientX || e.touches?.[0]?.clientX;
             startWidth = header.getBoundingClientRect().width;
@@ -422,7 +411,7 @@ function setupColumnResize() {
             handle.classList.add('active');
             e.preventDefault();
         };
-        const move = (e) => {
+        const move = e => {
             if (!isResizing) return;
             const delta = (e.clientX || e.touches?.[0]?.clientX) - startX;
             let newWidth = Math.max(initialWidths[index], Math.min(initialWidths[index] * 2, startWidth + delta));
@@ -449,12 +438,11 @@ function setupColumnResize() {
     });
 }
 
+/* ---------- MODAL CIRUGÍA ---------- */
 let pacienteActualId = null;
-
 function abrirModalCirugia(id) {
     const paciente = allPacientesDelMes.find(p => p.id === id);
     if (!paciente || !paciente.cirugias || paciente.cirugias.length === 0) return;
-
     pacienteActualId = id;
     const container = document.getElementById('cirugiaOptions');
     container.innerHTML = paciente.cirugias.map((c, i) => `
@@ -464,36 +452,59 @@ function abrirModalCirugia(id) {
             ${c.fecha ? `<small style="color:#666;">(${new Date(c.fecha).toLocaleDateString('es-CL')})</small>` : ''}
         </label>
     `).join('');
-
     document.getElementById('cirugiaModal').style.display = 'flex';
 }
-
 function cerrarModalCirugia() {
     document.getElementById('cirugiaModal').style.display = 'none';
     pacienteActualId = null;
 }
 
+/* ---------- SELECT DE ESTADOS ÚNICOS DEL MES ---------- */
+function actualizarSelectEstados() {
+    const select = document.getElementById('buscarEstado');
+    if (!select || !allPacientesDelMes.length) {
+        select.innerHTML = '<option value="">Todos</option>';
+        return;
+    }
+    const estadosUnicos = new Set();
+    allPacientesDelMes.forEach(p => {
+        if (p.estado) estadosUnicos.add(p.estado.trim());
+    });
+    const valorActual = select.value;
+    select.innerHTML = '<option value="">Todos</option>';
+    Array.from(estadosUnicos).sort().forEach(estado => {
+        const opt = document.createElement('option');
+        opt.value = normalizeText(estado);
+        opt.textContent = estado;
+        if (normalizeText(estado) === valorActual) opt.selected = true;
+        select.appendChild(opt);
+    });
+}
+
+/* ---------- INICIALIZACIÓN ---------- */
 document.addEventListener('DOMContentLoaded', () => {
+    /* ---- FILTROS (Convenio eliminado) ---- */
     const inputs = [
         { id: 'buscarEstado', filter: 'estado' },
         { id: 'buscarPrevision', filter: 'prevision' },
-        { id: 'buscarConvenio', filter: 'convenio' },
         { id: 'buscarAdmision', filter: 'admision' },
         { id: 'buscarPaciente', filter: 'paciente' },
         { id: 'buscarMedico', filter: 'medico' },
         { id: 'buscarProveedor', filter: 'proveedor' }
     ];
-    
+
     inputs.forEach(({ id, filter }) => {
-        const input = document.getElementById(id);
-        if (input) {
-            input.addEventListener('input', e => {
+        const el = document.getElementById(id);
+        if (el) {
+            const eventType = id === 'buscarEstado' ? 'change' : 'input';   // <-- select usa change
+            el.addEventListener(eventType, e => {
                 searchFilters[filter] = normalizeText(e.target.value);
                 debouncedLoad();
             });
         }
     });
 
+    /* ---- CAMBIO DE AÑO ---- */
     document.getElementById('anioSelect')?.addEventListener('change', async e => {
         selectedYear = parseInt(e.target.value);
         selectedMonth = null;
@@ -512,18 +523,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
             await renderMesesButtons(mesesSet);
-        } catch(err) {
+        } catch (err) {
             console.error(err);
             window.hideLoading();
         }
     });
 
-    // === NUEVO: Modal Cambiar Estado ===
+    /* ---- MODAL CAMBIAR ESTADO ---- */
     const modalEstado = document.getElementById('cambiarEstadoModal');
     document.getElementById('btnCambiarEstado')?.addEventListener('click', () => {
         modalEstado.style.display = 'flex';
     });
-    modalEstado.addEventListener('click', (e) => {
+    modalEstado.addEventListener('click', e => {
         if (e.target === modalEstado) modalEstado.style.display = 'none';
     });
     document.querySelector('#cambiarEstadoModal .close')?.addEventListener('click', () => {
@@ -538,24 +549,21 @@ document.addEventListener('DOMContentLoaded', () => {
         modalEstado.style.display = 'none';
     });
 
-    document.getElementById('cirugiaModal')?.addEventListener('click', (e) => {
+    /* ---- MODAL CIRUGÍA ---- */
+    document.getElementById('cirugiaModal')?.addEventListener('click', e => {
         if (e.target === document.getElementById('cirugiaModal')) cerrarModalCirugia();
     });
     document.querySelector('.close')?.addEventListener('click', cerrarModalCirugia);
     document.getElementById('cancelarCirugia')?.addEventListener('click', cerrarModalCirugia);
-
     document.getElementById('guardarCirugia')?.addEventListener('click', async () => {
         const seleccionado = document.querySelector('input[name="cirugia"]:checked');
         if (!seleccionado || !pacienteActualId) return;
-
         const nuevaCirugia = seleccionado.value;
         try {
             const pacienteRef = doc(db, "pacientes_consignaciones", pacienteActualId);
             await updateDoc(pacienteRef, { cirugiaSeleccionada: nuevaCirugia });
-            
             const paciente = allPacientesDelMes.find(p => p.id === pacienteActualId);
             if (paciente) paciente.cirugiaSeleccionada = nuevaCirugia;
-
             renderTable();
             cerrarModalCirugia();
             showToast('Cirugía actualizada', 'success');
@@ -564,7 +572,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    document.addEventListener('click', (e) => {
+    document.addEventListener('click', e => {
         if (e.target.classList.contains('cirugia-count')) {
             const cell = e.target.closest('.cirugia-cell');
             if (cell) abrirModalCirugia(cell.dataset.id);
