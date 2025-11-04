@@ -162,7 +162,7 @@ async function ejecutarTraspaso() {
             } else {
                 pacientesMap.set(key, {
                     fechaIngreso: new Date(),
-                    estado: 'ACTIVO',
+                    estado: 'INGRESADO',
                     prevision: '',
                     convenio: '',
                     admision: data.admision,
