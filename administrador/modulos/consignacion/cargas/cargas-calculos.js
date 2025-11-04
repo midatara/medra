@@ -10,7 +10,6 @@ export function initCalculosDb(database) {
 
 /**
  * Calcula el margen según el precio unitario
- * Fórmula Excel: =SI(H2<301;"500%";SI(H2<1001;"400%"; ... ))
  */
 function calcularMargen(precio) {
     if (!precio || isNaN(precio)) return null;
@@ -28,19 +27,16 @@ function calcularMargen(precio) {
 }
 
 /**
- * Convierte porcentaje como string "30%" → 0.3
+ * Extrae el número de un porcentaje: "500%" → 5.0
  */
 function parsePorcentaje(porcentajeStr) {
     if (!porcentajeStr) return 0;
-    const match = porcentajeStr.toString().match(/([\d.]+)%?/);
+    const match = porcentajeStr.toString().trim().match(/([\d.]+)%?/);
     return match ? parseFloat(match[1]) / 100 : 0;
 }
 
 /**
- * Calcula la venta según:
- * - Atributo = Consignación → (precio + precio * margen) * cantidad
- * - Atributo = Cotización → (precio + precio * 30%) * cantidad
- *   → pero si previsión = ISL → 100% en vez de 30%
+ * Calcula la VENTA según tus reglas exactas
  */
 function calcularVenta(carga) {
     const { precio, cantidad, atributo, margen, prevision } = carga;
@@ -50,28 +46,29 @@ function calcularVenta(carga) {
     const attr = (atributo || "").toString().trim();
     const prev = (prevision || "").toString().trim().toUpperCase();
 
+    // Validación básica
     if (isNaN(p) || isNaN(c) || p <= 0 || c <= 0) return null;
 
-    let precioConMargen = 0;
+    let precioConIncremento = 0;
 
     if (attr === "Consignación") {
-        const margenFactor = parsePorcentaje(margen);
-        precioConMargen = p + (p * margenFactor);
-    } else if (attr === "Cotización") {
+        const factorMargen = parsePorcentaje(margen); // ej: "500%" → 5.0
+        precioConIncremento = p + (p * factorMargen);
+    } 
+    else if (attr === "Cotización") {
         const porcentaje = (prev === "ISL") ? 1.0 : 0.3; // 100% o 30%
-        precioConMargen = p + (p * porcentaje);
-    } else {
-        return null; // No aplica fórmula
+        precioConIncremento = p + (p * porcentaje);
+    } 
+    else {
+        return null; // No aplica
     }
 
-    return Math.round(precioConMargen * c * 100) / 100; // Redondear a 2 decimales
+    // Redondeo a 2 decimales
+    return Math.round(precioConIncremento * c * 100) / 100;
 }
 
 /**
- * Procesa una lista de cargas:
- * - Calcula margen si falta o cambió
- * - Calcula venta si falta o cambió
- * - Guarda en Firestore solo si hay cambios
+ * Procesa márgenes y ventas
  */
 export async function procesarMargenes(cargas) {
     if (!cargas || cargas.length === 0 || !db) return cargas;
@@ -84,7 +81,7 @@ export async function procesarMargenes(cargas) {
         const margenActual = c.margen?.toString().trim();
         const margenCalculado = calcularMargen(precio);
 
-        // === 1. MARGEn ===
+        // === 1. MÁRGEN ===
         if (!margenCalculado) {
             if (margenActual && margenActual !== '') {
                 updates.margen = '';
@@ -120,9 +117,9 @@ export async function procesarMargenes(cargas) {
             try {
                 const cargaRef = doc(db, "cargas_consignaciones", c.id);
                 await updateDoc(cargaRef, updates);
-                console.log(`Actualizado carga ${c.id}:`, updates);
+                console.log(`Actualizado ${c.id}:`, updates);
             } catch (err) {
-                console.warn(`Error al actualizar carga ${c.id}:`, err);
+                console.warn(`Error actualizando ${c.id}:`, err);
             }
         }
 
