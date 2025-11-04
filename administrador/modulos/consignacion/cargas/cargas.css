@@ -376,3 +376,21 @@ html, body {
         min-width: 100%;
     }
 }
+
+/* === ALINEACIÓN DE COLUMNAS NUMÉRICAS === */
+.cargar-table td:nth-child(7),   /* Cantidad */
+.cargar-table td:nth-child(17),  /* Cantidad Producto */
+.cargar-table td:nth-child(18),  /* Precio */
+.cargar-table td:nth-child(20),  /* Total Item */
+.cargar-table td:nth-child(21)   /* Margen */
+{
+    text-align: right !important;
+    padding-right: 8px !important;
+    font-family: monospace;
+}
+
+/* Centrar botón de acciones */
+.cargar-table td:nth-child(1) {
+    text-align: center;
+    padding: 1px 4px;
+}

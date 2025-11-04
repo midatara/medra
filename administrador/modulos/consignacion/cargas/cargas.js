@@ -249,7 +249,7 @@ function renderTable() {
                 </button>
             </td>
             <td>${escapeHtml(c.estado)}</td>
-            <td>${c.fechaCarga?.toLocaleDateString?.('es-CL') || ''}</td>
+            <td>${c.fechaCarga ? c.fechaCarga.toLocaleDateString('es-CL') : ''}</td>
             <td>${escapeHtml(c.referencia)}</td>
             <td>${escapeHtml(c.idRegistro)}</td>
             <td>${escapeHtml(c.codigo)}</td>
@@ -267,7 +267,7 @@ function renderTable() {
             <td>${formatNumberWithThousandsSeparator(c.precio)}</td>
             <td>${escapeHtml(c.atributo)}</td>
             <td>${formatNumberWithThousandsSeparator(c.totalItem)}</td>
-            <td>${c.margen}</td>
+            <td style="text-align:right;">${c.margen === '' || c.margen == null ? '-' : c.margen}</td>
         </tr>
     `).join('');
 }
