@@ -1,4 +1,3 @@
-// pacientes-reportes.js
 import { collection, getDocs, query, where, doc, updateDoc, orderBy } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
 
 let db = null;
@@ -42,7 +41,10 @@ export async function completarDatosPacientes(pacientes) {
                 if (!convenio && r.convenio) convenio = r.convenio;
             });
 
-            const cirugiaSeleccionada = cirugias.length > 0 ? cirugias[0].descripcion : '';
+            let cirugiaSeleccionada = p.cirugiaSeleccionada || '';
+            if (!cirugiaSeleccionada && cirugias.length > 0) {
+                cirugiaSeleccionada = cirugias[0].descripcion;
+            }
 
             const datos = {
                 prevision: isapre,
@@ -53,12 +55,15 @@ export async function completarDatosPacientes(pacientes) {
 
             const pacienteRef = doc(db, "pacientes_consignaciones", p.id);
             const updates = {};
+
             if (p.prevision !== datos.prevision) updates.prevision = datos.prevision;
             if (p.convenio !== datos.convenio) updates.convenio = datos.convenio;
+
             if (!p.cirugias || JSON.stringify(p.cirugias) !== JSON.stringify(cirugias)) {
                 updates.cirugias = cirugias;
             }
-            if (p.cirugiaSeleccionada !== cirugiaSeleccionada) {
+
+            if (!p.cirugiaSeleccionada && cirugiaSeleccionada) {
                 updates.cirugiaSeleccionada = cirugiaSeleccionada;
             }
 
