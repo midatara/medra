@@ -155,7 +155,6 @@ async function ejecutarTraspaso() {
 
             const key = `${data.admision}_${data.proveedor}`;
 
-            // === PACIENTES: agrupado por admision + proveedor ===
             if (pacientesMap.has(key)) {
                 const p = pacientesMap.get(key);
                 p.totalPaciente = (p.totalPaciente || 0) + (data.totalItems || 0);
@@ -176,16 +175,15 @@ async function ejecutarTraspaso() {
                 });
             }
 
-            // === CARGAS: UNA FILA POR CADA REGISTRO (sin agrupar) ===
             cargas.push({
-                estado: 'INGRESADO',                 // ← AHORA ES "INGRESADO"
-                fechaCarga: '',                      // ← VACÍO
+                estado: 'INGRESADO',      
+                fechaCarga: '',              
                 referencia: data.referencia || '',
-                idRegistro: data.admision,           // ← IGUAL QUE admision
+                idRegistro: data.admision,    
                 codigo: data.codigo || '',
                 cantidad: data.cantidad || 0,
-                venta: '',                           // ← VACÍO
-                prevision: '',                       // ← VACÍO
+                venta: '',                     
+                prevision: '',                  
                 admision: data.admision,
                 paciente: data.paciente,
                 medico: data.medico,
@@ -197,14 +195,13 @@ async function ejecutarTraspaso() {
                 precio: data.precioUnitario || 0,
                 atributo: data.atributo || '',
                 totalItem: data.totalItems || 0,
-                margen: ''                           // ← VACÍO
+                margen: ''                     
             });
 
             batch.delete(d.ref);
             total++;
         });
 
-        // === Guardar pacientes agrupados ===
         pacientesMap.forEach(p => {
             const ref = doc(collection(db, "pacientes_consignaciones"));
             batch.set(ref, {
@@ -215,18 +212,15 @@ async function ejecutarTraspaso() {
             });
         });
 
-        // === Guardar TODAS las cargas ===
         cargas.forEach(c => {
             const ref = doc(collection(db, "cargas_consignaciones"));
             batch.set(ref, {
                 ...c,
                 fechaCX: Timestamp.fromDate(c.fechaCX),
-                // fechaCarga se deja vacío (string)
                 timestamp: Timestamp.fromDate(new Date())
             });
         });
 
-        // === Actualizar contador ===
         batch.update(doc(db, "stats", "counts"), { totalRegistros: increment(-total) });
 
         await batch.commit();

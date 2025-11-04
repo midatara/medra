@@ -99,7 +99,7 @@ async function loadAniosYMeses() {
         });
 
         const anioSelect = document.getElementById('anioSelect');
-        anioSelect.innerHTML = ''; // ← AQUÍ ESTABA EL ERROR (cortado antes)
+        anioSelect.innerHTML = ''; 
         const currentYear = new Date().getFullYear();
         let defaultYear = currentYear;
         const years = Array.from(mesesPorAnio.keys()).sort((a, b) => b - a);
