@@ -20,8 +20,13 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 setPersistence(auth, browserSessionPersistence);
 
+// Inicializar módulos
 import('./cargas-reportes.js').then(module => {
     module.initReportesDb(db);
+});
+
+import('./cargas-calculos.js').then(module => {
+    module.initCalculosDb(db);
 });
 
 let allCargasDelMes = [];
@@ -100,7 +105,7 @@ async function cambiarEstadoMasivo(nuevoEstado) {
 
             const updateData = { estado: nuevoEstado };
 
-            // Sólo asignar fechaCarga la primera vez que se marca CARGADO
+            // Solo asignar fechaCarga la primera vez que se marca CARGADO
             if (nuevoEstado === 'CARGADO' && !carga.fechaCarga) {
                 updateData.fechaCarga = new Date();
             }
@@ -239,7 +244,6 @@ async function loadCargas() {
                 id: doc.id,
                 ...data,
                 fechaCX: data.fechaCX?.toDate?.() || new Date(data.fechaCX || Date.now()),
-                // fechaCarga solo si existe en Firestore → null en caso contrario
                 fechaCarga: data.fechaCarga ? (data.fechaCarga.toDate?.() || new Date(data.fechaCarga)) : null,
                 _admision: normalizeText(data.admision),
                 _paciente: normalizeText(data.paciente),
@@ -252,12 +256,22 @@ async function loadCargas() {
             };
         });
 
+        // 1. Completar datos de reportes (prevision, convenio, cirugías)
+        let cargasProcesadas = cargasBase;
         try {
             const { completarDatosCargas } = await import('./cargas-reportes.js');
-            allCargasDelMes = await completarDatosCargas(cargasBase);
+            cargasProcesadas = await completarDatosCargas(cargasBase);
         } catch (err) {
             console.error('Error al completar datos de reportes:', err);
-            allCargasDelMes = cargasBase;
+        }
+
+        // 2. Calcular márgenes automáticos
+        try {
+            const { procesarMargenes } = await import('./cargas-calculos.js');
+            allCargasDelMes = await procesarMargenes(cargasProcesadas);
+        } catch (err) {
+            console.error('Error al calcular márgenes:', err);
+            allCargasDelMes = cargasProcesadas;
         }
 
         selectedCargaIds.clear();
