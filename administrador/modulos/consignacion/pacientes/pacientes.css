@@ -70,7 +70,7 @@ html, body {
     white-space: nowrap;
 }
 
-#buscarEstado, #buscarPrevision, #buscarConvenio, #buscarAdmision, 
+#buscarEstado, #buscarPrevision, #buscarConvenio, #buscarAdmision,
 #buscarPaciente, #buscarMedico, #buscarProveedor,
 #anioSelect {
     width: 100%;
@@ -83,7 +83,7 @@ html, body {
     line-height: 16px;
 }
 
-#buscarEstado:focus, #buscarPrevision:focus, #buscarConvenio:focus, #buscarAdmision:focus, 
+#buscarEstado:focus, #buscarPrevision:focus, #buscarConvenio:focus, #buscarAdmision:focus,
 #buscarPaciente:focus, #buscarMedico:focus, #buscarProveedor:focus,
 #anioSelect:focus {
     box-shadow: 0 0 8px rgba(0, 123, 255, 0.3);
@@ -172,7 +172,8 @@ html, body {
     background-color: #f8f9fa;
 }
 
-.pacientes-table th:nth-child(1), .pacientes-table td:nth-child(1) { width: 50px; min-width: 50px; max-width: 100px; }
+/* === ANCHO DE COLUMNAS (ACCIONES AHORA ES LA PRIMERA) === */
+.pacientes-table th:nth-child(1), .pacientes-table td:nth-child(1) { width: 60px; min-width: 60px; max-width: 120px; }
 .pacientes-table th:nth-child(2), .pacientes-table td:nth-child(2) { width: 90px; min-width: 90px; max-width: 180px; }
 .pacientes-table th:nth-child(3), .pacientes-table td:nth-child(3) { width: 80px; min-width: 80px; max-width: 160px; }
 .pacientes-table th:nth-child(4), .pacientes-table td:nth-child(4) { width: 100px; min-width: 100px; max-width: 200px; }
@@ -185,52 +186,65 @@ html, body {
 .pacientes-table th:nth-child(11), .pacientes-table td:nth-child(11) { width: 100px; min-width: 100px; max-width: 200px; }
 .pacientes-table th:nth-child(12), .pacientes-table td:nth-child(12) { width: 80px; min-width: 80px; max-width: 160px; }
 .pacientes-table th:nth-child(13), .pacientes-table td:nth-child(13) { width: 80px; min-width: 80px; max-width: 160px; }
-/* Eliminar la columna de acciones antigua */
+
+/* Ocultar columna de acciones antigua (si existiera) */
 .pacientes-table th:nth-child(14), .pacientes-table td:nth-child(14) { display: none; }
 
-/* Ajustes para checkbox */
-.checkbox-cell input[type="checkbox"] {
-    cursor: pointer;
-    width: 16px;
-    height: 16px;
-}
-
-.pacientes-actions {
-    display: flex;
-    gap: 1px;
-    align-items: center;
-    justify-content: flex-start;
-    padding: 0;
-    margin: 0;
-}
-
-.pacientes-actions button {
-    border: none;
-    border-radius: 2px;
-    cursor: pointer;
-    font-size: 9px;
-    width: 18px;
-    height: 18px;
+/* === ESTILOS PARA LA PRIMERA COLUMNA (CHECK + BOTÓN) === */
+.checkbox-cell {
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 4px;
+    padding: 2px 4px !important;
+    font-size: 10px;
 }
 
-.pacientes-table td:last-child {
-    display: flex;
-    align-items: center;
-    padding: 1px;
+/* Checkbox más pequeño y profesional */
+.checkbox-cell input[type="checkbox"] {
+    width: 13px;
+    height: 13px;
+    margin: 0;
+    cursor: pointer;
+    accent-color: #007bff;
+    transform: translateY(-1px);
 }
 
+/* Botón de historial más pequeño */
 .pacientes-btn-history {
     background-color: #17a2b8;
     color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 10px;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: background 0.2s;
 }
 
 .pacientes-btn-history:hover {
     background-color: #138496;
 }
 
+/* Fila seleccionada */
+.row-selected {
+    background-color: #e3f2fd !important;
+}
+
+/* Select All en header */
+#selectAll {
+    width: 13px;
+    height: 13px;
+    cursor: pointer;
+    accent-color: #007bff;
+}
+
+/* === RESTO DEL CSS (SIN CAMBIOS) === */
 .pacientes-pagination {
     display: flex;
     justify-content: space-between;
@@ -332,7 +346,6 @@ html, body {
     border-radius: 8px;
     box-shadow: 0 4px 20px 20px rgba(0,0,0,0.2);
     z-index: 1000;
-    display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
@@ -378,6 +391,14 @@ html, body {
     }
     .pacientes-form-group {
         min-width: 100%;
+    }
+    .checkbox-cell {
+        gap: 2px;
+    }
+    .pacientes-btn-history {
+        width: 18px;
+        height: 18px;
+        font-size: 9px;
     }
 }
 
