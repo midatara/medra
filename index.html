@@ -23,33 +23,45 @@
             font-size: 20px;
             font-weight: bold;
         }
+
+        /* Panel de login optimizado */
         .login-panel {
             width: 500px;
+            max-width: 90%;
             margin: 50px auto;
-            padding: 30px;
+            padding: 24px 30px;
             border: 1px solid #ccc;
             border-radius: 5px;
             background-color: white;
+            display: flex;
+            flex-direction: column;
+            gap: 16px; /* Espacio uniforme entre todos los elementos */
             flex: 1;
         }
+
         .login-panel h2 {
-            margin-bottom: 20px;
+            margin: 0;
             font-size: 24px;
             font-weight: normal;
+            text-align: center;
         }
+
         .form-group {
-            margin-bottom: 15px;
+            margin: 0;
             text-align: left;
         }
+
         .form-group label {
             display: block;
             margin-bottom: 5px;
             font-size: 14px;
             font-weight: normal;
         }
+
         .input-wrapper {
             position: relative;
         }
+
         .input-icon {
             position: absolute;
             left: 12px;
@@ -59,6 +71,7 @@
             font-size: 16px;
             pointer-events: none;
         }
+
         .input-icon::after {
             content: '';
             position: absolute;
@@ -68,6 +81,7 @@
             width: 1px;
             background-color: #ccc;
         }
+
         .form-group input {
             width: 100%;
             padding: 8px 8px 8px 45px;
@@ -76,11 +90,13 @@
             box-sizing: border-box;
             transition: border-color 0.3s ease, box-shadow 0.3s ease;
         }
+
         .form-group input:focus {
             border-color: #0d83d1;
             box-shadow: 0 0 8px rgba(13, 131, 209, 0.5);
             outline: none;
         }
+
         .btn-conectar {
             width: 100%;
             padding: 10px;
@@ -92,41 +108,50 @@
             cursor: pointer;
             text-align: center;
         }
+
         .btn-conectar:hover:not(:disabled) {
             background-color: #0c72b1;
         }
+
         .btn-conectar:disabled {
             background-color: #ccc;
             cursor: not-allowed;
         }
+
         .change-link {
-            margin-top: 10px;
+            margin: 0;
             text-align: left;
         }
+
         .change-link a {
             color: #3A5795;
             text-decoration: none;
             font-size: 12px;
         }
+
         .change-link a:hover {
             text-decoration: underline;
         }
+
         #message {
-            margin-top: 10px;
+            margin: 0;
             padding: 10px;
             border-radius: 4px;
             display: none;
         }
+
         .error {
             background-color: #f8d7da;
             color: #721c24;
             border: 1px solid #f5c6cb;
         }
+
         .success {
             background-color: #d4edda;
             color: #155724;
             border: 1px solid #c3e6cb;
         }
+
         .loading {
             background-color: #d1ecf1;
             color: #0c5460;
@@ -143,10 +168,12 @@
             border-top: 1px solid #e9ecef;
             margin-top: auto;
         }
+
         .footer a {
             color: #3A5795;
             text-decoration: none;
         }
+
         .footer a:hover {
             text-decoration: underline;
         }
@@ -154,8 +181,10 @@
 </head>
 <body>
     <div class="header">Medra</div>
+
     <div class="login-panel">
         <h2>Ingrese a Medra</h2>
+
         <form id="loginForm">
             <div class="form-group">
                 <label for="username">Nombre de Usuario</label>
@@ -164,6 +193,7 @@
                     <input type="text" id="username" name="username" placeholder="Nombre de Usuario" autocomplete="off" required>
                 </div>
             </div>
+
             <div class="form-group">
                 <label for="password">Clave</label>
                 <div class="input-wrapper">
@@ -171,13 +201,16 @@
                     <input type="password" id="password" name="password" placeholder="Clave" autocomplete="off" required>
                 </div>
             </div>
+
             <div class="form-group">
                 <input type="submit" value="Ingresar" class="btn-conectar" id="loginBtn">
             </div>
+
             <div class="change-link">
                 <a href="cambiar-clave.html">¿Olvidaste tu contraseña?</a>
             </div>
         </form>
+
         <div id="message"></div>
     </div>
 
