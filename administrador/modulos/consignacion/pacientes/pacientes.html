@@ -10,7 +10,7 @@
         import { getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
         import { 
             getFirestore, collection, getDocs, query, where, doc, 
-            orderBy, getDoc, limit, startAfter, updateDoc 
+            orderBy, getDoc, limit, startAfter 
         } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
         
         window.firebaseModules = {
@@ -28,8 +28,7 @@
             orderBy,
             getDoc,
             limit,
-            startAfter,
-            updateDoc
+            startAfter
         };
     </script>
     <link rel="stylesheet" href="pacientes.css">
@@ -70,12 +69,15 @@
                     <input type="text" id="buscarProveedor" autocomplete="off">
                 </div>
             </div>
-            <div class="filter-row" style="display:flex;align-items:center;gap:15px;margin:15px 0;">
+            <div class="filter-row" style="display:flex;align-items:center;gap:15px;margin:15px 0; flex-wrap: wrap;">
                 <div style="display:flex;align-items:center;gap:8px;">
                     <label style="font-weight:bold;white-space:nowrap;">Año:</label>
                     <select id="anioSelect" style="width:80px;padding:6px 8px;font-size:13px;border:1px solid #ccc;border-radius:4px;"></select>
                 </div>
                 <div id="mesesContainer" class="meses-buttons" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+                <button id="btnCambiarEstado" class="modal-btn modal-btn-secondary" style="display:none; white-space:nowrap;">
+                    Cambiar Estado
+                </button>
             </div>
         </div>
 
@@ -83,6 +85,10 @@
             <table class="pacientes-table" id="pacientesTable">
                 <thead>
                     <tr>
+                        <th style="width: 50px; min-width: 50px; max-width: 100px;">
+                            <input type="checkbox" id="selectAll" title="Seleccionar todo">
+                            <div class="resize-handle"></div>
+                        </th>
                         <th>Fecha Ingreso<div class="resize-handle"></div></th>
                         <th>Estado<div class="resize-handle"></div></th>
                         <th>Previsión<div class="resize-handle"></div></th>
@@ -93,9 +99,8 @@
                         <th>Fecha CX<div class="resize-handle"></div></th>
                         <th>Proveedor<div class="resize-handle"></div></th>
                         <th>Total Paciente<div class="resize-handle"></div></th>
-                        <th>Cirugía<div class="resize-handle"></div></th>
+                        <th>Cirugia<div class="resize-handle"></div></th>
                         <th>Atributo<div class="resize-handle"></div></th>
-                        <th>Acciones<div class="resize-handle"></div></th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -112,66 +117,27 @@
         </div>
     </div>
 
-    <!-- MODAL DE SELECCIÓN DE CIRUGÍA -->
-    <div id="cirugiaModal" class="modal" style="display:none;">
-        <div class="modal-content" style="max-width:500px;">
-            <span class="close">×</span>
-            <h3>Seleccionar Cirugía</h3>
-            <div id="cirugiaOptions" style="margin:15px 0;"></div>
-            <div style="margin-top:15px;text-align:right;">
-                <button id="cancelarCirugia" class="modal-btn modal-btn-secondary">Cancelar</button>
-                <button id="guardarCirugia" class="modal-btn modal-btn-primary">Guardar</button>
-            </div>
+    <div class="pacientes-toast-container" id="toastContainer"></div>
+
+    <div id="modalCambiarEstado" class="loading-modal" style="display:none; width:320px; height:auto; padding:20px;">
+        <h3 style="margin:0 0 15px 0; font-size:14px;">Cambiar Estado</h3>
+        <div style="margin-bottom:15px;">
+            <label style="font-weight:bold; font-size:12px;">Nuevo estado:</label>
+            <select id="nuevoEstadoSelect" style="width:100%; padding:6px; margin-top:5px; font-size:12px;">
+                <option value="INGRESADO">INGRESADO</option>
+                <option value="CARGADO">CARGADO</option>
+                <option value="PENDIENTE">PENDIENTE</option>
+                <option value="MODIFICAR">MODIFICAR</option>
+                <option value="ERROR">ERROR</option>
+            </select>
+        </div>
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button id="btnCancelarEstado" class="modal-btn modal-btn-secondary">Cancelar</button>
+            <button id="btnGuardarEstado" class="modal-btn" style="background:#28a745; color:white;">Guardar</button>
         </div>
     </div>
 
-    <div class="pacientes-toast-container" id="toastContainer"></div>
-
-    <style>
-        .cirugia-count {
-            background: #e3f2fd;
-            color: #1976d2;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 10px;
-            font-weight: bold;
-            margin-right: 5px;
-            cursor: pointer;
-        }
-        .cirugia-count:hover {
-            background: #bbdefb;
-        }
-        .modal {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        .modal-content {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            max-width: 90%;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-            position: relative;
-        }
-        .close {
-            position: absolute;
-            top: 10px; right: 15px;
-            font-size: 24px;
-            cursor: pointer;
-            color: #aaa;
-        }
-        .close:hover { color: #000; }
-        #cirugiaOptions label {
-            display: block;
-            margin: 8px 0;
-            cursor: pointer;
-        }
-    </style>
+    <div id="modalOverlay"></div>
 
     <script type="module" src="pacientes.js"></script>
     <script type="module" src="pacientes-reportes.js"></script>

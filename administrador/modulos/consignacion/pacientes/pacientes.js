@@ -20,7 +20,6 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 setPersistence(auth, browserSessionPersistence);
 
-// === INICIALIZAR MÓDULO DE REPORTES ===
 import('./pacientes-reportes.js').then(module => {
     module.initReportesDb(db);
 });
@@ -31,6 +30,7 @@ let currentPage = 1;
 const PAGE_SIZE = 50;
 let selectedYear = null;
 let selectedMonth = null;
+let selectedRows = new Set();
 
 const searchFilters = {
     estado: '',
@@ -56,7 +56,7 @@ function normalizeText(text) {
 }
 
 function escapeHtml(text) {
-    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"':: '&quot;', "'": '&#039;' };
     return text?.toString().replace(/[&<>"']/g, m => map[m]) || '';
 }
 
@@ -255,6 +255,7 @@ const debouncedLoad = debounce(() => {
 function renderTable() {
     const tbody = document.querySelector('#pacientesTable tbody');
     if (!tbody) return;
+
     if (pacientes.length === 0) {
         tbody.innerHTML = `
             <tr>
@@ -263,10 +264,18 @@ function renderTable() {
                     No hay pacientes
                 </td>
             </tr>`;
+        updateCambiarEstadoButton();
         return;
     }
+
     tbody.innerHTML = pacientes.map(p => `
-        <tr>
+        <tr data-id="${p.id}">
+            <td class="acciones-cell">
+                <input type="checkbox" class="row-checkbox" data-id="${p.id}">
+                <button class="pacientes-btn-history" data-id="${p.id}" title="Ver historial">
+                    <i class="fas fa-history"></i>
+                </button>
+            </td>
             <td>${p.fechaIngreso?.toLocaleDateString?.('es-CL') || ''}</td>
             <td>${escapeHtml(p.estado)}</td>
             <td>${escapeHtml(p.prevision)}</td>
@@ -284,18 +293,64 @@ function renderTable() {
                 }
             </td>
             <td>${escapeHtml(p.atributo)}</td>
-            <td class="pacientes-actions">
-                <button class="pacientes-btn-history" data-id="${p.id}" title="Ver historial">
-                    <i class="fas fa-history"></i>
-                </button>
-            </td>
         </tr>
     `).join('');
+
+    document.querySelectorAll('.row-checkbox').forEach(cb => {
+        cb.addEventListener('change', () => {
+            const id = cb.dataset.id;
+            if (cb.checked) {
+                selectedRows.add(id);
+            } else {
+                selectedRows.delete(id);
+            }
+            updateSelectAll();
+            updateCambiarEstadoButton();
+        });
+    });
+
+    const selectAll = document.getElementById('selectAll');
+    if (selectAll) {
+        selectAll.addEventListener('change', () => {
+            const checked = selectAll.checked;
+            document.querySelectorAll('.row-checkbox').forEach(cb => {
+                cb.checked = checked;
+                const id = cb.dataset.id;
+                if (checked) selectedRows.add(id);
+                else selectedRows.delete(id);
+            });
+            updateCambiarEstadoButton();
+        });
+    }
+
+    updateSelectAll();
+    updateCambiarEstadoButton();
+}
+
+function updateSelectAll() {
+    const selectAll = document.getElementById('selectAll');
+    const checkboxes = document.querySelectorAll('.row-checkbox');
+    const checkedCount = document.querySelectorAll('.row-checkbox:checked').length;
+    if (selectAll) {
+        selectAll.indeterminate = checkedCount > 0 && checkedCount < checkboxes.length;
+        selectAll.checked = checkedCount === checkboxes.length && checkboxes.length > 0;
+    }
+}
+
+function updateCambiarEstadoButton() {
+    const btn = document.getElementById('btnCambiarEstado');
+    if (!btn) return;
+    if (selectedRows.size > 0) {
+        btn.style.display = 'inline-block';
+        btn.textContent = `Cambiar Estado (${selectedRows.size})`;
+    } else {
+        btn.style.display = 'none';
+    }
 }
 
 function setupColumnResize() {
     const headers = document.querySelectorAll('.pacientes-table th');
-    const initialWidths = [90, 80, 100, 110, 70, 180, 150, 90, 120, 100, 100, 80, 80];
+    const initialWidths = [50, 90, 80, 100, 110, 70, 180, 150, 90, 120, 100, 80, 80];
     headers.forEach((header, index) => {
         if (!initialWidths[index]) return;
         header.style.width = `${initialWidths[index]}px`;
@@ -446,6 +501,70 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     setupColumnResize();
+
+    const btnCambiarEstado = document.getElementById('btnCambiarEstado');
+    const modalCambiarEstado = document.getElementById('modalCambiarEstado');
+    const nuevoEstadoSelect = document.getElementById('nuevoEstadoSelect');
+    const btnGuardarEstado = document.getElementById('btnGuardarEstado');
+    const btnCancelarEstado = document.getElementById('btnCancelarEstado');
+    let overlay = document.getElementById('modalOverlay');
+
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'modalOverlay';
+        document.body.appendChild(overlay);
+    }
+
+    btnCambiarEstado?.addEventListener('click', () => {
+        modalCambiarEstado.classList.add('show');
+        overlay.classList.add('show');
+    });
+
+    btnCancelarEstado?.addEventListener('click', () => {
+        modalCambiarEstado.classList.remove('show');
+        overlay.classList.remove('show');
+    });
+
+    overlay.addEventListener('click', () => {
+        modalCambiarEstado.classList.remove('show');
+        overlay.classList.remove('show');
+    });
+
+    btnGuardarEstado?.addEventListener('click', async () => {
+        const nuevoEstado = nuevoEstadoSelect.value;
+        if (!nuevoEstado || selectedRows.size === 0) return;
+
+        window.showLoading();
+        try {
+            const updates = { estado: nuevoEstado };
+            const promesas = Array.from(selectedRows).map(id => {
+                const ref = doc(db, "pacientes_consignaciones", id);
+                return updateDoc(ref, updates);
+            });
+            await Promise.all(promesas);
+
+            allPacientesDelMes = allPacientesDelMes.map(p => {
+                if (selectedRows.has(p.id)) {
+                    p.estado = nuevoEstado;
+                    p._estado = normalizeText(nuevoEstado);
+                }
+                return p;
+            });
+
+            selectedRows.clear();
+            applyFiltersAndPaginate();
+            showToast(`Estado actualizado a "${nuevoEstado}" en ${selectedRows.size} pacientes`, 'success');
+
+            modalCambiarEstado.classList.remove('show');
+            overlay.classList.remove('show');
+        } catch (err) {
+            console.error(err);
+            showToast('Error al actualizar estado', 'error');
+        } finally {
+            window.hideLoading();
+        }
+    });
+
     onAuthStateChanged(auth, user => {
         loadAniosYMeses();
     });

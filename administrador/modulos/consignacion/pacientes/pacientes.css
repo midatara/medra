@@ -172,19 +172,19 @@ html, body {
     background-color: #f8f9fa;
 }
 
-.pacientes-table th:nth-child(1), .pacientes-table td:nth-child(1) { width: 90px; min-width: 90px; max-width: 180px; }
-.pacientes-table th:nth-child(2), .pacientes-table td:nth-child(2) { width: 80px; min-width: 80px; max-width: 160px; }
-.pacientes-table th:nth-child(3), .pacientes-table td:nth-child(3) { width: 100px; min-width: 100px; max-width: 200px; }
-.pacientes-table th:nth-child(4), .pacientes-table td:nth-child(4) { width: 110px; min-width: 110px; max-width: 220px; }
-.pacientes-table th:nth-child(5), .pacientes-table td:nth-child(5) { width: 70px; min-width: 70px; max-width: 140px; }
-.pacientes-table th:nth-child(6), .pacientes-table td:nth-child(6) { width: 180px; min-width: 180px; max-width: 360px; }
-.pacientes-table th:nth-child(7), .pacientes-table td:nth-child(7) { width: 150px; min-width: 150px; max-width: 300px; }
-.pacientes-table th:nth-child(8), .pacientes-table td:nth-child(8) { width: 90px; min-width: 90px; max-width: 180px; }
-.pacientes-table th:nth-child(9), .pacientes-table td:nth-child(9) { width: 120px; min-width: 120px; max-width: 240px; }
-.pacientes-table th:nth-child(10), .pacientes-table td:nth-child(10) { width: 100px; min-width: 100px; max-width: 200px; }
-.pacientes-table th:nth-child(11), .pacientes-table td:nth-child(11) { width: 80px; min-width: 80px; max-width: 160px; }
-.pacientes-table th:nth-child(12), .pacientes-table td:nth-child(12) { width: 80px; min-width: 80px; max-width: 160px; } 
-.pacientes-table th:nth-child(13), .pacientes-table td:nth-child(13) { width: 80px; min-width: 80px; max-width: 160px; } 
+.pacientes-table th:nth-child(1), .pacientes-table td:nth-child(1) { width: 50px; min-width: 50px; max-width: 100px; }
+.pacientes-table th:nth-child(2), .pacientes-table td:nth-child(2) { width: 90px; min-width: 90px; max-width: 180px; }
+.pacientes-table th:nth-child(3), .pacientes-table td:nth-child(3) { width: 80px; min-width: 80px; max-width: 160px; }
+.pacientes-table th:nth-child(4), .pacientes-table td:nth-child(4) { width: 100px; min-width: 100px; max-width: 200px; }
+.pacientes-table th:nth-child(5), .pacientes-table td:nth-child(5) { width: 110px; min-width: 110px; max-width: 220px; }
+.pacientes-table th:nth-child(6), .pacientes-table td:nth-child(6) { width: 70px; min-width: 70px; max-width: 140px; }
+.pacientes-table th:nth-child(7), .pacientes-table td:nth-child(7) { width: 180px; min-width: 180px; max-width: 360px; }
+.pacientes-table th:nth-child(8), .pacientes-table td:nth-child(8) { width: 150px; min-width: 150px; max-width: 300px; }
+.pacientes-table th:nth-child(9), .pacientes-table td:nth-child(9) { width: 90px; min-width: 90px; max-width: 180px; }
+.pacientes-table th:nth-child(10), .pacientes-table td:nth-child(10) { width: 120px; min-width: 120px; max-width: 240px; }
+.pacientes-table th:nth-child(11), .pacientes-table td:nth-child(11) { width: 100px; min-width: 100px; max-width: 200px; }
+.pacientes-table th:nth-child(12), .pacientes-table td:nth-child(12) { width: 80px; min-width: 80px; max-width: 160px; }
+.pacientes-table th:nth-child(13), .pacientes-table td:nth-child(13) { width: 80px; min-width: 80px; max-width: 160px; }
 
 .pacientes-actions {
     display: flex;
@@ -376,4 +376,55 @@ html, body {
     padding: 5px 10px;
     font-size: 12px;
     min-width: 48px;
+}
+
+.pacientes-table th input[type="checkbox"],
+.pacientes-table td input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.pacientes-table .acciones-cell {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px;
+}
+
+#btnCambiarEstado {
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+#modalCambiarEstado {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    z-index: 1001;
+    width: 320px;
+    max-width: 90%;
+    padding: 20px;
+}
+
+#modalCambiarEstado.show {
+    display: block;
+}
+
+#modalOverlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+}
+
+#modalOverlay.show {
+    display: block;
 }
