@@ -27,13 +27,16 @@ const PAGE_SIZE = 50;
 let selectedYear = null;
 let selectedMonth = null;
 
-let searchEstado = '';
-let searchPrevision = '';
-let searchConvenio = '';
-let searchAdmision = '';
-let searchPaciente = '';
-let searchMedico = '';
-let searchProveedor = '';
+// Objeto para almacenar los filtros de búsqueda
+const searchFilters = {
+    estado: '',
+    prevision: '',
+    convenio: '',
+    admision: '',
+    paciente: '',
+    medico: '',
+    proveedor: ''
+};
 
 const loading = document.getElementById('loading');
 
@@ -197,13 +200,15 @@ async function loadPacientes() {
 
 function applyFiltersAndPaginate() {
     let filtered = [...allPacientesDelMes];
-    if (searchEstado) filtered = filtered.filter(p => p._estado.includes(searchEstado));
-    if (searchPrevision) filtered = filtered.filter(p => p._prevision.includes(searchPrevision));
-    if (searchConvenio) filtered = filtered.filter(p => p._convenio.includes(searchConvenio));
-    if (searchAdmision) filtered = filtered.filter(p => p._admision.includes(searchAdmision));
-    if (searchPaciente) filtered = filtered.filter(p => p._paciente.includes(searchPaciente));
-    if (searchMedico) filtered = filtered.filter(p => p._medico.includes(searchMedico));
-    if (searchProveedor) filtered = filtered.filter(p => p._proveedor.includes(searchProveedor));
+    
+    // Aplicar filtros usando el objeto searchFilters
+    if (searchFilters.estado) filtered = filtered.filter(p => p._estado.includes(searchFilters.estado));
+    if (searchFilters.prevision) filtered = filtered.filter(p => p._prevision.includes(searchFilters.prevision));
+    if (searchFilters.convenio) filtered = filtered.filter(p => p._convenio.includes(searchFilters.convenio));
+    if (searchFilters.admision) filtered = filtered.filter(p => p._admision.includes(searchFilters.admision));
+    if (searchFilters.paciente) filtered = filtered.filter(p => p._paciente.includes(searchFilters.paciente));
+    if (searchFilters.medico) filtered = filtered.filter(p => p._medico.includes(searchFilters.medico));
+    if (searchFilters.proveedor) filtered = filtered.filter(p => p._proveedor.includes(searchFilters.proveedor));
 
     const startIdx = (currentPage - 1) * PAGE_SIZE;
     const endIdx = startIdx + PAGE_SIZE;
@@ -318,20 +323,22 @@ function setupColumnResize() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Configurar event listeners para los inputs de búsqueda
     const inputs = [
-        { id: 'buscarEstado', var: 'searchEstado' },
-        { id: 'buscarPrevision', var: 'searchPrevision' },
-        { id: 'buscarConvenio', var: 'searchConvenio' },
-        { id: 'buscarAdmision', var: 'searchAdmision' },
-        { id: 'buscarPaciente', var: 'searchPaciente' },
-        { id: 'buscarMedico', var: 'searchMedico' },
-        { id: 'buscarProveedor', var: 'searchProveedor' }
+        { id: 'buscarEstado', filter: 'estado' },
+        { id: 'buscarPrevision', filter: 'prevision' },
+        { id: 'buscarConvenio', filter: 'convenio' },
+        { id: 'buscarAdmision', filter: 'admision' },
+        { id: 'buscarPaciente', filter: 'paciente' },
+        { id: 'buscarMedico', filter: 'medico' },
+        { id: 'buscarProveedor', filter: 'proveedor' }
     ];
-    inputs.forEach(({ id, var: v }) => {
+    
+    inputs.forEach(({ id, filter }) => {
         const input = document.getElementById(id);
         if (input) {
             input.addEventListener('input', e => {
-                window[v] = normalizeText(e.target.value);
+                searchFilters[filter] = normalizeText(e.target.value);
                 debouncedLoad();
             });
         }
