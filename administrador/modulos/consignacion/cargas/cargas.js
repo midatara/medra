@@ -105,7 +105,6 @@ async function cambiarEstadoMasivo(nuevoEstado) {
 
             const updateData = { estado: nuevoEstado };
 
-            // Solo asignar fechaCarga la primera vez que se marca CARGADO
             if (nuevoEstado === 'CARGADO' && !carga.fechaCarga) {
                 updateData.fechaCarga = new Date();
             }
@@ -116,7 +115,6 @@ async function cambiarEstadoMasivo(nuevoEstado) {
 
         await Promise.all(updates);
 
-        // Actualizar en memoria
         allCargasDelMes.forEach(c => {
             if (selectedCargaIds.has(c.id)) {
                 c.estado = nuevoEstado;
@@ -256,7 +254,7 @@ async function loadCargas() {
             };
         });
 
-        // 1. Completar datos de reportes (prevision, convenio, cirugías)
+        // 1. Completar datos de reportes
         let cargasProcesadas = cargasBase;
         try {
             const { completarDatosCargas } = await import('./cargas-reportes.js');
@@ -265,7 +263,7 @@ async function loadCargas() {
             console.error('Error al completar datos de reportes:', err);
         }
 
-        // 2. Calcular márgenes automáticos
+        // 2. Calcular márgenes y ventas
         try {
             const { procesarMargenes } = await import('./cargas-calculos.js');
             allCargasDelMes = await procesarMargenes(cargasProcesadas);
@@ -525,7 +523,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    /* ---------- Modal Cambiar Estado ---------- */
     const modalEstado = document.getElementById('cambiarEstadoModal');
     document.getElementById('btnCambiarEstado')?.addEventListener('click', () => {
         modalEstado.classList.add('show');

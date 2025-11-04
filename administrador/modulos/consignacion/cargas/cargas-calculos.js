@@ -40,7 +40,6 @@ function parsePorcentaje(porcentajeStr) {
  */
 function calcularVenta(carga) {
     const { precio, cantidad, atributo, margen, prevision } = carga;
-
     const p = Number(precio);
     const c = Number(cantidad);
     const attr = (atributo || "").toString().trim();
@@ -126,5 +125,6 @@ export async function procesarMargenes(cargas) {
         return c;
     });
 
+    // ESTA LÍNEA ES CRÍTICA
     return Promise.all(promesas);
 }
