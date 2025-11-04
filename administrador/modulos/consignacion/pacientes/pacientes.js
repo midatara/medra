@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
-import { 
-    getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence 
+import {
+    getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence
 } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
-import { 
-    getFirestore, collection, getDocs, query, where, doc, orderBy, limit, startAfter 
+import {
+    getFirestore, collection, getDocs, query, where, orderBy
 } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -20,10 +20,10 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 setPersistence(auth, browserSessionPersistence);
 
+let allPacientesDelMes = [];
 let pacientes = [];
 let currentPage = 1;
 const PAGE_SIZE = 50;
-let lastVisible = null;
 let selectedYear = null;
 let selectedMonth = null;
 
@@ -45,7 +45,7 @@ window.hideLoading = () => {
 };
 
 function normalizeText(text) {
-    return text?.trim().toUpperCase() || '';
+    return text?.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") || '';
 }
 
 function escapeHtml(text) {
@@ -131,7 +131,7 @@ function renderMesesButtons(mesesSet) {
     if (!mesesSet || mesesSet.size === 0) {
         container.innerHTML = '<span style="color:#999;">Sin registros</span>';
         selectedMonth = null;
-        debouncedLoad();
+        applyFiltersAndPaginate();
         return;
     }
     const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
@@ -145,7 +145,6 @@ function renderMesesButtons(mesesSet) {
             btn.classList.add('active');
             selectedMonth = m;
             currentPage = 1;
-            lastVisible = null;
             loadPacientes();
         };
         container.appendChild(btn);
@@ -157,7 +156,7 @@ function renderMesesButtons(mesesSet) {
     } else {
         selectedMonth = null;
     }
-    debouncedLoad();
+    loadPacientes();
 }
 
 async function loadPacientes() {
@@ -169,12 +168,8 @@ async function loadPacientes() {
             const end = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59, 999);
             q = query(q, where("fechaCX", ">=", start), where("fechaCX", "<=", end));
         }
-        if (currentPage > 1 && lastVisible) {
-            q = query(q, startAfter(lastVisible));
-        }
-        q = query(q, limit(PAGE_SIZE));
         const snapshot = await getDocs(q);
-        const temp = snapshot.docs.map(doc => {
+        allPacientesDelMes = snapshot.docs.map(doc => {
             const data = doc.data();
             return {
                 id: doc.id,
@@ -190,19 +185,8 @@ async function loadPacientes() {
                 _convenio: normalizeText(data.convenio)
             };
         });
-
-        let filtered = temp;
-        if (searchEstado) filtered = filtered.filter(p => p._estado.includes(searchEstado));
-        if (searchPrevision) filtered = filtered.filter(p => p._prevision.includes(searchPrevision));
-        if (searchConvenio) filtered = filtered.filter(p => p._convenio.includes(searchConvenio));
-        if (searchAdmision) filtered = filtered.filter(p => p._admision.includes(searchAdmision));
-        if (searchPaciente) filtered = filtered.filter(p => p._paciente.includes(searchPaciente));
-        if (searchMedico) filtered = filtered.filter(p => p._medico.includes(searchMedico));
-        if (searchProveedor) filtered = filtered.filter(p => p._proveedor.includes(searchProveedor));
-
-        pacientes = filtered;
-        lastVisible = snapshot.docs[snapshot.docs.length - 1] || null;
-        renderTable();
+        currentPage = 1;
+        applyFiltersAndPaginate();
     } catch (e) {
         console.error(e);
         showToast('Error al cargar pacientes', 'error');
@@ -211,10 +195,41 @@ async function loadPacientes() {
     }
 }
 
+function applyFiltersAndPaginate() {
+    let filtered = [...allPacientesDelMes];
+    if (searchEstado) filtered = filtered.filter(p => p._estado.includes(searchEstado));
+    if (searchPrevision) filtered = filtered.filter(p => p._prevision.includes(searchPrevision));
+    if (searchConvenio) filtered = filtered.filter(p => p._convenio.includes(searchConvenio));
+    if (searchAdmision) filtered = filtered.filter(p => p._admision.includes(searchAdmision));
+    if (searchPaciente) filtered = filtered.filter(p => p._paciente.includes(searchPaciente));
+    if (searchMedico) filtered = filtered.filter(p => p._medico.includes(searchMedico));
+    if (searchProveedor) filtered = filtered.filter(p => p._proveedor.includes(searchProveedor));
+
+    const startIdx = (currentPage - 1) * PAGE_SIZE;
+    const endIdx = startIdx + PAGE_SIZE;
+    pacientes = filtered.slice(startIdx, endIdx);
+
+    renderTable();
+
+    const loadMore = document.getElementById('loadMoreContainer');
+    if (loadMore) loadMore.remove();
+
+    if (endIdx < filtered.length) {
+        const div = document.createElement('div');
+        div.id = 'loadMoreContainer';
+        div.style = 'text-align:center;margin:15px 0;';
+        div.innerHTML = `<button id="loadMoreBtn" class="modal-btn modal-btn-secondary">Cargar más</button>`;
+        document.querySelector('.pacientes-pagination')?.appendChild(div);
+        document.getElementById('loadMoreBtn')?.addEventListener('click', () => {
+            currentPage++;
+            applyFiltersAndPaginate();
+        });
+    }
+}
+
 const debouncedLoad = debounce(() => {
     currentPage = 1;
-    lastVisible = null;
-    loadPacientes();
+    applyFiltersAndPaginate();
 }, 300);
 
 function renderTable() {
@@ -250,19 +265,6 @@ function renderTable() {
             </td>
         </tr>
     `).join('');
-    const loadMore = document.getElementById('loadMoreContainer');
-    if (loadMore) loadMore.remove();
-    if (lastVisible && pacientes.length >= PAGE_SIZE) {
-        const div = document.createElement('div');
-        div.id = 'loadMoreContainer';
-        div.style = 'text-align:center;margin:15px 0;';
-        div.innerHTML = `<button id="loadMoreBtn" class="modal-btn modal-btn-secondary">Cargar más</button>`;
-        document.querySelector('.pacientes-pagination')?.appendChild(div);
-        document.getElementById('loadMoreBtn')?.addEventListener('click', () => {
-            currentPage++;
-            loadPacientes();
-        });
-    }
 }
 
 function setupColumnResize() {
@@ -282,7 +284,7 @@ function setupColumnResize() {
         let isResizing = false, startX, startWidth;
         const start = (e) => {
             isResizing = true;
-            startX = e.clientX || e.touches.touches[0].clientX;
+            startX = e.clientX || e.touches?.[0]?.clientX;
             startWidth = header.getBoundingClientRect().width;
             document.body.style.userSelect = 'none';
             handle.classList.add('active');
@@ -290,7 +292,7 @@ function setupColumnResize() {
         };
         const move = (e) => {
             if (!isResizing) return;
-            const delta = (e.clientX || e.touches[0].clientX) - startX;
+            const delta = (e.clientX || e.touches?.[0]?.clientX) - startX;
             let newWidth = Math.max(initialWidths[index], Math.min(initialWidths[index] * 2, startWidth + delta));
             header.style.width = `${newWidth}px`;
             header.style.minWidth = `${newWidth}px`;
@@ -339,7 +341,6 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedYear = parseInt(e.target.value);
         selectedMonth = null;
         currentPage = 1;
-        lastVisible = null;
         window.showLoading();
         try {
             const q = query(collection(db, "pacientes_consignaciones"), orderBy("fechaCX"));
