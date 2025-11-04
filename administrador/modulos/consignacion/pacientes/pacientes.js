@@ -109,6 +109,7 @@ async function loadAniosYMeses() {
         if (years.length === 0) {
             anioSelect.innerHTML = '<option value="">Sin datos</option>';
             document.getElementById('mesesContainer').innerHTML = '';
+            window.hideLoading();
             return;
         }
         years.forEach(y => {
@@ -122,22 +123,22 @@ async function loadAniosYMeses() {
             anioSelect.appendChild(opt);
         });
         selectedYear = defaultYear;
-        renderMesesButtons(mesesPorAnio.get(defaultYear));
+        await renderMesesButtons(mesesPorAnio.get(defaultYear));
     } catch (e) {
         console.error(e);
         showToast('Error al cargar años/meses', 'error');
-    } finally {
         window.hideLoading();
     }
 }
 
-function renderMesesButtons(mesesSet) {
+async function renderMesesButtons(mesesSet) {
     const container = document.getElementById('mesesContainer');
     container.innerHTML = '';
     if (!mesesSet || mesesSet.size === 0) {
         container.innerHTML = '<span style="color:#999;">Sin registros</span>';
         selectedMonth = null;
-        applyFiltersAndPaginate();
+        await applyFiltersAndPaginateAsync();
+        window.hideLoading();
         return;
     }
     const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
@@ -146,12 +147,12 @@ function renderMesesButtons(mesesSet) {
         btn.className = 'mes-btn';
         btn.textContent = meses[m];
         btn.dataset.month = m;
-        btn.onclick = () => {
+        btn.onclick = async () => {
             document.querySelectorAll('.mes-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             selectedMonth = m;
             currentPage = 1;
-            loadPacientes();
+            await loadPacientes();
         };
         container.appendChild(btn);
     });
@@ -162,7 +163,7 @@ function renderMesesButtons(mesesSet) {
     } else {
         selectedMonth = null;
     }
-    loadPacientes();
+    await loadPacientes();
 }
 
 async function loadPacientes() {
@@ -204,18 +205,19 @@ async function loadPacientes() {
         }
 
         currentPage = 1;
-        // Esperar a que la tabla se renderice completamente antes de ocultar el spinner
-        await new Promise(resolve => {
-            applyFiltersAndPaginate(() => {
-                resolve();
-            });
-        });
-        window.hideLoading();
+        await applyFiltersAndPaginateAsync();
     } catch (e) {
         console.error(e);
         showToast('Error al cargar pacientes', 'error');
+    } finally {
         window.hideLoading();
     }
+}
+
+async function applyFiltersAndPaginateAsync() {
+    return new Promise((resolve) => {
+        applyFiltersAndPaginate(resolve);
+    });
 }
 
 function applyFiltersAndPaginate(callback = null) {
@@ -273,7 +275,13 @@ function renderTable(callback = null) {
                     No hay pacientes
                 </td>
             </tr>`;
-        if (callback) requestAnimationFrame(() => requestAnimationFrame(callback));
+        if (callback) {
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    setTimeout(callback, 100);
+                });
+            });
+        }
         return;
     }
 
@@ -306,13 +314,13 @@ function renderTable(callback = null) {
 
     tbody.innerHTML = html;
 
-    requestAnimationFrame(() => {
+    if (callback) {
         requestAnimationFrame(() => {
-            setTimeout(() => {
-                if (callback) callback();
-            }, 0);
+            requestAnimationFrame(() => {
+                setTimeout(callback, 100);
+            });
         });
-    });
+    }
 }
 
 function setupColumnResize() {
@@ -425,8 +433,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     mesesSet.add(fecha.getMonth());
                 }
             });
-            renderMesesButtons(mesesSet);
-        } finally {
+            await renderMesesButtons(mesesSet);
+        } catch(err) {
+            console.error(err);
             window.hideLoading();
         }
     });
