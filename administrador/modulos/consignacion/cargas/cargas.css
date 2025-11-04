@@ -358,3 +358,12 @@ html, body {
     .cargar-main-container { padding: 5px 10px 10px 10px; }
     .cargar-form-group { min-width: 100%; }
 }
+
+.modal.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.modal.show .modal-content {
+    transform: scale(1);
+}
