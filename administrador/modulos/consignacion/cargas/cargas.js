@@ -99,7 +99,7 @@ async function loadAniosYMeses() {
         });
 
         const anioSelect = document.getElementById('anioSelect');
-        anioSelect.innerHTML = '';
+        anioSelect.innerHTML = ''; // ← AQUÍ ESTABA EL ERROR (cortado antes)
         const currentYear = new Date().getFullYear();
         let defaultYear = currentYear;
         const years = Array.from(mesesPorAnio.keys()).sort((a, b) => b - a);
@@ -178,7 +178,7 @@ async function loadCargas() {
                 id: doc.id,
                 ...data,
                 fechaCX: data.fechaCX?.toDate?.() || new Date(),
-                fechaCarga: data.fechaCarga?.toDate?.() || new Date(),
+                fechaCarga: data.fechaCarga?.toDate?.() || null,
                 _admision: normalizeText(data.admision),
                 _estado: normalizeText(data.estado),
                 _paciente: normalizeText(data.paciente)
@@ -258,7 +258,7 @@ function renderTable() {
             <td>${escapeHtml(c.prevision)}</td>
             <td>${escapeHtml(c.admision)}</td>
             <td>${escapeHtml(c.paciente)}</td>
-            <td>${escapeHtml(c.medico)}</td>
+            <td>${escapeHtml(c.médico)}</td>
             <td>${c.fechaCX?.toLocaleDateString?.('es-CL') || ''}</td>
             <td>${escapeHtml(c.proveedor)}</td>
             <td>${escapeHtml(c.codigoProducto)}</td>
@@ -267,7 +267,7 @@ function renderTable() {
             <td>${formatNumberWithThousandsSeparator(c.precio)}</td>
             <td>${escapeHtml(c.atributo)}</td>
             <td>${formatNumberWithThousandsSeparator(c.totalItem)}</td>
-            <td style="text-align:right;">${c.margen === '' || c.margen == null ? '-' : c.margen}</td>
+            <td>${c.margen === '' || c.margen == null ? '-' : c.margen}</td>
         </tr>
     `).join('');
 }
