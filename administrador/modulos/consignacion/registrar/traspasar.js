@@ -171,6 +171,7 @@ async function ejecutarTraspaso() {
                     fechaCX,
                     proveedor: data.proveedor,
                     totalPaciente: data.totalItems || 0,
+                    cirugia: '',
                     atributo: data.atributo || ''
                 });
             }

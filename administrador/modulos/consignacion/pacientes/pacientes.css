@@ -183,7 +183,8 @@ html, body {
 .pacientes-table th:nth-child(9), .pacientes-table td:nth-child(9) { width: 120px; min-width: 120px; max-width: 240px; }
 .pacientes-table th:nth-child(10), .pacientes-table td:nth-child(10) { width: 100px; min-width: 100px; max-width: 200px; }
 .pacientes-table th:nth-child(11), .pacientes-table td:nth-child(11) { width: 80px; min-width: 80px; max-width: 160px; }
-.pacientes-table th:nth-child(12), .pacientes-table td:nth-child(12) { width: 80px; min-width: 80px; max-width: 160px; }
+.pacientes-table th:nth-child(12), .pacientes-table td:nth-child(12) { width: 80px; min-width: 80px; max-width: 160px; } 
+.pacientes-table th:nth-child(13), .pacientes-table td:nth-child(13) { width: 80px; min-width: 80px; max-width: 160px; } 
 
 .pacientes-actions {
     display: flex;

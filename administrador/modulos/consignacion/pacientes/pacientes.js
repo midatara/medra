@@ -260,6 +260,7 @@ function renderTable() {
             <td>${p.fechaCX?.toLocaleDateString?.('es-CL') || ''}</td>
             <td>${escapeHtml(p.proveedor)}</td>
             <td>${formatNumberWithThousandsSeparator(p.totalPaciente)}</td>
+            <td>${p.cirugia || ''}</td>
             <td>${escapeHtml(p.atributo)}</td>
             <td class="pacientes-actions">
                 <button class="pacientes-btn-history" data-id="${p.id}" title="Ver historial">
@@ -272,7 +273,7 @@ function renderTable() {
 
 function setupColumnResize() {
     const headers = document.querySelectorAll('.pacientes-table th');
-    const initialWidths = [90, 80, 100, 110, 70, 180, 150, 90, 120, 100, 80, 80];
+    const initialWidths = [90, 80, 100, 110, 70, 180, 150, 90, 120, 100, 100, 80, 80];
     headers.forEach((header, index) => {
         if (!initialWidths[index]) return;
         header.style.width = `${initialWidths[index]}px`;
