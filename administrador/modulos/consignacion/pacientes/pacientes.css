@@ -372,7 +372,7 @@ html, body {
 .filter-row {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px; /* Espacio uniforme entre todos */
     margin: 15px 0;
     flex-wrap: wrap;
 }
@@ -380,7 +380,7 @@ html, body {
 .anio-selector {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     white-space: nowrap;
 }
 
@@ -395,6 +395,25 @@ html, body {
     font-size: 13px;
     border: 1px solid #ccc;
     border-radius: 4px;
+}
+
+.meses-buttons {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.cambiar-estado-btn {
+    display: none; /* Se muestra con JS */
+    margin-left: 0 !important;
+}
+
+.cambiar-estado-btn button {
+    padding: 6px 12px;
+    font-size: 13px;
+    white-space: nowrap;
+    min-width: auto;
+    height: 36px; /* Alineado con los otros */
 }
 
 #cambiarEstadoContainer {
