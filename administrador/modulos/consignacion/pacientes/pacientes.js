@@ -30,6 +30,7 @@ let currentPage = 1;
 const PAGE_SIZE = 50;
 let selectedYear = null;
 let selectedMonth = null;
+let selectedPacienteIds = new Set(); // <-- NUEVO: pacientes seleccionados
 
 const searchFilters = {
     estado: '',
@@ -84,6 +85,50 @@ function showToast(text, type = 'success') {
         toast.classList.remove('show');
         setTimeout(() => toast.remove(), 300);
     }, 4000);
+}
+
+// === NUEVA FUNCIÓN: actualizar visibilidad del botón Cambiar Estado ===
+function updateCambiarEstadoButton() {
+    const container = document.getElementById('cambiarEstadoContainer');
+    if (!container) return;
+    if (selectedPacienteIds.size > 0) {
+        container.style.display = 'block';
+    } else {
+        container.style.display = 'none';
+    }
+}
+
+// === NUEVA FUNCIÓN: cambiar estado masivo ===
+async function cambiarEstadoMasivo(nuevoEstado) {
+    if (selectedPacienteIds.size === 0) return;
+    window.showLoading();
+    try {
+        const updates = Array.from(selectedPacienteIds).map(id => {
+            const ref = doc(db, "pacientes_consignaciones", id);
+            return updateDoc(ref, { estado: nuevoEstado });
+        });
+        await Promise.all(updates);
+
+        // Actualizar en memoria
+        allPacientesDelMes.forEach(p => {
+            if (selectedPacienteIds.has(p.id)) {
+                p.estado = nuevoEstado;
+                p._estado = normalizeText(nuevoEstado);
+            }
+        });
+
+        selectedPacienteIds.clear();
+        updateCambiarEstadoButton();
+        document.getElementById('selectAll').checked = false;
+
+        applyFiltersAndPaginate();
+        showToast(`Estado cambiado a "${nuevoEstado}" para ${updates.length} paciente(s)`, 'success');
+    } catch (err) {
+        console.error(err);
+        showToast('Error al cambiar estado', 'error');
+    } finally {
+        window.hideLoading();
+    }
 }
 
 async function loadAniosYMeses() {
@@ -152,6 +197,8 @@ async function renderMesesButtons(mesesSet) {
             btn.classList.add('active');
             selectedMonth = m;
             currentPage = 1;
+            selectedPacienteIds.clear();
+            updateCambiarEstadoButton();
             await loadPacientes();
         };
         container.appendChild(btn);
@@ -204,6 +251,8 @@ async function loadPacientes() {
             allPacientesDelMes = pacientesBase;
         }
 
+        selectedPacienteIds.clear();
+        updateCambiarEstadoButton();
         currentPage = 1;
         await applyFiltersAndPaginateAsync();
     } catch (e) {
@@ -286,7 +335,13 @@ function renderTable(callback = null) {
     }
 
     const html = pacientes.map(p => `
-        <tr>
+        <tr data-id="${p.id}" class="${selectedPacienteIds.has(p.id) ? 'row-selected' : ''}">
+            <td class="checkbox-cell">
+                <input type="checkbox" class="row-checkbox" data-id="${p.id}" ${selectedPacienteIds.has(p.id) ? 'checked' : ''}>
+                <button class="pacientes-btn-history" data-id="${p.id}" title="Ver historial" style="margin-left:4px;">
+                    <i class="fas fa-history"></i>
+                </button>
+            </td>
             <td>${p.fechaIngreso?.toLocaleDateString?.('es-CL') || ''}</td>
             <td>${escapeHtml(p.estado)}</td>
             <td>${escapeHtml(p.prevision)}</td>
@@ -304,15 +359,36 @@ function renderTable(callback = null) {
                 }
             </td>
             <td>${escapeHtml(p.atributo)}</td>
-            <td class="pacientes-actions">
-                <button class="pacientes-btn-history" data-id="${p.id}" title="Ver historial">
-                    <i class="fas fa-history"></i>
-                </button>
-            </td>
         </tr>
     `).join('');
 
     tbody.innerHTML = html;
+
+    // === NUEVO: eventos de checkbox ===
+    document.querySelectorAll('.row-checkbox').forEach(cb => {
+        cb.addEventListener('change', (e) => {
+            const id = e.target.dataset.id;
+            if (e.target.checked) {
+                selectedPacienteIds.add(id);
+            } else {
+                selectedPacienteIds.delete(id);
+            }
+            updateCambiarEstadoButton();
+            e.target.closest('tr').classList.toggle('row-selected', e.target.checked);
+        });
+    });
+
+    document.getElementById('selectAll')?.addEventListener('change', (e) => {
+        const checked = e.target.checked;
+        document.querySelectorAll('.row-checkbox').forEach(cb => {
+            cb.checked = checked;
+            const id = cb.dataset.id;
+            if (checked) selectedPacienteIds.add(id);
+            else selectedPacienteIds.delete(id);
+            cb.closest('tr').classList.toggle('row-selected', checked);
+        });
+        updateCambiarEstadoButton();
+    });
 
     if (callback) {
         requestAnimationFrame(() => {
@@ -325,7 +401,7 @@ function renderTable(callback = null) {
 
 function setupColumnResize() {
     const headers = document.querySelectorAll('.pacientes-table th');
-    const initialWidths = [90, 80, 100, 110, 70, 180, 150, 90, 120, 100, 100, 80, 80];
+    const initialWidths = [50, 90, 80, 100, 110, 70, 180, 150, 90, 120, 100, 80, 80];
     headers.forEach((header, index) => {
         if (!initialWidths[index]) return;
         header.style.width = `${initialWidths[index]}px`;
@@ -422,6 +498,8 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedYear = parseInt(e.target.value);
         selectedMonth = null;
         currentPage = 1;
+        selectedPacienteIds.clear();
+        updateCambiarEstadoButton();
         window.showLoading();
         try {
             const q = query(collection(db, "pacientes_consignaciones"), orderBy("fechaCX"));
@@ -438,6 +516,26 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error(err);
             window.hideLoading();
         }
+    });
+
+    // === NUEVO: Modal Cambiar Estado ===
+    const modalEstado = document.getElementById('cambiarEstadoModal');
+    document.getElementById('btnCambiarEstado')?.addEventListener('click', () => {
+        modalEstado.style.display = 'flex';
+    });
+    modalEstado.addEventListener('click', (e) => {
+        if (e.target === modalEstado) modalEstado.style.display = 'none';
+    });
+    document.querySelector('#cambiarEstadoModal .close')?.addEventListener('click', () => {
+        modalEstado.style.display = 'none';
+    });
+    document.getElementById('cancelarEstado')?.addEventListener('click', () => {
+        modalEstado.style.display = 'none';
+    });
+    document.getElementById('guardarEstado')?.addEventListener('click', () => {
+        const nuevoEstado = document.getElementById('nuevoEstadoSelect').value;
+        cambiarEstadoMasivo(nuevoEstado);
+        modalEstado.style.display = 'none';
     });
 
     document.getElementById('cirugiaModal')?.addEventListener('click', (e) => {

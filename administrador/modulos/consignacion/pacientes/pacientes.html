@@ -76,6 +76,9 @@
                     <select id="anioSelect" style="width:80px;padding:6px 8px;font-size:13px;border:1px solid #ccc;border-radius:4px;"></select>
                 </div>
                 <div id="mesesContainer" class="meses-buttons" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+                <div id="cambiarEstadoContainer" style="margin-left:auto;display:none;">
+                    <button id="btnCambiarEstado" class="modal-btn modal-btn-primary">Cambiar Estado</button>
+                </div>
             </div>
         </div>
 
@@ -83,6 +86,7 @@
             <table class="pacientes-table" id="pacientesTable">
                 <thead>
                     <tr>
+                        <th><input type="checkbox" id="selectAll"></th>
                         <th>Fecha Ingreso<div class="resize-handle"></div></th>
                         <th>Estado<div class="resize-handle"></div></th>
                         <th>Previsión<div class="resize-handle"></div></th>
@@ -95,7 +99,6 @@
                         <th>Total Paciente<div class="resize-handle"></div></th>
                         <th>Cirugía<div class="resize-handle"></div></th>
                         <th>Atributo<div class="resize-handle"></div></th>
-                        <th>Acciones<div class="resize-handle"></div></th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -121,6 +124,28 @@
             <div style="margin-top:15px;text-align:right;">
                 <button id="cancelarCirugia" class="modal-btn modal-btn-secondary">Cancelar</button>
                 <button id="guardarCirugia" class="modal-btn modal-btn-primary">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL CAMBIAR ESTADO MASIVO -->
+    <div id="cambiarEstadoModal" class="modal" style="display:none;">
+        <div class="modal-content" style="max-width:400px;">
+            <span class="close">×</span>
+            <h3>Cambiar Estado</h3>
+            <div style="margin:15px 0;">
+                <label style="display:block;margin-bottom:8px;font-weight:bold;">Seleccionar nuevo estado:</label>
+                <select id="nuevoEstadoSelect" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;">
+                    <option value="INGRESADO">INGRESADO</option>
+                    <option value="CARGADO">CARGADO</option>
+                    <option value="PENDIENTE">PENDIENTE</option>
+                    <option value="MODIFICAR">MODIFICAR</option>
+                    <option value="ERROR">ERROR</option>
+                </select>
+            </div>
+            <div style="margin-top:15px;text-align:right;">
+                <button id="cancelarEstado" class="modal-btn modal-btn-secondary">Cancelar</button>
+                <button id="guardarEstado" class="modal-btn modal-btn-primary">Guardar</button>
             </div>
         </div>
     </div>
@@ -169,6 +194,16 @@
         #cirugiaOptions label {
             display: block;
             margin: 8px 0;
+            cursor: pointer;
+        }
+        .row-selected {
+            background-color: #e3f2fd !important;
+        }
+        .checkbox-cell {
+            text-align: center;
+            padding: 4px !important;
+        }
+        #selectAll {
             cursor: pointer;
         }
     </style>
