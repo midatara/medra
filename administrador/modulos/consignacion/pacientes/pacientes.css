@@ -7,6 +7,7 @@ html, body {
     overflow: hidden;
     font-size: 12px;
 }
+
 .pacientes-main-container {
     width: 100%;
     height: 100%;
@@ -20,6 +21,7 @@ html, body {
     display: flex;
     flex-direction: column;
 }
+
 .pacientes-title {
     text-align: start;
     margin: 0 0 15px 0;
@@ -27,12 +29,14 @@ html, body {
     font-weight: bold;
     color: #333;
 }
+
 .pacientes-search-container {
     display: flex;
     flex-direction: column;
     gap: 15px;
     margin-bottom: 15px;
 }
+
 .pacientes-search-row {
     display: flex;
     justify-content: flex-start;
@@ -41,6 +45,7 @@ html, body {
     flex-wrap: wrap;
     width: 100%;
 }
+
 .pacientes-form-group {
     display: flex;
     flex-direction: column;
@@ -50,19 +55,22 @@ html, body {
     min-width: 140px;
     max-width: 180px;
 }
+
 .pacientes-form-group.button-group {
     flex: 0;
     min-width: auto;
     max-width: none;
     margin-bottom: 8px;
 }
+
 .pacientes-label {
     font-size: 10px;
     font-weight: bold;
     color: #333;
     white-space: nowrap;
 }
-#buscarEstado, #buscarPrevision, #buscarConvenio, #buscarAdmision,
+
+#buscarEstado, #buscarPrevision, #buscarConvenio, #buscarAdmision, 
 #buscarPaciente, #buscarMedico, #buscarProveedor,
 #anioSelect {
     width: 100%;
@@ -74,12 +82,14 @@ html, body {
     height: 28px;
     line-height: 16px;
 }
-#buscarEstado:focus, #buscarPrevision:focus, #buscarConvenio:focus, #buscarAdmision:focus,
+
+#buscarEstado:focus, #buscarPrevision:focus, #buscarConvenio:focus, #buscarAdmision:focus, 
 #buscarPaciente:focus, #buscarMedico:focus, #buscarProveedor:focus,
 #anioSelect:focus {
     box-shadow: 0 0 8px rgba(0, 123, 255, 0.3);
     outline: none;
 }
+
 .meses-buttons button {
     padding: 6px 12px;
     border: 1px solid #007bff;
@@ -90,15 +100,18 @@ html, body {
     font-size: 13px;
     transition: all 0.2s;
 }
+
 .meses-buttons button:hover {
     background: #007bff;
     color: white;
 }
+
 .meses-buttons button.active {
     background: #007bff;
     color: white;
     font-weight: bold;
 }
+
 .pacientes-table-container {
     width: 100%;
     max-height: 500px;
@@ -109,6 +122,7 @@ html, body {
     border-radius: 4px;
     flex-grow: 1;
 }
+
 .pacientes-table {
     table-layout: fixed;
     border-collapse: collapse;
@@ -116,6 +130,7 @@ html, body {
     width: auto;
     box-sizing: border-box;
 }
+
 .pacientes-table th, .pacientes-table td {
     padding: 4px;
     text-align: left;
@@ -125,6 +140,7 @@ html, body {
     text-overflow: ellipsis;
     box-sizing: border-box;
 }
+
 .pacientes-table th {
     background-color: #f2f2f2;
     font-size: 11px;
@@ -134,6 +150,7 @@ html, body {
     cursor: default;
     user-select: none;
 }
+
 .pacientes-table th .resize-handle {
     position: absolute;
     right: 0;
@@ -144,14 +161,17 @@ html, body {
     background: transparent;
     z-index: 11;
 }
+
 .pacientes-table th .resize-handle:hover,
 .pacientes-table th .resize-handle.active {
     background: #007bff;
     width: 5px;
 }
+
 .pacientes-table tbody tr:hover {
     background-color: #f8f9fa;
 }
+
 .pacientes-table th:nth-child(1), .pacientes-table td:nth-child(1) { width: 90px; min-width: 90px; max-width: 180px; }
 .pacientes-table th:nth-child(2), .pacientes-table td:nth-child(2) { width: 80px; min-width: 80px; max-width: 160px; }
 .pacientes-table th:nth-child(3), .pacientes-table td:nth-child(3) { width: 100px; min-width: 100px; max-width: 200px; }
@@ -163,8 +183,9 @@ html, body {
 .pacientes-table th:nth-child(9), .pacientes-table td:nth-child(9) { width: 120px; min-width: 120px; max-width: 240px; }
 .pacientes-table th:nth-child(10), .pacientes-table td:nth-child(10) { width: 100px; min-width: 100px; max-width: 200px; }
 .pacientes-table th:nth-child(11), .pacientes-table td:nth-child(11) { width: 80px; min-width: 80px; max-width: 160px; }
-.pacientes-table th:nth-child(12), .pacientes-table td:nth-child(12) { width: 80px; min-width: 80px; max-width: 160px; }
-.pacientes-table th:nth-child(13), .pacientes-table td:nth-child(13) { width: 80px; min-width: 80px; max-width: 160px; }
+.pacientes-table th:nth-child(12), .pacientes-table td:nth-child(12) { width: 80px; min-width: 80px; max-width: 160px; } 
+.pacientes-table th:nth-child(13), .pacientes-table td:nth-child(13) { width: 80px; min-width: 80px; max-width: 160px; } 
+
 .pacientes-actions {
     display: flex;
     gap: 1px;
@@ -173,6 +194,7 @@ html, body {
     padding: 0;
     margin: 0;
 }
+
 .pacientes-actions button {
     border: none;
     border-radius: 2px;
@@ -184,18 +206,22 @@ html, body {
     align-items: center;
     justify-content: center;
 }
+
 .pacientes-table td:last-child {
     display: flex;
     align-items: center;
     padding: 1px;
 }
+
 .pacientes-btn-history {
     background-color: #17a2b8;
     color: white;
 }
+
 .pacientes-btn-history:hover {
     background-color: #138496;
 }
+
 .pacientes-pagination {
     display: flex;
     justify-content: space-between;
@@ -207,6 +233,7 @@ html, body {
     bottom: 0;
     z-index: 10;
 }
+
 #pacientes-message {
     margin-bottom: 10px;
     padding: 8px;
@@ -214,16 +241,19 @@ html, body {
     display: none;
     font-size: 11px;
 }
+
 .pacientes-message-error {
     background-color: #f8d7da;
     color: #721c24;
     border: 1px solid #f5c6cb;
 }
+
 .pacientes-message-success {
     background-color: #d4edda;
     color: #155724;
     border: 1px solid #c3e6cb;
 }
+
 .pacientes-toast-container {
     position: fixed;
     bottom: 20px;
@@ -234,6 +264,7 @@ html, body {
     gap: 10px;
     max-width: 350px;
 }
+
 .pacientes-toast {
     background-color: #333;
     color: white;
@@ -248,16 +279,20 @@ html, body {
     box-sizing: border-box;
     word-wrap: break-word;
 }
+
 .pacientes-toast.show {
     opacity: 1;
     transform: translateY(0);
 }
+
 .pacientes-toast.success {
     background-color: #28a745;
 }
+
 .pacientes-toast.error {
     background-color: #dc3545;
 }
+
 .modal-btn {
     padding: 8px 16px;
     border: none;
@@ -266,13 +301,16 @@ html, body {
     font-size: 11px;
     font-weight: bold;
 }
+
 .modal-btn-secondary {
     background-color: #6c757d;
     color: white;
 }
+
 .modal-btn-secondary:hover {
     background-color: #5a6268;
 }
+
 .loading-modal {
     display: none;
     position: fixed;
@@ -283,16 +321,18 @@ html, body {
     height: 80px;
     background: rgba(255, 255, 255, 0.95);
     border-radius: 8px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    box-shadow: 0 4px 20px 20px rgba(0,0,0,0.2);
     z-index: 1000;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
 }
+
 .loading-modal:not(.show) {
     display: none !important;
 }
+
 .spinner {
     width: 32px;
     height: 32px;
@@ -301,15 +341,18 @@ html, body {
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
+
 .loading-text {
     margin-top: 8px;
     font-size: 12px;
     color: #333;
 }
+
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+
 @media screen and (max-width: 1200px) {
     .pacientes-search-row {
         flex-wrap: wrap;
@@ -319,6 +362,7 @@ html, body {
         min-width: 200px;
     }
 }
+
 @media screen and (max-width: 768px) {
     .pacientes-main-container {
         padding: 5px 10px 10px 10px;
@@ -327,6 +371,7 @@ html, body {
         min-width: 100%;
     }
 }
+
 .meses-buttons button {
     padding: 5px 10px;
     font-size: 12px;
