@@ -3,9 +3,8 @@ import {
     getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence
 } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
 import {
-    getFirestore, collection, getDocs, query, where, orderBy, doc, updateDoc
+    getFirestore, collection, getDocs, query, where, orderBy
 } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
-
 const firebaseConfig = {
     apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
     authDomain: "datara-salud.firebaseapp.com",
@@ -14,25 +13,20 @@ const firebaseConfig = {
     messagingSenderId: "198886910481",
     appId: "1:198886910481:web:abbc345203a423a6329fb0"
 };
-
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 setPersistence(auth, browserSessionPersistence);
-
 // === INICIALIZAR MÓDULO DE REPORTES ===
 import('./pacientes-reportes.js').then(module => {
     module.initReportesDb(db);
 });
-
 let allPacientesDelMes = [];
 let pacientes = [];
 let currentPage = 1;
 const PAGE_SIZE = 50;
 let selectedYear = null;
 let selectedMonth = null;
-let selectedRows = new Set(); // IDs de filas seleccionadas
-
 const searchFilters = {
     estado: '',
     prevision: '',
@@ -42,7 +36,6 @@ const searchFilters = {
     medico: '',
     proveedor: ''
 };
-
 const loading = document.getElementById('loading');
 window.showLoading = () => {
     if (loading) loading.classList.add('show');
@@ -50,21 +43,17 @@ window.showLoading = () => {
 window.hideLoading = () => {
     if (loading) loading.classList.remove('show');
 };
-
 function normalizeText(text) {
     return text?.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") || '';
 }
-
 function escapeHtml(text) {
     const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
     return text?.toString().replace(/[&<>"']/g, m => map[m]) || '';
 }
-
 function formatNumberWithThousandsSeparator(number) {
     if (!number) return '';
     return Number(number).toLocaleString('es-CL');
 }
-
 function debounce(func, wait) {
     let timeout;
     return (...args) => {
@@ -72,7 +61,6 @@ function debounce(func, wait) {
         timeout = setTimeout(() => func.apply(this, args), wait);
     };
 }
-
 function showToast(text, type = 'success') {
     const container = document.getElementById('toastContainer');
     if (!container) return;
@@ -86,115 +74,6 @@ function showToast(text, type = 'success') {
         setTimeout(() => toast.remove(), 300);
     }, 4000);
 }
-
-// === NUEVA FUNCIÓN: ACTUALIZAR ESTADO MASIVO ===
-async function cambiarEstadoMasivo(nuevoEstado) {
-    if (!nuevoEstado || selectedRows.size === 0) return;
-
-    window.showLoading();
-    try {
-        const promesas = Array.from(selectedRows).map(async (id) => {
-            const paciente = allPacientesDelMes.find(p => p.id === id);
-            if (!paciente) return;
-            const ref = doc(db, "pacientes_consignaciones", id);
-            await updateDoc(ref, { estado: nuevoEstado });
-            paciente.estado = nuevoEstado;
-            paciente._estado = normalizeText(nuevoEstado);
-        });
-        await Promise.all(promesas);
-        showToast(`Estado cambiado a "${nuevoEstado}" en ${selectedRows.size} pacientes.`, 'success');
-        selectedRows.clear();
-        updateSeleccionUI();
-        renderTable();
-    } catch (err) {
-        console.error(err);
-        showToast('Error al actualizar estados', 'error');
-    } finally {
-        window.hideLoading();
-    }
-}
-
-// === NUEVA FUNCIÓN: ACTUALIZAR UI DE SELECCIÓN ===
-function updateSeleccionUI() {
-    const cambiarBtn = document.getElementById('cambiarEstadoBtn');
-    if (cambiarBtn) {
-        cambiarBtn.style.display = selectedRows.size > 0 ? 'inline-block' : 'none';
-    }
-    document.querySelectorAll('#pacientesTable tbody input[type="checkbox"]').forEach(cb => {
-        const id = cb.dataset.id;
-        cb.checked = selectedRows.has(id);
-    });
-    const selectAll = document.getElementById('selectAll');
-    if (selectAll) {
-        const totalVisible = pacientes.length;
-        const selectedVisible = pacientes.filter(p => selectedRows.has(p.id)).length;
-        selectAll.indeterminate = selectedVisible > 0 && selectedVisible < totalVisible;
-        selectAll.checked = selectedVisible === totalVisible && totalVisible > 0;
-    }
-}
-
-// === NUEVA FUNCIÓN: MANEJAR SELECCIÓN DE FILA ===
-function setupRowSelection() {
-    document.querySelector('#pacientesTable tbody').addEventListener('change', e => {
-        if (e.target.type === 'checkbox') {
-            const id = e.target.dataset.id;
-            if (e.target.checked) {
-                selectedRows.add(id);
-            } else {
-                selectedRows.delete(id);
-            }
-            updateSeleccionUI();
-        }
-    });
-
-    document.getElementById('selectAll')?.addEventListener('change', e => {
-        const checked = e.target.checked;
-        pacientes.forEach(p => {
-            if (checked) {
-                selectedRows.add(p.id);
-            } else {
-                selectedRows.delete(p.id);
-            }
-        });
-        updateSeleccionUI();
-        renderTable();
-    });
-}
-
-// === NUEVA FUNCIÓN: MODAL CAMBIO DE ESTADO ===
-function setupModalEstado() {
-    const modal = document.getElementById('modalCambiarEstado');
-    const btn = document.getElementById('cambiarEstadoBtn');
-    const closeBtn = document.querySelector('.pacientes-modal-close');
-    const cancelBtn = document.getElementById('btnCancelarEstado');
-    const saveBtn = document.getElementById('btnGuardarEstado');
-    const selectEstado = document.getElementById('nuevoEstado');
-
-    btn.onclick = () => {
-        modal.style.display = 'flex';
-        selectEstado.value = '';
-    };
-
-    closeBtn.onclick = cancelBtn.onclick = () => {
-        modal.style.display = 'none';
-    };
-
-    saveBtn.onclick = () => {
-        const nuevoEstado = selectEstado.value;
-        if (!nuevoEstado) {
-            showToast('Selecciona un estado', 'error');
-            return;
-        }
-        cambiarEstadoMasivo(nuevoEstado);
-        modal.style.display = 'none';
-    };
-
-    window.onclick = (e) => {
-        if (e.target === modal) modal.style.display = 'none';
-    };
-}
-
-// === CARGA DE AÑOS Y MESES (sin cambios) ===
 async function loadAniosYMeses() {
     window.showLoading();
     try {
@@ -238,7 +117,6 @@ async function loadAniosYMeses() {
         window.hideLoading();
     }
 }
-
 function renderMesesButtons(mesesSet) {
     const container = document.getElementById('mesesContainer');
     container.innerHTML = '';
@@ -259,8 +137,6 @@ function renderMesesButtons(mesesSet) {
             btn.classList.add('active');
             selectedMonth = m;
             currentPage = 1;
-            selectedRows.clear();
-            updateSeleccionUI();
             loadPacientes();
         };
         container.appendChild(btn);
@@ -274,7 +150,6 @@ function renderMesesButtons(mesesSet) {
     }
     loadPacientes();
 }
-
 async function loadPacientes() {
     window.showLoading();
     try {
@@ -285,6 +160,7 @@ async function loadPacientes() {
             q = query(q, where("fechaCX", ">=", start), where("fechaCX", "<=", end));
         }
         const snapshot = await getDocs(q);
+        // === CARGAR PACIENTES SIN DATOS DE REPORTES ===
         const pacientesBase = snapshot.docs.map(doc => {
             const data = doc.data();
             return {
@@ -301,6 +177,7 @@ async function loadPacientes() {
                 _convenio: normalizeText(data.convenio)
             };
         });
+        // === COMPLETAR CON DATOS DE REPORTES ===
         try {
             const { completarDatosPacientes } = await import('./pacientes-reportes.js');
             allPacientesDelMes = await completarDatosPacientes(pacientesBase);
@@ -308,7 +185,6 @@ async function loadPacientes() {
             console.error('Error al completar datos de reportes:', err);
             allPacientesDelMes = pacientesBase;
         }
-        selectedRows.clear();
         currentPage = 1;
         applyFiltersAndPaginate();
     } catch (e) {
@@ -318,7 +194,6 @@ async function loadPacientes() {
         window.hideLoading();
     }
 }
-
 function applyFiltersAndPaginate() {
     let filtered = [...allPacientesDelMes];
     if (searchFilters.estado) filtered = filtered.filter(p => p._estado.includes(searchFilters.estado));
@@ -345,21 +220,18 @@ function applyFiltersAndPaginate() {
             applyFiltersAndPaginate();
         });
     }
-    updateSeleccionUI();
 }
-
 const debouncedLoad = debounce(() => {
     currentPage = 1;
     applyFiltersAndPaginate();
 }, 300);
-
 function renderTable() {
     const tbody = document.querySelector('#pacientesTable tbody');
     if (!tbody) return;
     if (pacientes.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="13" style="text-align:center;padding:20px;color:#666;">
+                <td colspan="12" style="text-align:center;padding:20px;color:#666;">
                     <i class="fas fa-inbox" style="font-size:48px;display:block;margin-bottom:10px;"></i>
                     No hay pacientes
                 </td>
@@ -367,10 +239,7 @@ function renderTable() {
         return;
     }
     tbody.innerHTML = pacientes.map(p => `
-        <tr data-id="${p.id}">
-            <td style="text-align:center;">
-                <input type="checkbox" data-id="${p.id}">
-            </td>
+        <tr>
             <td>${p.fechaIngreso?.toLocaleDateString?.('es-CL') || ''}</td>
             <td>${escapeHtml(p.estado)}</td>
             <td>${escapeHtml(p.prevision)}</td>
@@ -383,14 +252,17 @@ function renderTable() {
             <td>${formatNumberWithThousandsSeparator(p.totalPaciente)}</td>
             <td>${escapeHtml(p.cirugia || '')}</td>
             <td>${escapeHtml(p.atributo)}</td>
+            <td class="pacientes-actions">
+                <button class="pacientes-btn-history" data-id="${p.id}" title="Ver historial">
+                    <i class="fas fa-history"></i>
+                </button>
+            </td>
         </tr>
     `).join('');
-    updateSeleccionUI();
 }
-
 function setupColumnResize() {
     const headers = document.querySelectorAll('.pacientes-table th');
-    const initialWidths = [50, 90, 80, 100, 110, 70, 180, 150, 90, 120, 100, 80, 80];
+    const initialWidths = [90, 80, 100, 110, 70, 180, 150, 90, 120, 100, 100, 80, 80];
     headers.forEach((header, index) => {
         if (!initialWidths[index]) return;
         header.style.width = `${initialWidths[index]}px`;
@@ -437,7 +309,6 @@ function setupColumnResize() {
         document.addEventListener('touchend', stop);
     });
 }
-
 document.addEventListener('DOMContentLoaded', () => {
     const inputs = [
         { id: 'buscarEstado', filter: 'estado' },
@@ -458,12 +329,10 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
     });
-
     document.getElementById('anioSelect')?.addEventListener('change', async e => {
         selectedYear = parseInt(e.target.value);
         selectedMonth = null;
         currentPage = 1;
-        selectedRows.clear();
         window.showLoading();
         try {
             const q = query(collection(db, "pacientes_consignaciones"), orderBy("fechaCX"));
@@ -480,11 +349,7 @@ document.addEventListener('DOMContentLoaded', () => {
             window.hideLoading();
         }
     });
-
     setupColumnResize();
-    setupRowSelection();
-    setupModalEstado();
-
     onAuthStateChanged(auth, user => {
         loadAniosYMeses();
     });

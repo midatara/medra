@@ -10,7 +10,7 @@
         import { getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
         import {
             getFirestore, collection, getDocs, query, where, doc,
-            orderBy, getDoc, limit, startAfter, updateDoc
+            orderBy, getDoc, limit, startAfter
         } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
        
         window.firebaseModules = {
@@ -28,8 +28,7 @@
             orderBy,
             getDoc,
             limit,
-            startAfter,
-            updateDoc
+            startAfter
         };
     </script>
     <link rel="stylesheet" href="pacientes.css">
@@ -76,18 +75,12 @@
                     <select id="anioSelect" style="width:80px;padding:6px 8px;font-size:13px;border:1px solid #ccc;border-radius:4px;"></select>
                 </div>
                 <div id="mesesContainer" class="meses-buttons" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
-                <button id="cambiarEstadoBtn" class="modal-btn modal-btn-secondary" style="display:none; margin-left: auto;">
-                    Cambiar Estado
-                </button>
             </div>
         </div>
         <div class="pacientes-table-container">
             <table class="pacientes-table" id="pacientesTable">
                 <thead>
                     <tr>
-                        <th style="width: 50px !important; min-width: 50px !important;">
-                            <input type="checkbox" id="selectAll">
-                        </th>
                         <th>Fecha Ingreso<div class="resize-handle"></div></th>
                         <th>Estado<div class="resize-handle"></div></th>
                         <th>Previsión<div class="resize-handle"></div></th>
@@ -100,6 +93,7 @@
                         <th>Total Paciente<div class="resize-handle"></div></th>
                         <th>Cirugia<div class="resize-handle"></div></th>
                         <th>Atributo<div class="resize-handle"></div></th>
+                        <th>Acciones<div class="resize-handle"></div></th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -115,32 +109,6 @@
             <span class="loading-text">Cargando...</span>
         </div>
     </div>
-
-    <!-- Modal Cambiar Estado -->
-    <div id="modalCambiarEstado" class="pacientes-modal" style="display:none;">
-        <div class="pacientes-modal-content">
-            <div class="pacientes-modal-header">
-                <h3>Cambiar Estado</h3>
-                <span class="pacientes-modal-close">&times;</span>
-            </div>
-            <div class="pacientes-modal-body">
-                <label for="nuevoEstado">Seleccionar nuevo estado:</label>
-                <select id="nuevoEstado" style="width:100%; padding:8px; margin-top:5px; border:1px solid #ccc; border-radius:4px;">
-                    <option value="">-- Seleccionar --</option>
-                    <option value="INGRESADO">INGRESADO</option>
-                    <option value="CARGADO">CARGADO</option>
-                    <option value="PENDIENTE">PENDIENTE</option>
-                    <option value="MODIFICAR">MODIFICAR</option>
-                    <option value="ERROR">ERROR</option>
-                </select>
-            </div>
-            <div class="pacientes-modal-footer">
-                <button id="btnCancelarEstado" class="modal-btn modal-btn-secondary">Cancelar</button>
-                <button id="btnGuardarEstado" class="modal-btn" style="background:#007bff;color:white;">Guardar</button>
-            </div>
-        </div>
-    </div>
-
     <div class="pacientes-toast-container" id="toastContainer"></div>
     <script type="module" src="pacientes.js"></script>
     <script type="module" src="pacientes-reportes.js"></script>
