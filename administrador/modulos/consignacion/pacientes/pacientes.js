@@ -27,7 +27,6 @@ const PAGE_SIZE = 50;
 let selectedYear = null;
 let selectedMonth = null;
 
-// Objeto para almacenar los filtros de búsqueda
 const searchFilters = {
     estado: '',
     prevision: '',
@@ -200,8 +199,7 @@ async function loadPacientes() {
 
 function applyFiltersAndPaginate() {
     let filtered = [...allPacientesDelMes];
-    
-    // Aplicar filtros usando el objeto searchFilters
+
     if (searchFilters.estado) filtered = filtered.filter(p => p._estado.includes(searchFilters.estado));
     if (searchFilters.prevision) filtered = filtered.filter(p => p._prevision.includes(searchFilters.prevision));
     if (searchFilters.convenio) filtered = filtered.filter(p => p._convenio.includes(searchFilters.convenio));
@@ -323,7 +321,6 @@ function setupColumnResize() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Configurar event listeners para los inputs de búsqueda
     const inputs = [
         { id: 'buscarEstado', filter: 'estado' },
         { id: 'buscarPrevision', filter: 'prevision' },
