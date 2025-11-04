@@ -39,25 +39,12 @@
         <div id="cargar-message"></div>
 
         <!-- Fila de Año + Botones de Meses -->
-        <div class="cargar-year-month-row">
-            <div class="cargar-form-group year-group">
-                <label class="cargar-label" for="anioSelect">Año:</label>
+        <div class="filter-row" style="display:flex;align-items:center;gap:15px;margin:15px 0;">
+            <div style="display:flex;align-items:center;gap:8px;">
+                <label style="font-weight:bold;white-space:nowrap;">Año:</label>
                 <select id="anioSelect" class="year-select"></select>
             </div>
-            <div class="cargar-month-buttons">
-                <button class="month-btn" data-mes="01">Ene</button>
-                <button class="month-btn" data-mes="02">Feb</button>
-                <button class="month-btn" data-mes="03">Mar</button>
-                <button class="month-btn" data-mes="04">Abr</button>
-                <button class="month-btn" data-mes="05">May</button>
-                <button class="month-btn" data-mes="06">Jun</button>
-                <button class="month-btn" data-mes="07">Jul</button>
-                <button class="month-btn" data-mes="08">Ago</button>
-                <button class="month-btn" data-mes="09">Sep</button>
-                <button class="month-btn" data-mes="10">Oct</button>
-                <button class="month-btn" data-mes="11">Nov</button>
-                <button class="month-btn" data-mes="12">Dic</button>
-            </div>
+            <div id="mesesContainer" class="meses-buttons" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
         </div>
 
         <!-- Buscadores -->
@@ -109,7 +96,7 @@
         </div>
 
         <div class="cargar-pagination">
-            <div id="loadMoreContainer" style="display: none;"></div>
+            <div id="loadMoreContainer" style="display:none;"></div>
         </div>
 
         <div id="loading" class="loading-modal">
