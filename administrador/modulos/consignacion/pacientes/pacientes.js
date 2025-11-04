@@ -5,7 +5,6 @@ import {
 import {
     getFirestore, collection, getDocs, query, where, orderBy
 } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
-import { completarDatosPacientes } from './pacientes-reportes.js'; // ← OPCIONAL (solo si prefieres import estático)
 
 const firebaseConfig = {
     apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
@@ -19,6 +18,11 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+
+import('./pacientes-reportes.js').then(module => {
+    module.initReportesDb(db);
+});
+
 setPersistence(auth, browserSessionPersistence);
 
 let allPacientesDelMes = [];
@@ -86,43 +90,11 @@ function showToast(text, type = 'success') {
 async function loadAniosYMeses() {
     window.showLoading();
     try {
-        const q = query(collection(db, "pacientes_consignaciones"), orderBy("fechaCX"));
-        const snapshot = await getDocs(q);
-        const mesesPorAnio = new Map();
-        snapshot.docs.forEach(doc => {
-            const fecha = doc.data().fechaCX?.toDate?.() || new Date(doc.data().fechaCX);
-            if (!fecha || isNaN(fecha)) return;
-            const year = fecha.getFullYear();
-            const month = fecha.getMonth();
-            if (!mesesPorAnio.has(year)) mesesPorAnio.set(year, new Set());
-            mesesPorAnio.get(year).add(month);
-        });
-
-        const anioSelect = document.getElementById('anioSelect');
-        anioSelect.innerHTML = '';
-        const currentYear = new Date().getFullYear();
-        let defaultYear = currentYear;
-        const years = Array.from(mesesPorAnio.keys()).sort((a, b) => b - a);
-        if (years.length === 0) {
-            anioSelect.innerHTML = '<option value="">Sin datos</option>';
-            document.getElementById('mesesContainer').innerHTML = '';
-            return;
-        }
-        years.forEach(y => {
-            const opt = document.createElement('option');
-            opt.value = y;
-            opt.textContent = y;
-            if (y === currentYear && mesesPorAnio.has(currentYear)) {
-                opt.selected = true;
-                defaultYear = y;
-            }
-            anioSelect.appendChild(opt);
-        });
-        selectedYear = defaultYear;
-        renderMesesButtons(mesesPorAnio.get(defaultYear));
-    } catch (e) {
-        console.error(e);
-        showToast('Error al cargar años/meses', 'error');
+        const { completarDatosPacientes } = await import('./pacientes-reportes.js');
+        allPacientesDelMes = await completarDatosPacientes(pacientesBase);
+    } catch (err) {
+        console.error('Error al completar datos de reportes:', err);
+        allPacientesDelMes = pacientesBase;
     } finally {
         window.hideLoading();
     }

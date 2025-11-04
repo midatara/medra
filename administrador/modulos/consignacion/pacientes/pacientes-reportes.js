@@ -1,21 +1,20 @@
 // pacientes-reportes.js
-import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
-
-const db = getFirestore();
-
-// Cache para evitar múltiples consultas por la misma admisión
+let db = null;
 const cacheReportes = new Map();
 
+export function initReportesDb(database) {
+    db = database;
+}
+
 export async function completarDatosPacientes(pacientes) {
-    if (!pacientes || pacientes.length === 0) return;
+    if (!pacientes || pacientes.length === 0 || !db) return pacientes;
 
     const promesas = pacientes.map(async (p) => {
         if (!p.admision) return p;
 
-        // Si ya está en caché, usar caché
+        // Si ya está en caché
         if (cacheReportes.has(p.admision)) {
-            const datos = cacheReportes.get(p.admision);
-            return { ...p, ...datos };
+            return { ...p, ...cacheReportes.get(p.admision) };
         }
 
         try {
@@ -25,20 +24,20 @@ export async function completarDatosPacientes(pacientes) {
             );
             const snapshot = await getDocs(q);
 
+            let datos = { prevision: '', convenio: '', cirugia: '' };
+
             if (!snapshot.empty) {
                 const reporte = snapshot.docs[0].data();
-                const datos = {
+                datos = {
                     prevision: reporte.isapre || '',
                     convenio: reporte.convenio || '',
                     cirugia: reporte.descripcion || ''
                 };
-                // Guardar en caché
-                cacheReportes.set(p.admision, datos);
-                return { ...p, ...datos };
-            } else {
-                cacheReportes.set(p.admision, { prevision: '', convenio: '', cirugia: '' });
-                return p;
             }
+
+            cacheReportes.set(p.admision, datos);
+            return { ...p, ...datos };
+
         } catch (err) {
             console.warn(`Error buscando admisión ${p.admision}:`, err);
             return p;
