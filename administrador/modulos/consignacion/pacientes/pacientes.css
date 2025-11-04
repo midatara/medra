@@ -1,3 +1,4 @@
+/* === ESTILOS BASE === */
 html, body {
     margin: 0;
     padding: 0;
@@ -172,6 +173,7 @@ html, body {
     background-color: #f8f9fa;
 }
 
+/* === ANCHO DE COLUMNAS === */
 .pacientes-table th:nth-child(1), .pacientes-table td:nth-child(1) { width: 60px; min-width: 60px; max-width: 120px; }
 .pacientes-table th:nth-child(2), .pacientes-table td:nth-child(2) { width: 90px; min-width: 90px; max-width: 180px; }
 .pacientes-table th:nth-child(3), .pacientes-table td:nth-child(3) { width: 80px; min-width: 80px; max-width: 160px; }
@@ -187,6 +189,7 @@ html, body {
 .pacientes-table th:nth-child(13), .pacientes-table td:nth-child(13) { width: 80px; min-width: 80px; max-width: 160px; }
 .pacientes-table th:nth-child(14), .pacientes-table td:nth-child(14) { display: none; }
 
+/* === CHECKBOX + BOTÓN HISTORIAL === */
 .checkbox-cell {
     display: flex;
     align-items: center;
@@ -236,6 +239,7 @@ html, body {
     accent-color: #007bff;
 }
 
+/* === PAGINACIÓN === */
 .pacientes-pagination {
     display: flex;
     justify-content: space-between;
@@ -248,6 +252,7 @@ html, body {
     z-index: 10;
 }
 
+/* === TOAST === */
 .pacientes-toast-container {
     position: fixed;
     bottom: 20px;
@@ -282,6 +287,7 @@ html, body {
 .pacientes-toast.success { background-color: #28a745; }
 .pacientes-toast.error { background-color: #dc3545; }
 
+/* === BOTONES MODAL === */
 .modal-btn {
     padding: 8px 16px;
     border: none;
@@ -300,6 +306,7 @@ html, body {
     background-color: #5a6268;
 }
 
+/* === LOADING MODAL – SIN SOMBRA GRANDE === */
 .loading-modal {
     display: none;
     position: fixed;
@@ -308,13 +315,14 @@ html, body {
     transform: translate(-50%, -50%);
     width: 120px;
     height: 80px;
-    background: rgba(255, 255, 255, 0.95);
+    background: white;
     border-radius: 8px;
-    box-shadow: 0 4px 20px 20px rgba(0,0,0,0.2);
+    border: 1px solid #ddd; /* Borde sutil */
     z-index: 1000;
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    /* ELIMINADO: box-shadow grande */
 }
 
 .loading-modal.show {
@@ -341,6 +349,7 @@ html, body {
     100% { transform: rotate(360deg); }
 }
 
+/* === RESPONSIVE === */
 @media screen and (max-width: 1200px) {
     .pacientes-search-row { flex-wrap: wrap; }
     .pacientes-form-group { max-width: 100%; min-width: 200px; }
@@ -353,16 +362,11 @@ html, body {
     .pacientes-btn-history { width: 18px; height: 18px; font-size: 9px; }
 }
 
-.meses-buttons button {
-    padding: 5px 10px;
-    font-size: 12px;
-    min-width: 48px;
-}
-
+/* === FILTRO AÑO + MESES + CAMBIAR ESTADO (PEGADO) === */
 .filter-row {
     display: flex;
     align-items: center;
-    gap: 6px; 
+    gap: 6px;
     margin: 15px 0;
     flex-wrap: wrap;
 }
@@ -394,7 +398,7 @@ html, body {
 }
 
 .cambiar-estado-btn {
-    display: none; 
+    display: none;
     margin-left: 0 !important;
 }
 
@@ -403,20 +407,10 @@ html, body {
     font-size: 13px;
     white-space: nowrap;
     min-width: auto;
-    height: 36px; 
+    height: 36px;
 }
 
-#cambiarEstadoContainer {
-    margin-left: auto;
-    display: none;
-}
-
-#cambiarEstadoContainer button {
-    padding: 6px 12px;
-    font-size: 13px;
-    white-space: nowrap;
-}
-
+/* === MODAL PRINCIPAL (CAMBIO ESTADO / CIRUGÍA) === */
 .modal {
     position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
@@ -519,6 +513,7 @@ html, body {
     margin-top: 20px;
 }
 
+/* === CIRUGÍA COUNT === */
 .cirugia-count {
     background: #e3f2fd;
     color: #1976d2;
