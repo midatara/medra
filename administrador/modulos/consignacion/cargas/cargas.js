@@ -151,6 +151,8 @@ function renderMesesButtons(mesesSet) {
     if (firstBtn) {
         firstBtn.classList.add('active');
         selectedMonth = parseInt(firstBtn.dataset.month);
+    } else {
+        selectedMonth = null;
     }
     loadCargas();
 }
@@ -267,7 +269,7 @@ function renderTable() {
 
 function setupColumnResize() {
     const headers = document.querySelectorAll('.cargar-table th');
-    const initialWidths = [70,80,90,100,60,90,70,80,90,80,150,140,90,120,90,200,70,80,80,90,80];
+    const initialWidths = [70, 80, 90, 100, 60, 90, 70, 80, 90, 80, 150, 140, 90, 120, 90, 200, 70, 80, 80, 90, 80];
     headers.forEach((header, index) => {
         if (!initialWidths[index]) return;
         header.style.width = `${initialWidths[index]}px`;
