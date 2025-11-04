@@ -18,12 +18,12 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+setPersistence(auth, browserSessionPersistence);
 
+// === INICIALIZAR MÓDULO DE REPORTES ===
 import('./pacientes-reportes.js').then(module => {
     module.initReportesDb(db);
 });
-
-setPersistence(auth, browserSessionPersistence);
 
 let allPacientesDelMes = [];
 let pacientes = [];
@@ -90,11 +90,43 @@ function showToast(text, type = 'success') {
 async function loadAniosYMeses() {
     window.showLoading();
     try {
-        const { completarDatosPacientes } = await import('./pacientes-reportes.js');
-        allPacientesDelMes = await completarDatosPacientes(pacientesBase);
-    } catch (err) {
-        console.error('Error al completar datos de reportes:', err);
-        allPacientesDelMes = pacientesBase;
+        const q = query(collection(db, "pacientes_consignaciones"), orderBy("fechaCX"));
+        const snapshot = await getDocs(q);
+        const mesesPorAnio = new Map();
+        snapshot.docs.forEach(doc => {
+            const fecha = doc.data().fechaCX?.toDate?.() || new Date(doc.data().fechaCX);
+            if (!fecha || isNaN(fecha)) return;
+            const year = fecha.getFullYear();
+            const month = fecha.getMonth();
+            if (!mesesPorAnio.has(year)) mesesPorAnio.set(year, new Set());
+            mesesPorAnio.get(year).add(month);
+        });
+
+        const anioSelect = document.getElementById('anioSelect');
+        anioSelect.innerHTML = '';
+        const currentYear = new Date().getFullYear();
+        let defaultYear = currentYear;
+        const years = Array.from(mesesPorAnio.keys()).sort((a, b) => b - a);
+        if (years.length === 0) {
+            anioSelect.innerHTML = '<option value="">Sin datos</option>';
+            document.getElementById('mesesContainer').innerHTML = '';
+            return;
+        }
+        years.forEach(y => {
+            const opt = document.createElement('option');
+            opt.value = y;
+            opt.textContent = y;
+            if (y === currentYear && mesesPorAnio.has(currentYear)) {
+                opt.selected = true;
+                defaultYear = y;
+            }
+            anioSelect.appendChild(opt);
+        });
+        selectedYear = defaultYear;
+        renderMesesButtons(mesesPorAnio.get(defaultYear));
+    } catch (e) {
+        console.error(e);
+        showToast('Error al cargar años/meses', 'error');
     } finally {
         window.hideLoading();
     }
@@ -144,6 +176,7 @@ async function loadPacientes() {
             q = query(q, where("fechaCX", ">=", start), where("fechaCX", "<=", end));
         }
         const snapshot = await getDocs(q);
+
         // === CARGAR PACIENTES SIN DATOS DE REPORTES ===
         const pacientesBase = snapshot.docs.map(doc => {
             const data = doc.data();
@@ -163,15 +196,12 @@ async function loadPacientes() {
         });
 
         // === COMPLETAR CON DATOS DE REPORTES ===
-        window.showLoading();
         try {
             const { completarDatosPacientes } = await import('./pacientes-reportes.js');
             allPacientesDelMes = await completarDatosPacientes(pacientesBase);
         } catch (err) {
             console.error('Error al completar datos de reportes:', err);
             allPacientesDelMes = pacientesBase;
-        } finally {
-            window.hideLoading();
         }
 
         currentPage = 1;
@@ -247,7 +277,7 @@ function renderTable() {
             <td>${p.fechaCX?.toLocaleDateString?.('es-CL') || ''}</td>
             <td>${escapeHtml(p.proveedor)}</td>
             <td>${formatNumberWithThousandsSeparator(p.totalPaciente)}</td>
-            <td>${p.cirugia || ''}</td>
+            <td>${escapeHtml(p.cirugia || '')}</td>
             <td>${escapeHtml(p.atributo)}</td>
             <td class="pacientes-actions">
                 <button class="pacientes-btn-history" data-id="${p.id}" title="Ver historial">

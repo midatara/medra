@@ -12,7 +12,6 @@ export async function completarDatosPacientes(pacientes) {
     const promesas = pacientes.map(async (p) => {
         if (!p.admision) return p;
 
-        // Si ya está en caché
         if (cacheReportes.has(p.admision)) {
             return { ...p, ...cacheReportes.get(p.admision) };
         }
