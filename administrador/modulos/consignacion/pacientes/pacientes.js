@@ -269,7 +269,7 @@ function renderTable(callback = null) {
                     No hay pacientes
                 </td>
             </tr>`;
-        if (callback) setTimeout(callback, 0);
+        if (callback) requestAnimationFrame(() => requestAnimationFrame(callback));
         return;
     }
 
@@ -303,9 +303,11 @@ function renderTable(callback = null) {
     tbody.innerHTML = html;
 
     requestAnimationFrame(() => {
-        setTimeout(() => {
-            if (callback) callback();
-        }, 0);
+        requestAnimationFrame(() => {
+            setTimeout(() => {
+                if (callback) callback();
+            }, 0);
+        });
     });
 }
 
