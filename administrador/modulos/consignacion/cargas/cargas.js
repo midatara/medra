@@ -28,8 +28,8 @@ let selectedYear = null;
 let selectedMonth = null;
 
 const searchFilters = {
-    admision: '',
     estado: '',
+    admision: '',
     paciente: ''
 };
 
@@ -151,8 +151,6 @@ function renderMesesButtons(mesesSet) {
     if (firstBtn) {
         firstBtn.classList.add('active');
         selectedMonth = parseInt(firstBtn.dataset.month);
-    } else {
-        selectedMonth = null;
     }
     loadCargas();
 }
@@ -192,8 +190,8 @@ async function loadCargas() {
 function applyFiltersAndPaginate() {
     let filtered = [...allCargasDelMes];
 
-    if (searchFilters.admision) filtered = filtered.filter(c => c._admision.includes(searchFilters.admision));
     if (searchFilters.estado) filtered = filtered.filter(c => c._estado.includes(searchFilters.estado));
+    if (searchFilters.admision) filtered = filtered.filter(c => c._admision.includes(searchFilters.admision));
     if (searchFilters.paciente) filtered = filtered.filter(c => c._paciente.includes(searchFilters.paciente));
 
     const startIdx = (currentPage - 1) * PAGE_SIZE;
@@ -305,7 +303,7 @@ function setupColumnResize() {
             if (isResizing) {
                 isResizing = false;
                 document.body.style.userSelect = '';
-                handle.classList.remove('active');
+                handle.class35.classList.remove('active');
             }
         };
         handle.addEventListener('mousedown', start);
@@ -319,8 +317,8 @@ function setupColumnResize() {
 
 document.addEventListener('DOMContentLoaded', () => {
     const inputs = [
-        { id: 'buscarAdmision', filter: 'admision' },
         { id: 'buscarEstado', filter: 'estado' },
+        { id: 'buscarAdmision', filter: 'admision' },
         { id: 'buscarPaciente', filter: 'paciente' }
     ];
     

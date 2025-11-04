@@ -37,33 +37,30 @@
     <div class="cargar-main-container">
         <h1 class="cargar-title">Cargar</h1>
         <div id="cargar-message"></div>
-
-        <!-- Fila de Año + Botones de Meses -->
-        <div class="filter-row" style="display:flex;align-items:center;gap:15px;margin:15px 0;">
-            <div style="display:flex;align-items:center;gap:8px;">
-                <label style="font-weight:bold;white-space:nowrap;">Año:</label>
-                <select id="anioSelect" class="year-select"></select>
+       
+        <div class="cargar-search-container">
+            <div class="cargar-search-row">
+                <div class="cargar-form-group">
+                    <label class="cargar-label" for="buscarEstado">Estado:</label>
+                    <input type="text" id="buscarEstado" autocomplete="off">
+                </div>
+                <div class="cargar-form-group">
+                    <label class="cargar-label" for="buscarAdmision">Admisión:</label>
+                    <input type="text" id="buscarAdmision" autocomplete="off">
+                </div>
+                <div class="cargar-form-group">
+                    <label class="cargar-label" for="buscarPaciente">Paciente:</label>
+                    <input type="text" id="buscarPaciente" autocomplete="off">
+                </div>
             </div>
-            <div id="mesesContainer" class="meses-buttons" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+            <div class="filter-row" style="display:flex;align-items:center;gap:15px;margin:15px 0;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <label style="font-weight:bold;white-space:nowrap;">Año:</label>
+                    <select id="anioSelect" style="width:80px;padding:6px 8px;font-size:13px;border:1px solid #ccc;border-radius:4px;"></select>
+                </div>
+                <div id="mesesContainer" class="meses-buttons" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+            </div>
         </div>
-
-        <!-- Buscadores -->
-        <div class="cargar-search-row">
-            <div class="cargar-form-group">
-                <label class="cargar-label" for="buscarAdmision">Admisión:</label>
-                <input type="text" id="buscarAdmision">
-            </div>
-            <div class="cargar-form-group">
-                <label class="cargar-label" for="buscarEstado">Estado:</label>
-                <input type="text" id="buscarEstado">
-            </div>
-            <div class="cargar-form-group">
-                <label class="cargar-label" for="buscarPaciente">Paciente:</label>
-                <input type="text" id="buscarPaciente">
-            </div>
-        </div>
-
-        <!-- Tabla -->
         <div class="cargar-table-container">
             <table class="cargar-table" id="cargarTable">
                 <thead>
@@ -94,17 +91,16 @@
                 <tbody></tbody>
             </table>
         </div>
-
+       
         <div class="cargar-pagination">
             <div id="loadMoreContainer" style="display:none;"></div>
         </div>
-
+       
         <div id="loading" class="loading-modal">
             <div class="spinner"></div>
             <span class="loading-text">Cargando...</span>
         </div>
     </div>
-
     <div class="cargar-toast-container" id="toastContainer"></div>
     <script type="module" src="cargas.js"></script>
 </body>

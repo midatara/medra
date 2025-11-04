@@ -29,22 +29,63 @@ html, body {
     color: #333;
 }
 
-/* Año y Meses */
+/* Filtros */
+.cargar-search-container {
+    margin-bottom: 15px;
+}
+
+.cargar-search-row {
+    display: flex;
+    justify-content: flex-start;
+    gap: 15px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    margin-bottom: 15px;
+}
+
+.cargar-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 140px;
+    max-width: 200px;
+}
+
+.cargar-label {
+    font-size: 11px;
+    font-weight: bold;
+    color: #333;
+    white-space: nowrap;
+}
+
+#buscarEstado,
+#buscarAdmision,
+#buscarPaciente {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 12px;
+    height: 32px;
+    box-sizing: border-box;
+}
+
+#buscarEstado:focus,
+#buscarAdmision:focus,
+#buscarPaciente:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0,123,255,.25);
+}
+
+/* Año + Meses */
 .filter-row {
     display: flex;
     align-items: center;
     gap: 15px;
     margin: 15px 0;
     flex-wrap: wrap;
-}
-
-.year-select {
-    width: 80px;
-    padding: 6px 8px;
-    font-size: 13px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    background-color: #fff;
 }
 
 .meses-buttons {
@@ -76,52 +117,6 @@ html, body {
     font-weight: bold;
 }
 
-/* Buscadores */
-.cargar-search-row {
-    display: flex;
-    justify-content: flex-start;
-    gap: 15px;
-    align-items: flex-end;
-    flex-wrap: wrap;
-    margin-bottom: 15px;
-}
-
-.cargar-form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    flex: 1;
-    min-width: 140px;
-    max-width: 200px;
-}
-
-.cargar-label {
-    font-size: 11px;
-    font-weight: bold;
-    color: #333;
-    white-space: nowrap;
-}
-
-#buscarAdmision,
-#buscarEstado,
-#buscarPaciente {
-    width: 100%;
-    padding: 6px 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 12px;
-    height: 32px;
-    box-sizing: border-box;
-}
-
-#buscarAdmision:focus,
-#buscarEstado:focus,
-#buscarPaciente:focus {
-    outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0,123,255,.25);
-}
-
 /* Tabla */
 .cargar-table-container {
     flex-grow: 1;
@@ -136,18 +131,20 @@ html, body {
     border-collapse: collapse;
     font-size: 11px;
     width: 100%;
-    min-width: 2400px;
+    min-width: 2800px;
 }
 
 .cargar-table th,
 .cargar-table td {
-    padding: 6px 8px;
+    padding: 8px 6px;
     text-align: left;
     border: 1px solid #ddd;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     box-sizing: border-box;
+    height: 36px;
+    line-height: 1.3;
 }
 
 .cargar-table th {
@@ -156,6 +153,7 @@ html, body {
     position: sticky;
     top: 0;
     z-index: 10;
+    font-size: 11px;
 }
 
 .cargar-table th .resize-handle {
@@ -178,34 +176,35 @@ html, body {
     background-color: #f8f9fa;
 }
 
-/* Anchos de columnas (21 columnas) */
-.cargar-table th:nth-child(1), .cargar-table td:nth-child(1) { width: 70px; min-width: 70px; }   /* Acciones */
-.cargar-table th:nth-child(2), .cargar-table td:nth-child(2) { width: 80px; min-width: 80px; }   /* Estado */
-.cargar-table th:nth-child(3), .cargar-table td:nth-child(3) { width: 90px; min-width: 90px; }   /* Fecha Carga */
-.cargar-table th:nth-child(4), .cargar-table td:nth-child(4) { width: 100px; min-width: 100px; } /* Referencia */
-.cargar-table th:nth-child(5), .cargar-table td:nth-child(5) { width: 60px; min-width: 60px; }   /* ID */
-.cargar-table th:nth-child(6), .cargar-table td:nth-child(6) { width: 90px; min-width: 90px; }   /* Código */
-.cargar-table th:nth-child(7), .cargar-table td:nth-child(7) { width: 70px; min-width: 70px; }   /* Cantidad */
-.cargar-table th:nth-child(8), .cargar-table td:nth-child(8) { width: 80px; min-width: 80px; }   /* Venta */
-.cargar-table th:nth-child(9), .cargar-table td:nth-child(9) { width: 90px; min-width: 90px; }   /* Previsión */
-.cargar-table th:nth-child(10), .cargar-table td:nth-child(10) { width: 80px; min-width: 80px; } /* Admisión */
-.cargar-table th:nth-child(11), .cargar-table td:nth-child(11) { width: 150px; min-width: 150px; } /* Paciente */
-.cargar-table th:nth-child(12), .cargar-table td:nth-child(12) { width: 140px; min-width: 140px; } /* Médico */
-.cargar-table th:nth-child(13), .cargar-table td:nth-child(13) { width: 90px; min-width: 90px; }  /* Fecha CX */
-.cargar-table th:nth-child(14), .cargar-table td:nth-child(14) { width: 120px; min-width: 120px; } /* Proveedor */
-.cargar-table th:nth-child(15), .cargar-table td:nth-child(15) { width: 90px; min-width: 90px; }  /* Código */
-.cargar-table th:nth-child(16), .cargar-table td:nth-child(16) { width: 200px; min-width: 200px; } /* Descripción */
-.cargar-table th:nth-child(17), .cargar-table td:nth-child(17) { width: 70px; min-width: 70px; }  /* Cantidad */
-.cargar-table th:nth-child(18), .cargar-table td:nth-child(18) { width: 80px; min-width: 80px; }  /* Precio */
-.cargar-table th:nth-child(19), .cargar-table td:nth-child(19) { width: 80px; min-width: 80px; }  /* Atributo */
-.cargar-table th:nth-child(20), .cargar-table td:nth-child(20) { width: 90px; min-width: 90px; }  /* Total Item */
-.cargar-table th:nth-child(21), .cargar-table td:nth-child(21) { width: 80px; min-width: 80px; }  /* Margen */
+/* === ANCHOS EXACTOS (21 columnas) === */
+.cargar-table th:nth-child(1), .cargar-table td:nth-child(1) { width: 70px; min-width: 70px; }
+.cargar-table th:nth-child(2), .cargar-table td:nth-child(2) { width: 80px; min-width: 80px; }
+.cargar-table th:nth-child(3), .cargar-table td:nth-child(3) { width: 90px; min-width: 90px; }
+.cargar-table th:nth-child(4), .cargar-table td:nth-child(4) { width: 100px; min-width: 100px; }
+.cargar-table th:nth-child(5), .cargar-table td:nth-child(5) { width: 60px; min-width: 60px; }
+.cargar-table th:nth-child(6), .cargar-table td:nth-child(6) { width: 90px; min-width: 90px; }
+.cargar-table th:nth-child(7), .cargar-table td:nth-child(7) { width: 70px; min-width: 70px; }
+.cargar-table th:nth-child(8), .cargar-table td:nth-child(8) { width: 80px; min-width: 80px; }
+.cargar-table th:nth-child(9), .cargar-table td:nth-child(9) { width: 90px; min-width: 90px; }
+.cargar-table th:nth-child(10), .cargar-table td:nth-child(10) { width: 80px; min-width: 80px; }
+.cargar-table th:nth-child(11), .cargar-table td:nth-child(11) { width: 150px; min-width: 150px; }
+.cargar-table th:nth-child(12), .cargar-table td:nth-child(12) { width: 140px; min-width: 140px; }
+.cargar-table th:nth-child(13), .cargar-table td:nth-child(13) { width: 90px; min-width: 90px; }
+.cargar-table th:nth-child(14), .cargar-table td:nth-child(14) { width: 120px; min-width: 120px; }
+.cargar-table th:nth-child(15), .cargar-table td:nth-child(15) { width: 90px; min-width: 90px; }
+.cargar-table th:nth-child(16), .cargar-table td:nth-child(16) { width: 200px; min-width: 200px; }
+.cargar-table th:nth-child(17), .cargar-table td:nth-child(17) { width: 70px; min-width: 70px; }
+.cargar-table th:nth-child(18), .cargar-table td:nth-child(18) { width: 80px; min-width: 80px; }
+.cargar-table th:nth-child(19), .cargar-table td:nth-child(19) { width: 80px; min-width: 80px; }
+.cargar-table th:nth-child(20), .cargar-table td:nth-child(20) { width: 90px; min-width: 90px; }
+.cargar-table th:nth-child(21), .cargar-table td:nth-child(21) { width: 80px; min-width: 80px; }
 
 /* Acciones */
 .cargar-actions {
     display: flex;
     gap: 4px;
     align-items: center;
+    justify-content: center;
 }
 
 .cargar-btn-history {
