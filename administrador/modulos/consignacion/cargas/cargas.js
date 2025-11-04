@@ -78,27 +78,50 @@ function showToast(text, type = 'success') {
     }, 4000);
 }
 
+/* -------------------------------------------------
+   Botón “Cambiar Estado” (visibilidad)
+------------------------------------------------- */
 function updateCambiarEstadoButton() {
     const container = document.getElementById('cambiarEstadoContainer');
     if (!container) return;
     container.style.display = selectedCargaIds.size > 0 ? 'block' : 'none';
 }
 
+/* -------------------------------------------------
+   Cambio masivo de estado + lógica de fechaCarga
+------------------------------------------------- */
 async function cambiarEstadoMasivo(nuevoEstado) {
     if (selectedCargaIds.size === 0) return;
     window.showLoading();
     try {
         const updates = Array.from(selectedCargaIds).map(id => {
+            const carga = allCargasDelMes.find(c => c.id === id);
+            if (!carga) return null;
+
+            const updateData = { estado: nuevoEstado };
+
+            // Sólo asignar fechaCarga la primera vez que se marca CARGADO
+            if (nuevoEstado === 'CARGADO' && !carga.fechaCarga) {
+                updateData.fechaCarga = new Date();
+            }
+
             const ref = doc(db, "cargas_consignaciones", id);
-            return updateDoc(ref, { estado: nuevoEstado });
-        });
+            return updateDoc(ref, updateData);
+        }).filter(Boolean);
+
         await Promise.all(updates);
+
+        // Actualizar en memoria
         allCargasDelMes.forEach(c => {
             if (selectedCargaIds.has(c.id)) {
                 c.estado = nuevoEstado;
                 c._estado = normalizeText(nuevoEstado);
+                if (nuevoEstado === 'CARGADO' && !c.fechaCarga) {
+                    c.fechaCarga = new Date();
+                }
             }
         });
+
         selectedCargaIds.clear();
         updateCambiarEstadoButton();
         document.getElementById('selectAll').checked = false;
@@ -112,6 +135,9 @@ async function cambiarEstadoMasivo(nuevoEstado) {
     }
 }
 
+/* -------------------------------------------------
+   Carga de años / meses
+------------------------------------------------- */
 async function loadAniosYMeses() {
     window.showLoading();
     try {
@@ -194,6 +220,9 @@ async function renderMesesButtons(mesesSet) {
     await loadCargas();
 }
 
+/* -------------------------------------------------
+   Carga de datos del mes seleccionado
+------------------------------------------------- */
 async function loadCargas() {
     window.showLoading();
     try {
@@ -210,7 +239,8 @@ async function loadCargas() {
                 id: doc.id,
                 ...data,
                 fechaCX: data.fechaCX?.toDate?.() || new Date(data.fechaCX || Date.now()),
-                fechaCarga: data.fechaCarga?.toDate?.() || new Date(),
+                // fechaCarga solo si existe en Firestore → null en caso contrario
+                fechaCarga: data.fechaCarga ? (data.fechaCarga.toDate?.() || new Date(data.fechaCarga)) : null,
                 _admision: normalizeText(data.admision),
                 _paciente: normalizeText(data.paciente),
                 _medico: normalizeText(data.medico),
@@ -221,6 +251,7 @@ async function loadCargas() {
                 cirugiaSeleccionada: data.cirugiaSeleccionada || ''
             };
         });
+
         try {
             const { completarDatosCargas } = await import('./cargas-reportes.js');
             allCargasDelMes = await completarDatosCargas(cargasBase);
@@ -228,6 +259,7 @@ async function loadCargas() {
             console.error('Error al completar datos de reportes:', err);
             allCargasDelMes = cargasBase;
         }
+
         selectedCargaIds.clear();
         updateCambiarEstadoButton();
         currentPage = 1;
@@ -241,6 +273,9 @@ async function loadCargas() {
     }
 }
 
+/* -------------------------------------------------
+   Filtros + paginación
+------------------------------------------------- */
 async function applyFiltersAndPaginateAsync() {
     return new Promise(resolve => applyFiltersAndPaginate(resolve));
 }
@@ -249,6 +284,7 @@ function applyFiltersAndPaginate(callback = null) {
     if (searchFilters.estado) filtered = filtered.filter(c => c._estado.includes(searchFilters.estado));
     if (searchFilters.admision) filtered = filtered.filter(c => c._admision.includes(searchFilters.admision));
     if (searchFilters.paciente) filtered = filtered.filter(c => c._paciente.includes(searchFilters.paciente));
+
     const startIdx = (currentPage - 1) * PAGE_SIZE;
     const endIdx = startIdx + PAGE_SIZE;
     cargas = filtered.slice(startIdx, endIdx);
@@ -275,6 +311,9 @@ const debouncedLoad = debounce(() => {
     applyFiltersAndPaginate();
 }, 300);
 
+/* -------------------------------------------------
+   Renderizado de la tabla
+------------------------------------------------- */
 function renderTable(callback = null) {
     const tbody = document.querySelector('#cargarTable tbody');
     if (!tbody) {
@@ -303,7 +342,7 @@ function renderTable(callback = null) {
                 </button>
             </td>
             <td>${escapeHtml(c.estado)}</td>
-            <td>${c.fechaCarga ? c.fechaCarga.toLocaleDateString('es-CL') : ''}</td>
+            <td>${c.fechaCarga && c.estado === 'CARGADO' ? c.fechaCarga.toLocaleDateString('es-CL') : ''}</td>
             <td>${escapeHtml(c.referencia)}</td>
             <td>${escapeHtml(c.idRegistro)}</td>
             <td>${escapeHtml(c.codigo)}</td>
@@ -352,6 +391,9 @@ function renderTable(callback = null) {
     }
 }
 
+/* -------------------------------------------------
+   Redimensionado de columnas
+------------------------------------------------- */
 function setupColumnResize() {
     const headers = document.querySelectorAll('.cargar-table th');
     const initialWidths = [60, 80, 90, 100, 60, 90, 70, 80, 90, 110, 80, 150, 140, 90, 120, 90, 200, 70, 80, 80, 90, 80];
@@ -402,6 +444,9 @@ function setupColumnResize() {
     });
 }
 
+/* -------------------------------------------------
+   Select de estados (carga dinámica)
+------------------------------------------------- */
 function actualizarSelectEstados() {
     const select = document.getElementById('buscarEstado');
     if (!select || !allCargasDelMes.length) {
@@ -423,6 +468,9 @@ function actualizarSelectEstados() {
     });
 }
 
+/* -------------------------------------------------
+   Eventos DOM
+------------------------------------------------- */
 document.addEventListener('DOMContentLoaded', () => {
     const inputs = [
         { id: 'buscarEstado', filter: 'estado', event: 'change' },
@@ -463,23 +511,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    /* ---------- Modal Cambiar Estado ---------- */
     const modalEstado = document.getElementById('cambiarEstadoModal');
     document.getElementById('btnCambiarEstado')?.addEventListener('click', () => {
-        modalEstado.classList.add('show'); 
+        modalEstado.classList.add('show');
     });
     modalEstado.addEventListener('click', e => {
-        if (e.target === modalEstado) modalEstado.classList.remove('show'); 
+        if (e.target === modalEstado) modalEstado.classList.remove('show');
     });
     document.querySelector('#cambiarEstadoModal .close')?.addEventListener('click', () => {
-        modalEstado.classList.remove('show'); 
+        modalEstado.classList.remove('show');
     });
     document.getElementById('cancelarEstado')?.addEventListener('click', () => {
-        modalEstado.classList.remove('show'); 
+        modalEstado.classList.remove('show');
     });
     document.getElementById('guardarEstado')?.addEventListener('click', () => {
         const nuevoEstado = document.getElementById('nuevoEstadoSelect').value;
         cambiarEstadoMasivo(nuevoEstado);
-        modalEstado.classList.remove('show'); 
+        modalEstado.classList.remove('show');
     });
 
     setupColumnResize();
