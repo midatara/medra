@@ -177,27 +177,26 @@ async function ejecutarTraspaso() {
 
             // === CARGAS: UNA FILA POR CADA REGISTRO (sin agrupar) ===
             cargas.push({
-                estado: 'CARGADO',
-                fechaCarga: new Date(),
+                estado: 'INGRESADO',                 // ← AHORA ES "INGRESADO"
+                fechaCarga: '',                      // ← VACÍO
                 referencia: data.referencia || '',
-                idRegistro: data.id,
-                // ID = admision
-                codigo: data.codigo || '',           // Código (col 6)
+                idRegistro: data.admision,           // ← IGUAL QUE admision
+                codigo: data.codigo || '',
                 cantidad: data.cantidad || 0,
-                venta: '',                           // ← vacío
-                prevision: '',                       // ← vacío
-                admision: data.admision,             // ← admisión
+                venta: '',                           // ← VACÍO
+                prevision: '',                       // ← VACÍO
+                admision: data.admision,
                 paciente: data.paciente,
                 medico: data.medico,
                 fechaCX,
                 proveedor: data.proveedor,
-                codigoProducto: data.codigo || '',   // Código (col 15)
+                codigoProducto: data.codigo || '',
                 descripcion: data.descripcion || '',
                 cantidadProducto: data.cantidad || 0,
                 precio: data.precioUnitario || 0,
                 atributo: data.atributo || '',
                 totalItem: data.totalItems || 0,
-                margen: 0                            // ← 0
+                margen: ''                           // ← VACÍO
             });
 
             batch.delete(d.ref);
@@ -215,13 +214,13 @@ async function ejecutarTraspaso() {
             });
         });
 
-        // === Guardar TODAS las cargas (una por registro) ===
+        // === Guardar TODAS las cargas ===
         cargas.forEach(c => {
             const ref = doc(collection(db, "cargas_consignaciones"));
             batch.set(ref, {
                 ...c,
                 fechaCX: Timestamp.fromDate(c.fechaCX),
-                fechaCarga: Timestamp.fromDate(c.fechaCarga),
+                // fechaCarga se deja vacío (string)
                 timestamp: Timestamp.fromDate(new Date())
             });
         });
