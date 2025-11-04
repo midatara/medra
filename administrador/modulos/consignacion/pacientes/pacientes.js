@@ -204,9 +204,13 @@ async function loadPacientes() {
         }
 
         currentPage = 1;
-        applyFiltersAndPaginate(() => {
-            window.hideLoading();
+        // Esperar a que la tabla se renderice completamente antes de ocultar el spinner
+        await new Promise(resolve => {
+            applyFiltersAndPaginate(() => {
+                resolve();
+            });
         });
+        window.hideLoading();
     } catch (e) {
         console.error(e);
         showToast('Error al cargar pacientes', 'error');
