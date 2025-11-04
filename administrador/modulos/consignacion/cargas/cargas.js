@@ -258,7 +258,7 @@ function renderTable() {
             <td>${escapeHtml(c.prevision)}</td>
             <td>${escapeHtml(c.admision)}</td>
             <td>${escapeHtml(c.paciente)}</td>
-            <td>${escapeHtml(c.médico)}</td>
+            <td>${escapeHtml(c.medico)}</td>
             <td>${c.fechaCX?.toLocaleDateString?.('es-CL') || ''}</td>
             <td>${escapeHtml(c.proveedor)}</td>
             <td>${escapeHtml(c.codigoProducto)}</td>
