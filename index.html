@@ -12,9 +12,17 @@
             font-family: Arial, sans-serif;
             text-align: center;
             background-color: white;
+            min-height: 100vh;
+
+            /* 🔥 nuevo layout para centrar verticalmente */
             display: flex;
             flex-direction: column;
-            min-height: 100vh;
+        }
+        main {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
         .header {
             background-color: #3A5795;
@@ -154,34 +162,35 @@
 </head>
 <body>
     <div class="header">Medra</div>
-    <div class="login-panel">
-        <h2>Ingrese a Medra</h2>
-        <form id="loginForm">
-            <div class="form-group">
-                <label for="username">Nombre de Usuario</label>
-                <div class="input-wrapper">
-                    <i class="fas fa-user input-icon"></i>
-                    <input type="text" id="username" name="username" placeholder="Nombre de Usuario" autocomplete="off" required>
+    <main>
+        <div class="login-panel">
+            <h2>Ingrese a Medra</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Nombre de Usuario</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-user input-icon"></i>
+                        <input type="text" id="username" name="username" placeholder="Nombre de Usuario" autocomplete="off" required>
+                    </div>
                 </div>
-            </div>
-            <div class="form-group">
-                <label for="password">Clave</label>
-                <div class="input-wrapper">
-                    <i class="fas fa-lock input-icon"></i>
-                    <input type="password" id="password" name="password" placeholder="Clave" autocomplete="off" required>
+                <div class="form-group">
+                    <label for="password">Clave</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-lock input-icon"></i>
+                        <input type="password" id="password" name="password" placeholder="Clave" autocomplete="off" required>
+                    </div>
                 </div>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Ingresar" class="btn-conectar" id="loginBtn">
-            </div>
-            <div class="change-link">
-                <a href="cambiar-clave.html">¿Olvidaste tu contraseña?</a>
-            </div>
-        </form>
-        <div id="message"></div>
-    </div>
+                <div class="form-group">
+                    <input type="submit" value="Ingresar" class="btn-conectar" id="loginBtn">
+                </div>
+                <div class="change-link">
+                    <a href="cambiar-clave.html">¿Olvidaste tu contraseña?</a>
+                </div>
+            </form>
+            <div id="message"></div>
+        </div>
+    </main>
 
-    <!-- Pie de página -->
     <footer class="footer">
         © 2025 Medra de Mi Datara · Real Agency | Transformando datos en realidades digitales | <a href="#">Contacto</a>
     </footer>
