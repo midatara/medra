@@ -1,3 +1,4 @@
+/* === ESTILOS BASE === */
 html, body {
     margin: 0;
     padding: 0;
@@ -70,7 +71,7 @@ html, body {
     white-space: nowrap;
 }
 
-#buscarEstado, #buscarPrevision, #buscarConvenio, #buscarAdmision,
+#buscarEstado, #buscarPrevision, #buscarAdmision,
 #buscarPaciente, #buscarMedico, #buscarProveedor,
 #anioSelect {
     width: 100%;
@@ -83,7 +84,7 @@ html, body {
     line-height: 16px;
 }
 
-#buscarEstado:focus, #buscarPrevision:focus, #buscarConvenio:focus, #buscarAdmision:focus,
+#buscarEstado:focus, #buscarPrevision:focus, #buscarAdmision:focus,
 #buscarPaciente:focus, #buscarMedico:focus, #buscarProveedor:focus,
 #anioSelect:focus {
     box-shadow: 0 0 8px rgba(0, 123, 255, 0.3);
@@ -172,7 +173,7 @@ html, body {
     background-color: #f8f9fa;
 }
 
-/* === ANCHO DE COLUMNAS (ACCIONES AHORA ES LA PRIMERA) === */
+/* === ANCHO DE COLUMNAS === */
 .pacientes-table th:nth-child(1), .pacientes-table td:nth-child(1) { width: 60px; min-width: 60px; max-width: 120px; }
 .pacientes-table th:nth-child(2), .pacientes-table td:nth-child(2) { width: 90px; min-width: 90px; max-width: 180px; }
 .pacientes-table th:nth-child(3), .pacientes-table td:nth-child(3) { width: 80px; min-width: 80px; max-width: 160px; }
@@ -187,10 +188,9 @@ html, body {
 .pacientes-table th:nth-child(12), .pacientes-table td:nth-child(12) { width: 80px; min-width: 80px; max-width: 160px; }
 .pacientes-table th:nth-child(13), .pacientes-table td:nth-child(13) { width: 80px; min-width: 80px; max-width: 160px; }
 
-/* Ocultar columna de acciones antigua (si existiera) */
 .pacientes-table th:nth-child(14), .pacientes-table td:nth-child(14) { display: none; }
 
-/* === ESTILOS PARA LA PRIMERA COLUMNA (CHECK + BOTÓN) === */
+/* === PRIMERA COLUMNA (CHECK + BOTÓN) === */
 .checkbox-cell {
     display: flex;
     align-items: center;
@@ -200,7 +200,6 @@ html, body {
     font-size: 10px;
 }
 
-/* Checkbox más pequeño y profesional */
 .checkbox-cell input[type="checkbox"] {
     width: 13px;
     height: 13px;
@@ -210,7 +209,6 @@ html, body {
     transform: translateY(-1px);
 }
 
-/* Botón de historial más pequeño */
 .pacientes-btn-history {
     background-color: #17a2b8;
     color: white;
@@ -231,12 +229,10 @@ html, body {
     background-color: #138496;
 }
 
-/* Fila seleccionada */
 .row-selected {
     background-color: #e3f2fd !important;
 }
 
-/* Select All en header */
 #selectAll {
     width: 13px;
     height: 13px;
@@ -244,7 +240,7 @@ html, body {
     accent-color: #007bff;
 }
 
-/* === RESTO DEL CSS (SIN CAMBIOS) === */
+/* === PAGINACIÓN === */
 .pacientes-pagination {
     display: flex;
     justify-content: space-between;
@@ -257,26 +253,7 @@ html, body {
     z-index: 10;
 }
 
-#pacientes-message {
-    margin-bottom: 10px;
-    padding: 8px;
-    border-radius: 4px;
-    display: none;
-    font-size: 11px;
-}
-
-.pacientes-message-error {
-    background-color: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
-}
-
-.pacientes-message-success {
-    background-color: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
-}
-
+/* === TOAST === */
 .pacientes-toast-container {
     position: fixed;
     bottom: 20px;
@@ -308,14 +285,10 @@ html, body {
     transform: translateY(0);
 }
 
-.pacientes-toast.success {
-    background-color: #28a745;
-}
+.pacientes-toast.success { background-color: #28a745; }
+.pacientes-toast.error { background-color: #dc3545; }
 
-.pacientes-toast.error {
-    background-color: #dc3545;
-}
-
+/* === BOTONES MODAL === */
 .modal-btn {
     padding: 8px 16px;
     border: none;
@@ -334,6 +307,7 @@ html, body {
     background-color: #5a6268;
 }
 
+/* === LOADING === */
 .loading-modal {
     display: none;
     position: fixed;
@@ -351,8 +325,8 @@ html, body {
     align-items: center;
 }
 
-.loading-modal:not(.show) {
-    display: none !important;
+.loading-modal.show {
+    display: flex !important;
 }
 
 .spinner {
@@ -375,31 +349,17 @@ html, body {
     100% { transform: rotate(360deg); }
 }
 
+/* === RESPONSIVE === */
 @media screen and (max-width: 1200px) {
-    .pacientes-search-row {
-        flex-wrap: wrap;
-    }
-    .pacientes-form-group {
-        max-width: 100%;
-        min-width: 200px;
-    }
+    .pacientes-search-row { flex-wrap: wrap; }
+    .pacientes-form-group { max-width: 100%; min-width: 200px; }
 }
 
 @media screen and (max-width: 768px) {
-    .pacientes-main-container {
-        padding: 5px 10px 10px 10px;
-    }
-    .pacientes-form-group {
-        min-width: 100%;
-    }
-    .checkbox-cell {
-        gap: 2px;
-    }
-    .pacientes-btn-history {
-        width: 18px;
-        height: 18px;
-        font-size: 9px;
-    }
+    .pacientes-main-container { padding: 5px 10px 10px 10px; }
+    .pacientes-form-group { min-width: 100%; }
+    .checkbox-cell { gap: 2px; }
+    .pacientes-btn-history { width: 18px; height: 18px; font-size: 9px; }
 }
 
 .meses-buttons button {
@@ -408,15 +368,161 @@ html, body {
     min-width: 48px;
 }
 
-/* Ajuste fino para que "Cambiar Estado" quede pegado a los meses */
+/* === FILTRO AÑO + BOTONES === */
+.filter-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 15px 0;
+    flex-wrap: wrap;
+}
+
+.anio-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.anio-selector label {
+    font-weight: bold;
+    font-size: 13px;
+}
+
+#anioSelect {
+    width: 80px;
+    padding: 6px 8px;
+    font-size: 13px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
 #cambiarEstadoContainer {
-    margin-left: 0 !important;
+    margin-left: auto;
     display: none;
 }
 
 #cambiarEstadoContainer button {
     padding: 6px 12px;
     font-size: 13px;
-    min-width: auto;
     white-space: nowrap;
+}
+
+/* === MODAL MEJORADO === */
+.modal {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+}
+
+.modal.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.modal-content {
+    background: white;
+    padding: 24px;
+    border-radius: 12px;
+    max-width: 420px;
+    width: 90%;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    position: relative;
+    transform: scale(0.95);
+    transition: transform 0.2s ease;
+}
+
+.modal.show .modal-content {
+    transform: scale(1);
+}
+
+.modal h3 {
+    margin: 0 0 16px 0;
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+}
+
+.close {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    font-size: 28px;
+    font-weight: 300;
+    color: #aaa;
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s;
+}
+
+.close:hover {
+    background: #f0f0f0;
+    color: #333;
+}
+
+.modal-body {
+    margin: 16px 0;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: bold;
+    font-size: 13px;
+    color: #444;
+}
+
+.modal-select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    background: white;
+    transition: all 0.2s;
+}
+
+.modal-select:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+/* === CIRUGÍA COUNT === */
+.cirugia-count {
+    background: #e3f2fd;
+    color: #1976d2;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: bold;
+    margin-right: 5px;
+    cursor: pointer;
+}
+
+.cirugia-count:hover {
+    background: #bbdefb;
 }
