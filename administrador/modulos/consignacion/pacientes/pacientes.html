@@ -8,14 +8,14 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
-        import { 
-            getFirestore, collection, getDocs, query, where, doc, 
-            orderBy, getDoc, limit, startAfter 
+        import {
+            getFirestore, collection, getDocs, query, where, doc,
+            orderBy, getDoc, limit, startAfter, updateDoc
         } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
-        
+       
         window.firebaseModules = {
             initializeApp,
-            getAuth, 
+            getAuth,
             onAuthStateChanged,
             setPersistence,
             browserSessionPersistence,
@@ -28,7 +28,8 @@
             orderBy,
             getDoc,
             limit,
-            startAfter
+            startAfter,
+            updateDoc
         };
     </script>
     <link rel="stylesheet" href="pacientes.css">
@@ -37,7 +38,7 @@
     <div class="pacientes-main-container">
         <h1 class="pacientes-title">Pacientes</h1>
         <div id="pacientes-message"></div>
-        
+       
         <div class="pacientes-search-container">
             <div class="pacientes-search-row">
                 <div class="pacientes-form-group">
@@ -69,25 +70,23 @@
                     <input type="text" id="buscarProveedor" autocomplete="off">
                 </div>
             </div>
-            <div class="filter-row" style="display:flex;align-items:center;gap:15px;margin:15px 0; flex-wrap: wrap;">
+            <div class="filter-row" style="display:flex;align-items:center;gap:15px;margin:15px 0;">
                 <div style="display:flex;align-items:center;gap:8px;">
                     <label style="font-weight:bold;white-space:nowrap;">Año:</label>
                     <select id="anioSelect" style="width:80px;padding:6px 8px;font-size:13px;border:1px solid #ccc;border-radius:4px;"></select>
                 </div>
                 <div id="mesesContainer" class="meses-buttons" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
-                <button id="btnCambiarEstado" class="modal-btn modal-btn-secondary" style="display:none; white-space:nowrap;">
+                <button id="cambiarEstadoBtn" class="modal-btn modal-btn-secondary" style="display:none; margin-left: auto;">
                     Cambiar Estado
                 </button>
             </div>
         </div>
-
         <div class="pacientes-table-container">
             <table class="pacientes-table" id="pacientesTable">
                 <thead>
                     <tr>
-                        <th style="width: 50px; min-width: 50px; max-width: 100px;">
-                            <input type="checkbox" id="selectAll" title="Seleccionar todo">
-                            <div class="resize-handle"></div>
+                        <th style="width: 50px !important; min-width: 50px !important;">
+                            <input type="checkbox" id="selectAll">
                         </th>
                         <th>Fecha Ingreso<div class="resize-handle"></div></th>
                         <th>Estado<div class="resize-handle"></div></th>
@@ -106,39 +105,43 @@
                 <tbody></tbody>
             </table>
         </div>
-        
+       
         <div class="pacientes-pagination">
             <div id="loadMoreContainer" style="display:none;"></div>
         </div>
-        
+       
         <div id="loading" class="loading-modal">
             <div class="spinner"></div>
             <span class="loading-text">Cargando...</span>
         </div>
     </div>
 
-    <div class="pacientes-toast-container" id="toastContainer"></div>
-
-    <div id="modalCambiarEstado" class="loading-modal" style="display:none; width:320px; height:auto; padding:20px;">
-        <h3 style="margin:0 0 15px 0; font-size:14px;">Cambiar Estado</h3>
-        <div style="margin-bottom:15px;">
-            <label style="font-weight:bold; font-size:12px;">Nuevo estado:</label>
-            <select id="nuevoEstadoSelect" style="width:100%; padding:6px; margin-top:5px; font-size:12px;">
-                <option value="INGRESADO">INGRESADO</option>
-                <option value="CARGADO">CARGADO</option>
-                <option value="PENDIENTE">PENDIENTE</option>
-                <option value="MODIFICAR">MODIFICAR</option>
-                <option value="ERROR">ERROR</option>
-            </select>
-        </div>
-        <div style="display:flex; gap:8px; justify-content:flex-end;">
-            <button id="btnCancelarEstado" class="modal-btn modal-btn-secondary">Cancelar</button>
-            <button id="btnGuardarEstado" class="modal-btn" style="background:#28a745; color:white;">Guardar</button>
+    <!-- Modal Cambiar Estado -->
+    <div id="modalCambiarEstado" class="pacientes-modal" style="display:none;">
+        <div class="pacientes-modal-content">
+            <div class="pacientes-modal-header">
+                <h3>Cambiar Estado</h3>
+                <span class="pacientes-modal-close">&times;</span>
+            </div>
+            <div class="pacientes-modal-body">
+                <label for="nuevoEstado">Seleccionar nuevo estado:</label>
+                <select id="nuevoEstado" style="width:100%; padding:8px; margin-top:5px; border:1px solid #ccc; border-radius:4px;">
+                    <option value="">-- Seleccionar --</option>
+                    <option value="INGRESADO">INGRESADO</option>
+                    <option value="CARGADO">CARGADO</option>
+                    <option value="PENDIENTE">PENDIENTE</option>
+                    <option value="MODIFICAR">MODIFICAR</option>
+                    <option value="ERROR">ERROR</option>
+                </select>
+            </div>
+            <div class="pacientes-modal-footer">
+                <button id="btnCancelarEstado" class="modal-btn modal-btn-secondary">Cancelar</button>
+                <button id="btnGuardarEstado" class="modal-btn" style="background:#007bff;color:white;">Guardar</button>
+            </div>
         </div>
     </div>
 
-    <div id="modalOverlay"></div>
-
+    <div class="pacientes-toast-container" id="toastContainer"></div>
     <script type="module" src="pacientes.js"></script>
     <script type="module" src="pacientes-reportes.js"></script>
 </body>
