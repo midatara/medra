@@ -407,3 +407,16 @@ html, body {
     font-size: 12px;
     min-width: 48px;
 }
+
+/* Ajuste fino para que "Cambiar Estado" quede pegado a los meses */
+#cambiarEstadoContainer {
+    margin-left: 0 !important;
+    display: none;
+}
+
+#cambiarEstadoContainer button {
+    padding: 6px 12px;
+    font-size: 13px;
+    min-width: auto;
+    white-space: nowrap;
+}
