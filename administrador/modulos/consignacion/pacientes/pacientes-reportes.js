@@ -6,26 +6,19 @@ export function initReportesDb(database) {
     db = database;
 }
 
-/**
- * Rellena datos faltantes en pacientes desde la colección "reportes"
- * SOLO escribe si el campo está vacío o es diferente
- * NUNCA usa cache temporal → todo queda en Firestore
- */
 export async function completarDatosPacientes(pacientes) {
     if (!pacientes || pacientes.length === 0 || !db) return pacientes;
 
     const promesas = pacientes.map(async (p) => {
-        // Si ya tiene todos los datos → no hacer nada
         if (
             p.prevision &&
             p.convenio &&
             Array.isArray(p.cirugias) && p.cirugias.length > 0 &&
             p.cirugiaSeleccionada
         ) {
-            return p; // Ya está completo
+            return p; 
         }
 
-        // Si no tiene admisión → no puede buscar
         if (!p.admision) return p;
 
         try {
@@ -36,7 +29,7 @@ export async function completarDatosPacientes(pacientes) {
             );
             const snapshot = await getDocs(q);
 
-            if (snapshot.empty) return p; // No hay reportes
+            if (snapshot.empty) return p; 
 
             const cirugias = [];
             let isapre = p.prevision || '';
@@ -44,25 +37,21 @@ export async function completarDatosPacientes(pacientes) {
 
             snapshot.docs.forEach(d => {
                 const r = d.data();
-                // Recolectar cirugías únicas
                 if (r.descripcion && !cirugias.some(c => c.descripcion === r.descripcion)) {
                     cirugias.push({
                         descripcion: r.descripcion.trim(),
                         fecha: r.fecha || ''
                     });
                 }
-                // Solo rellenar si está vacío
                 if (!isapre && r.isapre) isapre = r.isapre;
                 if (!convenio && r.convenio) convenio = r.convenio;
             });
 
-            // Determinar cirugía seleccionada (solo si no tiene)
             let cirugiaSeleccionada = p.cirugiaSeleccionada;
             if (!cirugiaSeleccionada && cirugias.length > 0) {
                 cirugiaSeleccionada = cirugias[0].descripcion;
             }
 
-            // Preparar solo los campos que faltan
             const updates = {};
             if (!p.prevision && isapre) updates.prevision = isapre;
             if (!p.convenio && convenio) updates.convenio = convenio;
@@ -73,14 +62,12 @@ export async function completarDatosPacientes(pacientes) {
                 updates.cirugiaSeleccionada = cirugiaSeleccionada;
             }
 
-            // Solo actualizar si hay algo que escribir
             if (Object.keys(updates).length > 0) {
                 const pacienteRef = doc(db, "pacientes_consignaciones", p.id);
                 await updateDoc(pacienteRef, updates);
                 console.log(`Rellenado paciente ${p.id}:`, updates);
             }
 
-            // Devolver paciente con datos actualizados
             return {
                 ...p,
                 prevision: isapre,

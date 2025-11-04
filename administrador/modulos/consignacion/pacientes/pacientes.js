@@ -30,9 +30,8 @@ let currentPage = 1;
 const PAGE_SIZE = 50;
 let selectedYear = null;
 let selectedMonth = null;
-let selectedPacienteIds = new Set(); // pacientes seleccionados
+let selectedPacienteIds = new Set(); 
 
-/* ---------- FILTROS (Convenio eliminado) ---------- */
 const searchFilters = {
     estado: '',
     prevision: '',
@@ -82,14 +81,12 @@ function showToast(text, type = 'success') {
     }, 4000);
 }
 
-/* ---------- BOTÓN CAMBIAR ESTADO ---------- */
 function updateCambiarEstadoButton() {
     const container = document.getElementById('cambiarEstadoContainer');
     if (!container) return;
     container.style.display = selectedPacienteIds.size > 0 ? 'block' : 'none';
 }
 
-/* ---------- CAMBIO MASIVO DE ESTADO ---------- */
 async function cambiarEstadoMasivo(nuevoEstado) {
     if (selectedPacienteIds.size === 0) return;
     window.showLoading();
@@ -118,7 +115,6 @@ async function cambiarEstadoMasivo(nuevoEstado) {
     }
 }
 
-/* ---------- CARGA DE AÑOS / MESES ---------- */
 async function loadAniosYMeses() {
     window.showLoading();
     try {
@@ -163,7 +159,6 @@ async function loadAniosYMeses() {
     }
 }
 
-/* ---------- BOTONES DE MESES ---------- */
 async function renderMesesButtons(mesesSet) {
     const container = document.getElementById('mesesContainer');
     container.innerHTML = '';
@@ -202,7 +197,6 @@ async function renderMesesButtons(mesesSet) {
     await loadPacientes();
 }
 
-/* ---------- CARGA DE PACIENTES DEL MES ---------- */
 async function loadPacientes() {
     window.showLoading();
     try {
@@ -250,7 +244,6 @@ async function loadPacientes() {
     }
 }
 
-/* ---------- PAGINACIÓN + FILTROS ---------- */
 async function applyFiltersAndPaginateAsync() {
     return new Promise(resolve => applyFiltersAndPaginate(resolve));
 }
@@ -288,7 +281,6 @@ const debouncedLoad = debounce(() => {
     applyFiltersAndPaginate();
 }, 300);
 
-/* ---------- RENDERIZADO DE LA TABLA ---------- */
 function renderTable(callback = null) {
     const tbody = document.querySelector('#pacientesTable tbody');
     if (!tbody) {
@@ -362,7 +354,6 @@ function renderTable(callback = null) {
     }
 }
 
-/* ---------- REDIMENSIONAR COLUMNAS ---------- */
 function setupColumnResize() {
     const headers = document.querySelectorAll('.pacientes-table th');
     const initialWidths = [50, 90, 80, 100, 110, 70, 180, 150, 90, 120, 100, 80, 80];
@@ -413,7 +404,6 @@ function setupColumnResize() {
     });
 }
 
-/* ---------- MODAL CIRUGÍA (CORREGIDO) ---------- */
 let pacienteActualId = null;
 function abrirModalCirugia(id) {
     const paciente = allPacientesDelMes.find(p => p.id === id);
@@ -427,14 +417,13 @@ function abrirModalCirugia(id) {
             ${c.fecha ? `<small style="color:#666;">(${new Date(c.fecha).toLocaleDateString('es-CL')})</small>` : ''}
         </label>
     `).join('');
-    document.getElementById('cirugiaModal').classList.add('show'); // CORREGIDO
+    document.getElementById('cirugiaModal').classList.add('show');
 }
 function cerrarModalCirugia() {
-    document.getElementById('cirugiaModal').classList.remove('show'); // CORREGIDO
+    document.getElementById('cirugiaModal').classList.remove('show'); 
     pacienteActualId = null;
 }
 
-/* ---------- SELECT DE ESTADOS ÚNICOS DEL MES ---------- */
 function actualizarSelectEstados() {
     const select = document.getElementById('buscarEstado');
     if (!select || !allPacientesDelMes.length) {
@@ -456,9 +445,7 @@ function actualizarSelectEstados() {
     });
 }
 
-/* ---------- INICIALIZACIÓN ---------- */
 document.addEventListener('DOMContentLoaded', () => {
-    /* ---- FILTROS ---- */
     const inputs = [
         { id: 'buscarEstado', filter: 'estado' },
         { id: 'buscarPrevision', filter: 'prevision' },
@@ -478,7 +465,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    /* ---- CAMBIO DE AÑO ---- */
     document.getElementById('anioSelect')?.addEventListener('change', async e => {
         selectedYear = parseInt(e.target.value);
         selectedMonth = null;
@@ -503,27 +489,25 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    /* ---- MODAL CAMBIAR ESTADO (CORREGIDO) ---- */
     const modalEstado = document.getElementById('cambiarEstadoModal');
     document.getElementById('btnCambiarEstado')?.addEventListener('click', () => {
-        modalEstado.classList.add('show'); // CORREGIDO
+        modalEstado.classList.add('show'); 
     });
     modalEstado.addEventListener('click', e => {
-        if (e.target === modalEstado) modalEstado.classList.remove('show'); // CORREGIDO
+        if (e.target === modalEstado) modalEstado.classList.remove('show'); 
     });
     document.querySelector('#cambiarEstadoModal .close')?.addEventListener('click', () => {
-        modalEstado.classList.remove('show'); // CORREGIDO
+        modalEstado.classList.remove('show'); 
     });
     document.getElementById('cancelarEstado')?.addEventListener('click', () => {
-        modalEstado.classList.remove('show'); // CORREGIDO
+        modalEstado.classList.remove('show'); 
     });
     document.getElementById('guardarEstado')?.addEventListener('click', () => {
         const nuevoEstado = document.getElementById('nuevoEstadoSelect').value;
         cambiarEstadoMasivo(nuevoEstado);
-        modalEstado.classList.remove('show'); // CORREGIDO
+        modalEstado.classList.remove('show'); 
     });
 
-    /* ---- MODAL CIRUGÍA ---- */
     document.getElementById('cirugiaModal')?.addEventListener('click', e => {
         if (e.target === document.getElementById('cirugiaModal')) cerrarModalCirugia();
     });
