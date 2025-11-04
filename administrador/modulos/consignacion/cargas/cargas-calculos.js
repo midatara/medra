@@ -28,53 +28,101 @@ function calcularMargen(precio) {
 }
 
 /**
+ * Convierte porcentaje como string "30%" → 0.3
+ */
+function parsePorcentaje(porcentajeStr) {
+    if (!porcentajeStr) return 0;
+    const match = porcentajeStr.toString().match(/([\d.]+)%?/);
+    return match ? parseFloat(match[1]) / 100 : 0;
+}
+
+/**
+ * Calcula la venta según:
+ * - Atributo = Consignación → (precio + precio * margen) * cantidad
+ * - Atributo = Cotización → (precio + precio * 30%) * cantidad
+ *   → pero si previsión = ISL → 100% en vez de 30%
+ */
+function calcularVenta(carga) {
+    const { precio, cantidad, atributo, margen, prevision } = carga;
+
+    const p = Number(precio);
+    const c = Number(cantidad);
+    const attr = (atributo || "").toString().trim();
+    const prev = (prevision || "").toString().trim().toUpperCase();
+
+    if (isNaN(p) || isNaN(c) || p <= 0 || c <= 0) return null;
+
+    let precioConMargen = 0;
+
+    if (attr === "Consignación") {
+        const margenFactor = parsePorcentaje(margen);
+        precioConMargen = p + (p * margenFactor);
+    } else if (attr === "Cotización") {
+        const porcentaje = (prev === "ISL") ? 1.0 : 0.3; // 100% o 30%
+        precioConMargen = p + (p * porcentaje);
+    } else {
+        return null; // No aplica fórmula
+    }
+
+    return Math.round(precioConMargen * c * 100) / 100; // Redondear a 2 decimales
+}
+
+/**
  * Procesa una lista de cargas:
- * - Calcula margen si falta y hay precio
- * - Si el precio cambió y el margen no coincide, recalcula
+ * - Calcula margen si falta o cambió
+ * - Calcula venta si falta o cambió
  * - Guarda en Firestore solo si hay cambios
  */
 export async function procesarMargenes(cargas) {
     if (!cargas || cargas.length === 0 || !db) return cargas;
 
     const promesas = cargas.map(async (c) => {
+        let needsUpdate = false;
+        const updates = {};
+
         const precio = Number(c.precio);
         const margenActual = c.margen?.toString().trim();
         const margenCalculado = calcularMargen(precio);
 
-        // Si no hay precio, no hay margen
-        if (!precio || isNaN(precio)) {
-            if (margenActual && margenActual !== '') {
-                c.margen = '';
-                try {
-                    await updateDoc(doc(db, "cargas_consignaciones", c.id), { margen: '' });
-                } catch (err) {
-                    console.warn(`Error limpiando margen vacío en ${c.id}:`, err);
-                }
-            }
-            return c;
-        }
-
-        // Si margenCalculado es null (precio muy alto), limpiar si hay valor
+        // === 1. MARGEn ===
         if (!margenCalculado) {
             if (margenActual && margenActual !== '') {
+                updates.margen = '';
                 c.margen = '';
-                try {
-                    await updateDoc(doc(db, "cargas_consignaciones", c.id), { margen: '' });
-                } catch (err) {
-                    console.warn(`Error limpiando margen en ${c.id}:`, err);
-                }
+                needsUpdate = true;
             }
-            return c;
+        } else if (!margenActual || margenActual !== margenCalculado) {
+            updates.margen = margenCalculado;
+            c.margen = margenCalculado;
+            needsUpdate = true;
         }
 
-        // Si el margen está vacío o es diferente al calculado → actualizar
-        if (!margenActual || margenActual !== margenCalculado) {
-            c.margen = margenCalculado;
+        // === 2. VENTA ===
+        const ventaCalculada = calcularVenta(c);
+        const ventaActual = c.venta != null ? Number(c.venta) : null;
+
+        if (ventaCalculada !== null) {
+            if (ventaActual == null || Math.abs(ventaActual - ventaCalculada) > 0.01) {
+                updates.venta = ventaCalculada;
+                c.venta = ventaCalculada;
+                needsUpdate = true;
+            }
+        } else {
+            if (ventaActual != null) {
+                updates.venta = null;
+                c.venta = null;
+                needsUpdate = true;
+            }
+        }
+
+        // === 3. GUARDAR EN FIRESTORE ===
+        if (needsUpdate) {
             try {
-                await updateDoc(doc(db, "cargas_consignaciones", c.id), { margen: margenCalculado });
-                console.log(`Margen actualizado: ${c.id} → ${margenCalculado}`);
+                const cargaRef = doc(db, "cargas_consignaciones", c.id);
+                await updateDoc(cargaRef, updates);
+                console.log(`Actualizado carga ${c.id}:`, updates);
             } catch (err) {
-                console.warn(`Error actualizando margen en ${c.id}:`, err);
+                console.warn(`Error al actualizar carga ${c.id}:`, err);
             }
         }
 
