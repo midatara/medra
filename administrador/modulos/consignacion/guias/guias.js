@@ -847,87 +847,81 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     window.paquetizarGuia = async function (id, event) {
-    event.stopPropagation();
+        event.stopPropagation();
 
-    const packModal = document.getElementById('packModal');
-    const packModalTitle = document.getElementById('packModalTitle');
-    const packSubtitle = document.getElementById('packSubtitle');
-    const packHeaderTable = document.getElementById('packHeaderTable');
-    const packDetailsBody = document.getElementById('packDetailsBody');
-    const closePackModal = document.getElementById('closePackModal');
-    const closePackBtn = document.getElementById('closePackBtn');
+        const packModal = document.getElementById('packModal');
+        const packModalTitle = document.getElementById('packModalTitle');
+        const packSubtitle = document.getElementById('packSubtitle');
+        const packDetailsBody = document.getElementById('packDetailsBody');
+        const closePackModal = document.getElementById('closePackModal');
+        const closePackBtn = document.getElementById('closePackBtn');
 
-    if (!packModal || !db) {
-        showToast('Error: Modal o Firebase no disponible.', 'error');
-        return;
-    }
-
-    showLoading();
-    try {
-        const docSnap = await db.collection("guias_medtronic").doc(id).get();
-        hideLoading();
-
-        if (!docSnap.exists) {
-            showToast('Guía no encontrada.', 'error');
+        if (!packModal || !db) {
+            showToast('Error: Modal o Firebase no disponible.', 'error');
             return;
         }
 
-        const data = docSnap.data();
-        const doc = data.fullData.Documento;
-        const detalles = Array.isArray(doc.Detalle) ? doc.Detalle : [doc.Detalle];
-        const primerItem = detalles[0];
+        showLoading();
+        try {
+            const docSnap = await db.collection("guias_medtronic").doc(id).get();
+            hideLoading();
 
-        // Título: Folio + Folio Referencia
-        packModalTitle.textContent = `Folio: ${data.folio || 'N/A'} | Folio Referencia: ${data.folioRef || 'N/A'}`;
+            if (!docSnap.exists) {
+                showToast('Guía no encontrada.', 'error');
+                return;
+            }
 
-        // Subtítulo: Ítem 1 - Nombre del producto
-        packSubtitle.textContent = primerItem 
-            ? `Ítem 1 - ${primerItem.NmbItem || 'Sin nombre'}`
-            : 'Sin ítems';
+            const data = docSnap.data();
+            const doc = data.fullData.Documento;
+            const detalles = Array.isArray(doc.Detalle) ? doc.Detalle : [doc.Detalle];
+            const primerItem = detalles[0];
 
-        // Encabezado (tabla simple)
-        const encabezado = doc.Encabezado;
-        packHeaderTable.innerHTML = `
-            <tr><th>Emisor</th><td>${encabezado.Emisor?.RznSoc || ''}</td></tr>
-            <tr><th>Receptor</th><td>${encabezado.Receptor?.RznSocRecep || ''}</td></tr>
-            <tr><th>Fecha Emisión</th><td>${encabezado.IdDoc?.FchEmis || ''}</td></tr>
-            <tr><th>Monto Total</th><td>${encabezado.Totales?.MntTotal || ''}</td></tr>
-        `;
+            // Título: Folio + Folio Referencia
+            packModalTitle.textContent = `Folio: ${data.folio || 'N/A'} | Folio Referencia: ${data.folioRef || 'N/A'}`;
 
-        // Detalles desde ítem 2
-        packDetailsBody.innerHTML = '';
-        if (detalles.length > 1) {
-            detalles.slice(1).forEach((detalle, index) => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${detalle.CdgItem?.VlrCodigo || ''}</td>
-                    <td>${detalle.QtyItem || ''}</td>
-                    <td>${detalle.DscItem || detalle.NmbItem || ''}</td>
-                    <td>${detalle.FchVencim || ''}</td>
-                `;
-                packDetailsBody.appendChild(row);
-            });
-        } else {
-            packDetailsBody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#999;">No hay más ítems</td></tr>';
+            // Subtítulo: Ítem 1 - Nombre del producto
+            packSubtitle.textContent = primerItem 
+                ? `Ítem 1 - ${primerItem.NmbItem || 'Sin nombre'}`
+                : 'Sin ítems';
+
+            // === DETALLES DESDE ÍTEM 2 (sin encabezado) ===
+            packDetailsBody.innerHTML = '';
+            if (detalles.length > 1) {
+                detalles.slice(1).forEach((detalle, index) => {
+                    const qty = detalle.QtyItem;
+                    const qtyFormatted = qty ? Math.round(parseFloat(qty)) : '';
+
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${detalle.CdgItem?.VlrCodigo || ''}</td>
+                        <td>${qtyFormatted}</td>
+                        <td>${detalle.DscItem || detalle.NmbItem || ''}</td>
+                        <td>${detalle.FchVencim || ''}</td>
+                    `;
+                    packDetailsBody.appendChild(row);
+                });
+            } else {
+                packDetailsBody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#999;">No hay más ítems</td></tr>';
+            }
+
+            // Mostrar modal
+            packModal.style.display = 'block';
+
+        } catch (error) {
+            hideLoading();
+            showToast('Error al cargar datos: ' + error.message, 'error');
         }
 
-        // Mostrar modal
-        packModal.style.display = 'block';
-
-    } catch (error) {
-        hideLoading();
-        showToast('Error al cargar datos: ' + error.message, 'error');
-    }
-
-    // Cerrar modal
-    const closeModal = () => {
-        packModal.style.display = 'none';
+        // Cerrar modal
+        const closeModal = () => {
+            packModal.style.display = 'none';
+        };
+        closePackModal.onclick = closeModal;
+        closePackBtn.onclick = closeModal;
+        window.onclick = (e) => {
+            if (e.target === packModal) closeModal();
+        };
     };
-    closePackModal.onclick = closeModal;
-    closePackBtn.onclick = closeModal;
-    window.onclick = (e) => {
-        if (e.target === packModal) closeModal();
-    };
-};
+
 
 });
