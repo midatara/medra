@@ -876,15 +876,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const detalles = Array.isArray(doc.Detalle) ? doc.Detalle : [doc.Detalle];
             const primerItem = detalles[0];
 
-            // Título: Folio + Folio Referencia
             packModalTitle.textContent = `Folio: ${data.folio || 'N/A'} | Folio Referencia: ${data.folioRef || 'N/A'}`;
-
-            // Subtítulo: Ítem 1 - Nombre del producto
             packSubtitle.textContent = primerItem 
                 ? `Ítem 1 - ${primerItem.NmbItem || 'Sin nombre'}`
                 : 'Sin ítems';
 
-            // === DETALLES DESDE ÍTEM 2 (sin encabezado) ===
             packDetailsBody.innerHTML = '';
             if (detalles.length > 1) {
                 detalles.slice(1).forEach((detalle, index) => {
@@ -905,7 +901,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 packDetailsBody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#999;">No hay más ítems</td></tr>';
             }
 
-            // Mostrar modal
             packModal.style.display = 'block';
 
         } catch (error) {
@@ -913,7 +908,6 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast('Error al cargar datos: ' + error.message, 'error');
         }
 
-        // Cerrar modal
         const closeModal = () => {
             packModal.style.display = 'none';
         };
@@ -929,6 +923,5 @@ document.addEventListener('DOMContentLoaded', () => {
         const [year, month, day] = isoDate.split('-');
         return `${day}-${month}-${year}`;
     }
-
 
 });
