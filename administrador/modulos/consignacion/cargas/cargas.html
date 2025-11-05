@@ -135,90 +135,30 @@
         </div>
     </div>
 
-    <!-- Modal Editar -->
     <div id="editModal" class="modal">
         <div class="modal-content">
             <span class="close">×</span>
             <h3>Editar Carga</h3>
-            <form id="editForm" class="edit-form">
-                <input type="hidden" id="editId">
-                <div class="form-group">
-                    <label for="editReferencia">Referencia:</label>
-                    <input type="text" id="editReferencia">
-                </div>
-                <div class="form-group">
-                    <label for="editCodigo">Código:</label>
-                    <input type="text" id="editCodigo">
-                </div>
-                <div class="form-group">
-                    <label for="editCantidad">Cantidad:</label>
-                    <input type="number" id="editCantidad" min="0">
-                </div>
-                <div class="form-group">
-                    <label for="editPrevision">Previsión:</label>
-                    <input type="text" id="editPrevision">
-                </div>
-                <div class="form-group">
-                    <label for="editConvenio">Convenio:</label>
-                    <input type="text" id="editConvenio">
-                </div>
-                <div class="form-group">
-                    <label for="editAdmision">Admisión:</label>
-                    <input type="text" id="editAdmision">
-                </div>
-                <div class="form-group">
-                    <label for="editPaciente">Paciente:</label>
-                    <input type="text" id="editPaciente">
-                </div>
-                <div class="form-group">
-                    <label for="editMedico">Médico:</label>
-                    <input type="text" id="editMedico">
-                </div>
-                <div class="form-group">
-                    <label for="editFechaCX">Fecha CX:</label>
-                    <input type="date" id="editFechaCX">
-                </div>
-                <div class="form-group">
-                    <label for="editProveedor">Proveedor:</label>
-                    <input type="text" id="editProveedor">
-                </div>
-                <div class="form-group">
-                    <label for="editCodigoProducto">Código Producto:</label>
-                    <input type="text" id="editCodigoProducto">
-                </div>
-                <div class="form-group">
-                    <label for="editDescripcion">Descripción:</label>
-                    <input type="text" id="editDescripcion">
-                </div>
-                <div class="form-group">
-                    <label for="editCantidadProducto">Cantidad Producto:</label>
-                    <input type="number" id="editCantidadProducto" min="0">
-                </div>
-                <div class="form-group">
-                    <label for="editPrecio">Precio:</label>
-                    <input type="number" id="editPrecio" min="0" step="0.01">
-                </div>
-                <div class="form-group">
-                    <label for="editAtributo">Atributo:</label>
-                    <select id="editAtributo">
-                        <option value="CONSIGNACION">Consignación</option>
-                        <option value="COTIZACION">Cotización</option>
-                        <option value="">Otro</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="editVenta">Venta (calculada):</label>
-                    <input type="text" id="editVenta" readonly>
-                </div>
-                <div class="form-group">
-                    <label for="editMargen">Margen (calculado):</label>
-                    <input type="text" id="editMargen" readonly>
-                </div>
-                <div class="form-group">
-                    <label for="editTotalItem">Total Item (calculado):</label>
-                    <input type="text" id="editTotalItem" readonly>
-                </div>
-            </form>
+            <div class="edit-grid">
+                <div class="form-group"><label>Referencia</label><input id="editReferencia" type="text"></div>
+                <div class="form-group"><label>Código</label><input id="editCodigo" type="text"></div>
+                <div class="form-group"><label>Cantidad</label><input id="editCantidad" type="number" step="1"></div>
+                <div class="form-group"><label>Previsión</label><input id="editPrevision" type="text"></div>
+                <div class="form-group"><label>Convenio</label><input id="editConvenio" type="text"></div>
+                <div class="form-group"><label>Admisión</label><input id="editAdmision" type="text"></div>
+                <div class="form-group"><label>Paciente</label><input id="editPaciente" type="text"></div>
+                <div class="form-group"><label>Médico</label><input id="editMedico" type="text"></div>
+                <div class="form-group"><label>Fecha CX</label><input id="editFechaCX" type="date"></div>
+                <div class="form-group"><label>Proveedor</label><input id="editProveedor" type="text"></div>
+                <div class="form-group"><label>Código Producto</label><input id="editCodigoProducto" type="text"></div>
+                <div class="form-group full-width"><label>Descripción</label><input id="editDescripcion" type="text"></div>
+                <div class="form-group"><label>Cantidad Producto</label><input id="editCantidadProducto" type="number" step="1"></div>
+                <div class="form-group"><label>Precio</label><input id="editPrecio" type="number" step="0.01"></div>
+                <div class="form-group"><label>Atributo</label><input id="editAtributo" type="text"></div>
+                <div class="form-group"><label>Venta</label><input id="editVenta" type="text" disabled></div>
+                <div class="form-group"><label>Total Item</label><input id="editTotalItem" type="text" disabled></div>
+                <div class="form-group"><label>Margen</label><input id="editMargen" type="text" disabled></div>
+            </div>
             <div class="modal-footer">
                 <button id="cancelEdit" class="modal-btn modal-btn-secondary">Cancelar</button>
                 <button id="saveEdit" class="modal-btn modal-btn-primary">Guardar</button>
@@ -226,7 +166,6 @@
         </div>
     </div>
 
-    <!-- Modal Eliminar -->
     <div id="deleteModal" class="modal">
         <div class="modal-content">
             <span class="close">×</span>
