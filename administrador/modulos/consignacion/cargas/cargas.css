@@ -224,24 +224,28 @@ html, body {
     line-height: normal !important;
 }
 
+/* Mejoras de alineación: usar flex para centrar checkbox y botón historial */
 .checkbox-cell {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 4px;
-    height: 28px !important;
-    width: 100%;
+    gap: 6px;
+    height: 100%;
     padding: 0;
     margin: 0;
+    box-sizing: border-box;
 }
 
 .checkbox-cell input[type="checkbox"] {
-    width: 13px;
-    height: 13px;
+    width: 16px;
+    height: 16px;
     margin: 0;
     cursor: pointer;
     accent-color: #007bff;
-    transform: translateY(0);
+    transform: none;
+    display: block;
+    box-sizing: border-box;
+    line-height: 1;
 }
 
 .checkbox-cell .cargar-btn-history {
@@ -253,12 +257,13 @@ html, body {
     border: none;
     border-radius: 3px;
     cursor: pointer;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     padding: 0;
     margin: 0;
     transition: background 0.2s;
+    box-sizing: border-box;
 }
 
 .checkbox-cell .cargar-btn-history:hover {
@@ -278,11 +283,11 @@ html, body {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 2px;
-    height: 28px !important;
-    width: 100%;
+    gap: 6px;
+    height: 100%;
     padding: 0;
     margin: 0;
+    box-sizing: border-box;
 }
 
 .btn-edit,
@@ -292,13 +297,15 @@ html, body {
     border: none;
     border-radius: 3px;
     cursor: pointer;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     font-size: 10px;
     transition: all 0.2s;
     margin: 0;
     padding: 0;
+    line-height: 1;
+    box-sizing: border-box;
 }
 
 .btn-edit {
@@ -325,10 +332,14 @@ html, body {
 }
 
 #selectAll {
-    width: 13px;
-    height: 13px;
+    width: 16px;
+    height: 16px;
     cursor: pointer;
     accent-color: #007bff;
+    margin: 0;
+    padding: 0;
+    display: block;
+    box-sizing: border-box;
 }
 
 /* === BOTÓN CAMBIAR ESTADO === */
@@ -670,22 +681,38 @@ html, body {
     color: #555;
 }
 
-/* Corrige alineación vertical de celdas */
-.table td, 
-.table th {
+/* ===== Ajustes adicionales para asegurar alineación perfecta en primera/última columna ===== */
+
+/* Aplica vertical-align por defecto (por si reglas externas lo sobreescriben) */
+.cargar-table th,
+.cargar-table td {
     vertical-align: middle !important;
 }
 
-/* Centra los checkboxes y botones dentro de sus columnas */
-.table td:first-child,
-.table td:last-child {
-    text-align: center;
+/* Centra horizontalmente la primera y última columna */
+.cargar-table th:first-child,
+.cargar-table td:first-child,
+.cargar-table th:last-child,
+.cargar-table td:last-child {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    box-sizing: border-box;
+    vertical-align: middle;
 }
 
-/* Asegura que los íconos y botones estén alineados correctamente */
-.table td .btn,
-.table td input[type="checkbox"] {
-    vertical-align: middle;
-    margin: 0 auto;
-    display: inline-block;
+/* Asegura que iconos y inputs dentro de celdas mantengan alineación */
+.cargar-table td input[type="checkbox"],
+.cargar-table th input[type="checkbox"],
+.cargar-table td .btn-edit,
+.cargar-table td .btn-delete,
+.cargar-table td .cargar-btn-history {
+    margin: 0;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    box-sizing: border-box;
 }
