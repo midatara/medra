@@ -862,7 +862,6 @@ html, body {
     background-color: #c82333;
 }
 
-/* Contenedor flex para input + status */
 .doc-delivery-wrapper {
     display: flex;
     align-items: center;
@@ -870,10 +869,9 @@ html, body {
     width: 100%;
 }
 
-/* Input ocupa todo el espacio disponible */
 .doc-delivery-input {
     flex: 1;
-    min-width: 0; /* Permite que flex funcione bien */
+    min-width: 0;
     padding: 8px 12px;
     border: 1px solid #ccc;
     border-radius: 4px;
@@ -881,7 +879,6 @@ html, body {
     box-sizing: border-box;
 }
 
-/* Status: al lado derecho, con ancho fijo opcional */
 .doc-delivery-status {
     font-weight: bold;
     white-space: nowrap;
