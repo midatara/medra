@@ -897,7 +897,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <td>${codigoLimpio}</td>
                         <td>${qtyFormatted}</td>
                         <td>${detalle.DscItem || detalle.NmbItem || ''}</td>
-                        <td>${detalle.FchVencim || ''}</td>
+                        <td>${formatDate(detalle.FchVencim)}</td>
                     `;
                     packDetailsBody.appendChild(row);
                 });
@@ -923,6 +923,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (e.target === packModal) closeModal();
         };
     };
+
+    function formatDate(isoDate) {
+        if (!isoDate) return '';
+        const [year, month, day] = isoDate.split('-');
+        return `${day}-${month}-${year}`;
+    }
 
 
 });
