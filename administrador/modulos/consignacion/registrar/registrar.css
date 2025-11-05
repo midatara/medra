@@ -113,7 +113,7 @@ html, body {
 }
 
 #admision, #paciente, #medico, #fechaCX, #codigo, #descripcion, #cantidad,
-#referencia, #proveedor, #precioUnitario, #atributo, #totalItems,
+#referencia, #proveedor, #precioUnitario, #atributo, #totalItems, #docDelivery,
 #buscarAdmision, #buscarPaciente, #buscarDescripcion, #buscarProveedor, #buscarMedico,
 #fechaDia, #fechaDesde, #fechaHasta, #mesSelect, #anioSelect,
 #editAdmision, #editPaciente, #editMedico, #editFechaCX, #editCodigo, #editDescripcion, #editCantidad,
