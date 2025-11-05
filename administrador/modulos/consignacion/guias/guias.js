@@ -1,5 +1,3 @@
-// No explicit imports needed since Firebase scripts are loaded in HTML and attach to global firebase object
-
 const firebaseConfig = {
     apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
     authDomain: "datara-salud.firebaseapp.com",
@@ -10,7 +8,6 @@ const firebaseConfig = {
     measurementId: "G-MLYVTZPPLD"
 };
 
-// Initialize Firebase
 let app;
 try {
     app = firebase.initializeApp(firebaseConfig);
@@ -70,10 +67,9 @@ async function parseXML(xmlString) {
         fchEmis: getText(idDoc, "FchEmis"),
         rznSoc: getText(emisor, "RznSoc"),
         folioRef: getText(referencias[0], "FolioRef"),
-        fullData: {} // Para almacenar todos los datos parseados
+        fullData: {} 
     };
 
-    // Parsear todos los datos en un objeto JSON
     const extractAll = (node) => {
         const obj = {};
         for (let child of node.children) {
@@ -86,7 +82,6 @@ async function parseXML(xmlString) {
         return obj;
     };
 
-    // Extraer detalles y referencias como arrays
     const extractArray = (nodes, tagName) => {
         const arr = [];
         nodes.forEach(node => {
@@ -120,16 +115,14 @@ function setupColumnResize() {
     }
     const headers = document.querySelectorAll('.guias-table th');
 
-    // Anchos iniciales en píxeles (deben coincidir con el CSS)
     const initialWidths = [
-        150, // Acciones
-        300, // Empresa
-        100, // Folio
-        120, // Fecha Emisión
-        120  // Folio Referencia
+        150, 
+        300, 
+        100, 
+        120, 
+        120  
     ];
 
-    // Inicializar anchos de todas las columnas para que sean fijos
     headers.forEach((header, index) => {
         header.style.width = `${initialWidths[index]}px`;
         header.style.minWidth = `${initialWidths[index]}px`;
@@ -167,10 +160,8 @@ function setupColumnResize() {
             const clientX = e.pageX || (e.touches && e.touches[0].pageX);
             if (!clientX) return;
 
-            // Calcular nuevo ancho con límites (20px min, 2000px max)
             const newWidth = Math.max(20, Math.min(2000, startWidth + (clientX - startX)));
 
-            // Actualizar SOLO esta columna (header y celdas)
             header.style.width = `${newWidth}px`;
             header.style.minWidth = `${newWidth}px`;
             header.style.maxWidth = `${newWidth}px`;
@@ -238,7 +229,6 @@ function formatGuideContent(data, folio, folioRef) {
     const doc = data.Documento;
     let html = '';
 
-    // Encabezado
     html += '<div class="guias-guide-section">';
     html += '<h3>Encabezado</h3>';
     html += '<table class="guias-modal-table">';
@@ -264,8 +254,6 @@ function formatGuideContent(data, folio, folioRef) {
     html += '</tr>';
     html += '</table>';
     html += '</div>';
-
-    // Referencias
     html += '<div class="guias-guide-section">';
     html += '<h3>Referencias</h3>';
     html += '<table class="guias-modal-table">';
@@ -288,8 +276,6 @@ function formatGuideContent(data, folio, folioRef) {
     html += '</tbody>';
     html += '</table>';
     html += '</div>';
-
-    // Detalles
     html += '<div class="guias-guide-section">';
     html += '<h3>Detalles</h3>';
     html += '<table class="guias-modal-table">';
@@ -320,8 +306,6 @@ function formatGuideContent(data, folio, folioRef) {
     html += '</tbody>';
     html += '</table>';
     html += '</div>';
-
-    // Totales
     html += '<div class="guias-guide-section">';
     html += '<h3>Totales</h3>';
     html += '<table class="guias-modal-table">';
@@ -337,8 +321,6 @@ function formatGuideContent(data, folio, folioRef) {
     html += '</tr>';
     html += '</table>';
     html += '</div>';
-
-    // Emisor
     html += '<div class="guias-guide-section">';
     html += '<h3>Emisor</h3>';
     html += '<table class="guias-modal-table">';
@@ -364,8 +346,6 @@ function formatGuideContent(data, folio, folioRef) {
     html += '</tr>';
     html += '</table>';
     html += '</div>';
-
-    // Receptor
     html += '<div class="guias-guide-section">';
     html += '<h3>Receptor</h3>';
     html += '<table class="guias-modal-table">';
@@ -400,8 +380,6 @@ function formatGuideContent(data, folio, folioRef) {
     html += '</tr>';
     html += '</table>';
     html += '</div>';
-
-    // Transporte
     html += '<div class="guias-guide-section">';
     html += '<h3>Transporte</h3>';
     html += '<table class="guias-modal-table">';

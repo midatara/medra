@@ -211,7 +211,6 @@ html, body {
     background-color: #f8f9fa;
 }
 
-/* Anchos iniciales de las columnas - fijos e independientes */
 .guias-table th:nth-child(1), .guias-table td:nth-child(1) { width: 150px; min-width: 150px; max-width: 150px; }
 .guias-table th:nth-child(2), .guias-table td:nth-child(2) { width: 300px; min-width: 300px; max-width: 300px; }
 .guias-table th:nth-child(3), .guias-table td:nth-child(3) { width: 100px; min-width: 100px; max-width: 100px; }
