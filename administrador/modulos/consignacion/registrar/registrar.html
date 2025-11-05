@@ -123,6 +123,12 @@
                     <label class="registrar-label" for="totalItems">Total Items:</label>
                     <input type="text" id="totalItems" disabled>
                 </div>
+
+                <!-- NUEVO CAMPO: DOC. DELIVERY -->
+                <div class="registrar-form-group">
+                    <label class="registrar-label" for="docDelivery">Doc. Delivery:</label>
+                    <input type="text" id="docDelivery" disabled>
+                </div>
             </div>
             <div class="registrar-search-row">
                 <div class="registrar-form-group">
@@ -195,7 +201,8 @@
                         <th>Precio Unitario<div class="resize-handle"></div></th>
                         <th>Atributo<div class="resize-handle"></div></th>
                         <th>Total Items<div class="resize-handle"></div></th>
-                        <th>Usuario></div></th>
+                        <th>Doc. Delivery<div class="resize-handle"></div></th> <!-- NUEVA COLUMNA -->
+                        <th>Usuario<div class="resize-handle"></div></th>
                         <th>Acciones<div class="resize-handle"></div></th>
                     </tr>
                 </thead>
@@ -215,6 +222,8 @@
             <span class="loading-text">Cargando...</span>
         </div>
     </div>
+
+    <!-- MODAL DE EDICIÓN -->
     <div id="editModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -286,6 +295,13 @@
                     <label for="editTotalItems">Total Items:</label>
                     <input type="text" id="editTotalItems" disabled>
                 </div>
+
+                <!-- NUEVO CAMPO EN MODAL DE EDICIÓN -->
+                <div class="modal-form-group">
+                    <label for="editDocDelivery">Doc. Delivery:</label>
+                    <input type="text" id="editDocDelivery" disabled>
+                </div>
+
                 <div class="modal-buttons">
                     <button class="modal-btn modal-btn-primary" id="saveEditBtn">Guardar</button>
                     <button class="modal-btn modal-btn-secondary" id="cancelEditBtn">Cancelar</button>
@@ -293,6 +309,8 @@
             </div>
         </div>
     </div>
+
+    <!-- MODALES DE ELIMINAR E HISTORIAL (sin cambios) -->
     <div id="deleteModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -319,12 +337,12 @@
         </div>
     </div>
     <div class="registrar-toast-container" id="toastContainer"></div>
-    <script type="module" src="registrar.js"></script>
-<script type="module">
-    import { initTraspasar } from './traspasar.js';
-    window.initTraspasar = initTraspasar;
-    initTraspasar(); 
-</script>
 
+    <script type="module" src="registrar.js"></script>
+    <script type="module">
+        import { initTraspasar } from './traspasar.js';
+        window.initTraspasar = initTraspasar;
+        initTraspasar(); 
+    </script>
 </body>
 </html>
