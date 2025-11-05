@@ -124,35 +124,23 @@ html, body {
     table-layout: fixed;
     border-collapse: collapse;
     font-size: 11px;
-    width: auto;
+    width: 100%;
     box-sizing: border-box;
 }
 
-/* === TODAS LAS CELDAS: MISMA ALTURA Y ESTRUCTURA === */
+/* === TODAS LAS CELDAS: ALTURA Y ALINEACIÓN PERFECTA === */
 .cargar-table th,
 .cargar-table td {
-    padding: 0 !important;
+    padding: 0 4px;
     border: 1px solid #ddd;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     box-sizing: border-box;
-    height: 28px !important;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    font-family: inherit;
-}
-
-/* === CELDAS CON TEXTO DERECHA === */
-.cargar-table td:nth-child(7),
-.cargar-table td:nth-child(18),
-.cargar-table td:nth-child(19),
-.cargar-table td:nth-child(21),
-.cargar-table td:nth-child(22) {
-    justify-content: flex-end;
-    padding-right: 8px !important;
-    font-family: monospace;
+    height: 28px;
+    line-height: 28px;
+    vertical-align: middle;
+    text-align: left;
 }
 
 /* === ENCABEZADOS === */
@@ -164,8 +152,6 @@ html, body {
     z-index: 10;
     cursor: default;
     user-select: none;
-    padding-left: 4px !important;
-    padding-right: 4px !important;
 }
 
 .cargar-table th .resize-handle {
@@ -182,7 +168,6 @@ html, body {
 .cargar-table th .resize-handle:hover,
 .cargar-table th .resize-handle.active {
     background: #007bff;
-    width: 5px;
 }
 
 /* === HOVER EN FILAS === */
@@ -191,7 +176,7 @@ html, body {
 }
 
 .cargar-table tbody tr {
-    height: 28px !important;
+    height: 28px;
 }
 
 /* === ANCHOS DE COLUMNAS === */
@@ -219,12 +204,21 @@ html, body {
 .cargar-table th:nth-child(22), .cargar-table td:nth-child(22) { width: 80px; min-width: 80px; max-width: 160px; }
 .cargar-table th:nth-child(23), .cargar-table td:nth-child(23) { width: 80px; min-width: 80px; max-width: 160px; }
 
-/* === COLUMNA 1: CHECKBOX + HISTORIAL === */
-.cargar-table td:nth-child(1),
-.cargar-table th:nth-child(1) {
-    justify-content: center;
-    gap: 4px;
-    padding: 0 !important;
+/* === NÚMEROS A LA DERECHA === */
+.cargar-table td:nth-child(7),
+.cargar-table td:nth-child(18),
+.cargar-table td:nth-child(19),
+.cargar-table td:nth-child(21),
+.cargar-table td:nth-child(22) {
+    text-align: right;
+    padding-right: 8px;
+    font-family: monospace;
+}
+
+/* === COLUMNA 1: CHECK + HISTORIAL === */
+.cargar-table td:nth-child(1) {
+    text-align: center;
+    padding: 0;
 }
 
 .checkbox-cell {
@@ -232,9 +226,8 @@ html, body {
     align-items: center;
     justify-content: center;
     gap: 4px;
-    width: 100%;
     height: 100%;
-    padding: 0 !important;
+    width: 100%;
 }
 
 .checkbox-cell input[type="checkbox"] {
@@ -265,12 +258,10 @@ html, body {
     background-color: #138496;
 }
 
-/* === COLUMNA 23: ACCIONES === */
-.cargar-table td:nth-child(23),
-.cargar-table th:nth-child(23) {
-    justify-content: center;
-    gap: 2px;
-    padding: 0 !important;
+/* === COLUMNA 23: EDITAR + ELIMINAR === */
+.cargar-table td:nth-child(23) {
+    text-align: center;
+    padding: 0;
 }
 
 .actions-cell {
@@ -278,9 +269,8 @@ html, body {
     align-items: center;
     justify-content: center;
     gap: 2px;
-    width: 100%;
     height: 100%;
-    padding: 0 !important;
+    width: 100%;
 }
 
 .btn-edit,
@@ -315,7 +305,7 @@ html, body {
     background-color: #c82333;
 }
 
-/* === ESTADO SELECCIONADO === */
+/* === FILA SELECCIONADA === */
 .row-selected {
     background-color: #e3f2fd !important;
 }
@@ -327,7 +317,7 @@ html, body {
     accent-color: #007bff;
 }
 
-/* === BOTONES Y MODALES (sin cambios) === */
+/* === BOTÓN CAMBIAR ESTADO === */
 .btn-cambiar-estado {
     padding: 6px 14px;
     font-size: 13px;
@@ -358,6 +348,7 @@ html, body {
     margin-left: 0 !important;
 }
 
+/* === MODALES === */
 .modal {
     position: fixed;
     top: 0;
@@ -463,7 +454,7 @@ html, body {
     margin-top: 20px;
 }
 
-#cancelarEstado {
+#cancelarEstado, #cancelEdit, #cancelDelete {
     padding: 8px 16px;
     font-size: 13px;
     font-weight: bold;
@@ -475,15 +466,14 @@ html, body {
     transition: all 0.2s ease;
 }
 
-#cancelarEstado:hover {
+#cancelarEstado:hover, #cancelEdit:hover, #cancelDelete:hover {
     background-color: #5a6268;
 }
 
-#guardarEstado {
+#guardarEstado, #saveEdit, #confirmDelete {
     padding: 8px 16px;
     font-size: 13px;
     font-weight: bold;
-    background-color: #28a745;
     color: white;
     border: none;
     border-radius: 6px;
@@ -491,8 +481,20 @@ html, body {
     transition: all 0.2s ease;
 }
 
-#guardarEstado:hover {
+#guardarEstado, #saveEdit {
+    background-color: #28a745;
+}
+
+#guardarEstado:hover, #saveEdit:hover {
     background-color: #218838;
+}
+
+#confirmDelete {
+    background-color: #dc3545;
+}
+
+#confirmDelete:hover {
+    background-color: #c82333;
 }
 
 .cargar-pagination {
@@ -668,36 +670,4 @@ html, body {
     margin: 16px 0;
     font-size: 14px;
     color: #555;
-}
-
-#cancelDelete {
-    padding: 8px 16px;
-    font-size: 13px;
-    font-weight: bold;
-    background-color: #6c757d;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-#cancelDelete:hover {
-    background-color: #5a6268;
-}
-
-#confirmDelete {
-    padding: 8px 16px;
-    font-size: 13px;
-    font-weight: bold;
-    background-color: #dc3545;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-#confirmDelete:hover {
-    background-color: #c82333;
 }
