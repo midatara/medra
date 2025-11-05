@@ -128,29 +128,34 @@ html, body {
     box-sizing: border-box;
 }
 
+/* === TODAS LAS CELDAS: MISMA ALTURA Y ESTRUCTURA === */
 .cargar-table th,
 .cargar-table td {
-    padding: 4px !important; /* Forzamos padding uniforme */
-    text-align: left;
+    padding: 0 !important;
     border: 1px solid #ddd;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     box-sizing: border-box;
-    height: 28px !important; /* Altura fija para TODAS las celdas */
-    line-height: 1.2;
+    height: 28px !important;
     display: flex;
     align-items: center;
     justify-content: flex-start;
+    font-family: inherit;
 }
 
-.cargar-table td:nth-child(1),
-.cargar-table th:nth-child(1) {
-    justify-content: center;
-    gap: 4px;
-    padding: 0 !important;
+/* === CELDAS CON TEXTO DERECHA === */
+.cargar-table td:nth-child(7),
+.cargar-table td:nth-child(18),
+.cargar-table td:nth-child(19),
+.cargar-table td:nth-child(21),
+.cargar-table td:nth-child(22) {
+    justify-content: flex-end;
+    padding-right: 8px !important;
+    font-family: monospace;
 }
 
+/* === ENCABEZADOS === */
 .cargar-table th {
     background-color: #f2f2f2;
     font-size: 11px;
@@ -159,6 +164,8 @@ html, body {
     z-index: 10;
     cursor: default;
     user-select: none;
+    padding-left: 4px !important;
+    padding-right: 4px !important;
 }
 
 .cargar-table th .resize-handle {
@@ -178,10 +185,16 @@ html, body {
     width: 5px;
 }
 
+/* === HOVER EN FILAS === */
 .cargar-table tbody tr:hover {
     background-color: #f8f9fa;
 }
 
+.cargar-table tbody tr {
+    height: 28px !important;
+}
+
+/* === ANCHOS DE COLUMNAS === */
 .cargar-table th:nth-child(1), .cargar-table td:nth-child(1) { width: 60px; min-width: 60px; max-width: 120px; }
 .cargar-table th:nth-child(2), .cargar-table td:nth-child(2) { width: 80px; min-width: 80px; max-width: 160px; }
 .cargar-table th:nth-child(3), .cargar-table td:nth-child(3) { width: 90px; min-width: 90px; max-width: 180px; }
@@ -206,14 +219,12 @@ html, body {
 .cargar-table th:nth-child(22), .cargar-table td:nth-child(22) { width: 80px; min-width: 80px; max-width: 160px; }
 .cargar-table th:nth-child(23), .cargar-table td:nth-child(23) { width: 80px; min-width: 80px; max-width: 160px; }
 
-.cargar-table td:nth-child(7),
-.cargar-table td:nth-child(18),
-.cargar-table td:nth-child(19),
-.cargar-table td:nth-child(21),
-.cargar-table td:nth-child(22) {
-    text-align: right;
-    padding-right: 8px;
-    font-family: monospace;
+/* === COLUMNA 1: CHECKBOX + HISTORIAL === */
+.cargar-table td:nth-child(1),
+.cargar-table th:nth-child(1) {
+    justify-content: center;
+    gap: 4px;
+    padding: 0 !important;
 }
 
 .checkbox-cell {
@@ -254,6 +265,7 @@ html, body {
     background-color: #138496;
 }
 
+/* === COLUMNA 23: ACCIONES === */
 .cargar-table td:nth-child(23),
 .cargar-table th:nth-child(23) {
     justify-content: center;
@@ -261,6 +273,49 @@ html, body {
     padding: 0 !important;
 }
 
+.actions-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    width: 100%;
+    height: 100%;
+    padding: 0 !important;
+}
+
+.btn-edit,
+.btn-delete {
+    width: 18px;
+    height: 18px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    transition: all 0.2s;
+}
+
+.btn-edit {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.btn-edit:hover {
+    background-color: #e0a800;
+}
+
+.btn-delete {
+    background-color: #dc3545;
+    color: white;
+}
+
+.btn-delete:hover {
+    background-color: #c82333;
+}
+
+/* === ESTADO SELECCIONADO === */
 .row-selected {
     background-color: #e3f2fd !important;
 }
@@ -272,6 +327,7 @@ html, body {
     accent-color: #007bff;
 }
 
+/* === BOTONES Y MODALES (sin cambios) === */
 .btn-cambiar-estado {
     padding: 6px 14px;
     font-size: 13px;
@@ -554,69 +610,6 @@ html, body {
 @media screen and (max-width: 768px) {
     .cargar-main-container { padding: 5px 10px 10px 10px; }
     .cargar-form-group { min-width: 100%; }
-}
-
-.modal.show {
-    opacity: 1;
-    visibility: visible;
-}
-
-.modal.show .modal-content {
-    transform: scale(1);
-}
-
-.actions-cell {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 2px;
-    width: 100%;
-    height: 100%;
-    padding: 0 !important;
-}
-
-.btn-edit,
-.btn-delete {
-    width: 18px;
-    height: 18px;
-    border: none;
-    border-radius: 3px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 10px;
-    transition: all 0.2s;
-}
-
-.btn-edit {
-    background-color: #ffc107;
-    color: #212529;
-}
-
-.btn-edit:hover {
-    background-color: #e0a800;
-}
-
-.btn-delete {
-    background-color: #dc3545;
-    color: white;
-}
-
-.btn-delete:hover {
-    background-color: #c82333;
-}
-
-.cargar-table tbody tr {
-    height: 28px !important;
-}
-
-.cargar-table tbody tr:hover {
-    background-color: #f8f9fa;
-}
-
-.row-selected {
-    background-color: #e3f2fd !important;
 }
 
 #editModal .modal-content {
