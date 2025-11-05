@@ -64,6 +64,10 @@ html, body {
     min-width: 120px;
 }
 
+.registrar-search-row .registrar-form-group {
+    max-width: 140px;
+}
+
 .registrar-form-group.button-group {
     flex: 0;
     min-width: auto;
@@ -221,8 +225,8 @@ html, body {
 }
 
 .registrar-date-search {
-    min-width: 400px;
-    max-width: 500px;
+    min-width: 300px;
+    max-width: 380px;
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -261,13 +265,13 @@ html, body {
 }
 
 #mesSelect {
-    width: 90px;
-    min-width: 90px;
+    width: 80px;
+    min-width: 80px;
 }
 
 #anioSelect {
-    width: 70px;
-    min-width: 70px;
+    width: 65px;
+    min-width: 65px;
 }
 
 .registrar-actions-menu {
@@ -782,7 +786,7 @@ html, body {
     }
     .registrar-date-search {
         min-width: 300px;
-        max-width: 400px;
+        max-width: 380px;
     }
     .registrar-form-group, .registrar-form-type {
         max-width: 100%;
