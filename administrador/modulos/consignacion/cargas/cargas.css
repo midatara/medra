@@ -128,7 +128,7 @@ html, body {
     box-sizing: border-box;
 }
 
-/* === TODAS LAS CELDAS: ALTURA Y ALINEACIÓN PERFECTA === */
+/* === CELDAS GENERALES === */
 .cargar-table th,
 .cargar-table td {
     padding: 0 4px;
@@ -215,7 +215,7 @@ html, body {
     font-family: monospace;
 }
 
-/* === COLUMNA 1: CHECK + HISTORIAL === */
+/* === COLUMNA 1: CHECKBOX + HISTORIAL === */
 .cargar-table td:nth-child(1) {
     text-align: center;
     padding: 0;
@@ -258,7 +258,7 @@ html, body {
     background-color: #138496;
 }
 
-/* === COLUMNA 23: EDITAR + ELIMINAR === */
+/* === COLUMNA 23: ACCIONES === */
 .cargar-table td:nth-child(23) {
     text-align: center;
     padding: 0;
@@ -497,6 +497,7 @@ html, body {
     background-color: #c82333;
 }
 
+/* === PAGINACIÓN Y TOAST === */
 .cargar-pagination {
     display: flex;
     justify-content: space-between;
@@ -507,26 +508,6 @@ html, body {
     position: sticky;
     bottom: 0;
     z-index: 10;
-}
-
-#cargar-message {
-    margin-bottom: 10px;
-    padding: 8px;
-    border-radius: 4px;
-    display: none;
-    font-size: 11px;
-}
-
-.cargar-message-error {
-    background-color: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
-}
-
-.cargar-message-success {
-    background-color: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
 }
 
 .cargar-toast-container {
@@ -563,6 +544,7 @@ html, body {
 .cargar-toast.success { background-color: #28a745; }
 .cargar-toast.error { background-color: #dc3545; }
 
+/* === LOADING === */
 .loading-modal {
     display: none;
     position: fixed;
@@ -604,6 +586,7 @@ html, body {
     100% { transform: rotate(360deg); }
 }
 
+/* === RESPONSIVE === */
 @media screen and (max-width: 1200px) {
     .cargar-search-row { flex-wrap: wrap; }
     .cargar-form-group { max-width: 100%; min-width: 200px; }
@@ -614,6 +597,7 @@ html, body {
     .cargar-form-group { min-width: 100%; }
 }
 
+/* === MODAL EDITAR === */
 #editModal .modal-content {
     max-width: 900px;
     width: 95%;
