@@ -188,7 +188,7 @@ html, body {
 .cargar-table th:nth-child(6), .cargar-table td:nth-child(6) { width: 90px; min-width: 90px; max-width: 180px; }
 .cargar-table th:nth-child(7), .cargar-table td:nth-child(7) { width: 70px; min-width: 70px; max-width: 140px; }
 .cargar-table th:nth-child(8), .cargar-table td:nth-child(8) { width: 80px; min-width: 80px; max-width: 160px; }
-.cargar-table th:nth-child(9), .cargar-table td:nth-child(9) { width: 90px; min-width: 90px; max-width: 180px; }
+.cargar-table th:nth-child(9), .cargar-table td:nth-child(9) { width: 90px; min-width: 90px; max-width: 380px; }
 .cargar-table th:nth-child(10), .cargar-table td:nth-child(10) { width: 110px; min-width: 110px; max-width: 220px; }
 .cargar-table th:nth-child(11), .cargar-table td:nth-child(11) { width: 80px; min-width: 80px; max-width: 160px; }
 .cargar-table th:nth-child(12), .cargar-table td:nth-child(12) { width: 150px; min-width: 150px; max-width: 300px; }
