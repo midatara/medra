@@ -20,7 +20,6 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 setPersistence(auth, browserSessionPersistence);
 
-// Inicializar módulos
 import('./cargas-reportes.js').then(module => {
     module.initReportesDb(db);
 });
@@ -88,18 +87,12 @@ function showToast(text, type = 'success') {
     }, 4000);
 }
 
-/* -------------------------------------------------
-   Botón “Cambiar Estado” (visibilidad)
-------------------------------------------------- */
 function updateCambiarEstadoButton() {
     const container = document.getElementById('cambiarEstadoContainer');
     if (!container) return;
     container.style.display = selectedCargaIds.size > 0 ? 'block' : 'none';
 }
 
-/* -------------------------------------------------
-   Cambio masivo de estado + lógica de fechaCarga
-------------------------------------------------- */
 async function cambiarEstadoMasivo(nuevoEstado) {
     if (selectedCargaIds.size === 0) return;
     window.showLoading();
@@ -143,9 +136,6 @@ async function cambiarEstadoMasivo(nuevoEstado) {
     }
 }
 
-/* -------------------------------------------------
-   Carga de años / meses
-------------------------------------------------- */
 async function loadAniosYMeses() {
     window.showLoading();
     try {
@@ -228,9 +218,6 @@ async function renderMesesButtons(mesesSet) {
     await loadCargas();
 }
 
-/* -------------------------------------------------
-   Carga de datos del mes seleccionado
-------------------------------------------------- */
 async function loadCargas() {
     window.showLoading();
     try {
@@ -259,7 +246,6 @@ async function loadCargas() {
             };
         });
 
-        // 1. Completar datos de reportes
         let cargasProcesadas = cargasBase;
         try {
             const { completarDatosCargas } = await import('./cargas-reportes.js');
@@ -268,7 +254,6 @@ async function loadCargas() {
             console.error('Error al completar datos de reportes:', err);
         }
 
-        // 2. Calcular márgenes y ventas
         try {
             const { procesarMargenes } = await import('./cargas-calculos.js');
             allCargasDelMes = await procesarMargenes(cargasProcesadas);
@@ -290,9 +275,6 @@ async function loadCargas() {
     }
 }
 
-/* -------------------------------------------------
-   Filtros + paginación
-------------------------------------------------- */
 async function applyFiltersAndPaginateAsync() {
     return new Promise(resolve => applyFiltersAndPaginate(resolve));
 }
@@ -328,9 +310,6 @@ const debouncedLoad = debounce(() => {
     applyFiltersAndPaginate();
 }, 300);
 
-/* -------------------------------------------------
-   Renderizado de la tabla
-------------------------------------------------- */
 function renderTable(callback = null) {
     const tbody = document.querySelector('#cargarTable tbody');
     if (!tbody) {
@@ -408,9 +387,6 @@ function renderTable(callback = null) {
     }
 }
 
-/* -------------------------------------------------
-   Redimensionado de columnas
-------------------------------------------------- */
 function setupColumnResize() {
     const headers = document.querySelectorAll('.cargar-table th');
     const initialWidths = [60, 80, 90, 100, 60, 90, 70, 80, 90, 110, 80, 150, 140, 90, 120, 90, 200, 70, 80, 80, 90, 80];
@@ -461,9 +437,6 @@ function setupColumnResize() {
     });
 }
 
-/* -------------------------------------------------
-   Select de estados (carga dinámica)
-------------------------------------------------- */
 function actualizarSelectEstados() {
     const select = document.getElementById('buscarEstado');
     if (!select || !allCargasDelMes.length) {
@@ -485,9 +458,6 @@ function actualizarSelectEstados() {
     });
 }
 
-/* -------------------------------------------------
-   Eventos DOM
-------------------------------------------------- */
 document.addEventListener('DOMContentLoaded', () => {
     const inputs = [
         { id: 'buscarEstado', filter: 'estado', event: 'change' },

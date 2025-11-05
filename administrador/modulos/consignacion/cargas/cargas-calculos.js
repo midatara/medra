@@ -1,4 +1,3 @@
-// cargas-calculos.js
 import { doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
 
 let db = null;
