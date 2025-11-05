@@ -3,7 +3,7 @@ import {
     getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence
 } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
 import {
-    getFirestore, collection, getDocs, query, where, orderBy, doc, updateDoc
+    getFirestore, collection, getDocs, query, where, orderBy, doc, updateDoc, deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -136,6 +136,114 @@ async function cambiarEstadoMasivo(nuevoEstado) {
     }
 }
 
+/* === MODAL EDITAR === */
+async function openEditModal(id) {
+    const carga = allCargasDelMes.find(c => c.id === id);
+    if (!carga) return showToast('Registro no encontrado', 'error');
+
+    document.getElementById('editId').value = carga.id;
+    document.getElementById('editReferencia').value = carga.referencia || '';
+    document.getElementById('editCodigo').value = carga.codigo || '';
+    document.getElementById('editCantidad').value = carga.cantidad || 0;
+    document.getElementById('editPrevision').value = carga.prevision || '';
+    document.getElementById('editConvenio').value = carga.convenio || '';
+    document.getElementById('editAdmision').value = carga.admision || '';
+    document.getElementById('editPaciente').value = carga.paciente || '';
+    document.getElementById('editMedico').value = carga.medico || '';
+    document.getElementById('editFechaCX').value = carga.fechaCX ? carga.fechaCX.toISOString().split('T')[0] : '';
+    document.getElementById('editProveedor').value = carga.proveedor || '';
+    document.getElementById('editCodigoProducto').value = carga.codigoProducto || '';
+    document.getElementById('editDescripcion').value = carga.descripcion || '';
+    document.getElementById('editCantidadProducto').value = carga.cantidadProducto || 0;
+    document.getElementById('editPrecio').value = carga.precio || 0;
+    document.getElementById('editAtributo').value = normalizeText(carga.atributo || '').toUpperCase();
+
+    document.getElementById('editVenta').value = carga.venta != null ? formatNumberWithThousandsSeparator(carga.venta) : '';
+    document.getElementById('editMargen').value = carga.margen || '';
+    document.getElementById('editTotalItem').value = carga.totalItem != null ? formatNumberWithThousandsSeparator(carga.totalItem) : '';
+
+    document.getElementById('editModal').classList.add('show');
+}
+
+async function saveEdit() {
+    const id = document.getElementById('editId').value;
+    const carga = allCargasDelMes.find(c => c.id === id);
+    if (!carga) return;
+
+    window.showLoading();
+    try {
+        const updateData = {
+            referencia: document.getElementById('editReferencia').value.trim(),
+            codigo: document.getElementById('editCodigo').value.trim(),
+            cantidad: parseFloat(document.getElementById('editCantidad').value) || 0,
+            prevision: document.getElementById('editPrevision').value.trim(),
+            convenio: document.getElementById('editConvenio').value.trim(),
+            admision: document.getElementById('editAdmision').value.trim(),
+            _admision: normalizeText(document.getElementById('editAdmision').value),
+            paciente: document.getElementById('editPaciente').value.trim(),
+            _paciente: normalizeText(document.getElementById('editPaciente').value),
+            medico: document.getElementById('editMedico').value.trim(),
+            _medico: normalizeText(document.getElementById('editMedico').value),
+            fechaCX: document.getElementById('editFechaCX').value ? new Date(document.getElementById('editFechaCX').value) : carga.fechaCX,
+            proveedor: document.getElementById('editProveedor').value.trim(),
+            _proveedor: normalizeText(document.getElementById('editProveedor').value),
+            codigoProducto: document.getElementById('editCodigoProducto').value.trim(),
+            descripcion: document.getElementById('editDescripcion').value.trim(),
+            cantidadProducto: parseFloat(document.getElementById('editCantidadProducto').value) || 0,
+            precio: parseFloat(document.getElementById('editPrecio').value) || 0,
+            atributo: document.getElementById('editAtributo').value.trim()
+        };
+
+        // Recalcular campos derivados
+        updateData.totalItem = updateData.precio * updateData.cantidadProducto;
+        updateData.margen = calcularMargen(updateData.precio);
+        const tempCarga = { ...carga, ...updateData };
+        updateData.venta = calcularVenta(tempCarga);
+        updateData._prevision = normalizeText(updateData.prevision);
+
+        const ref = doc(db, "cargas_consignaciones", id);
+        await updateDoc(ref, updateData);
+
+        Object.assign(carga, updateData);
+        showToast('Cambios guardados exitosamente', 'success');
+        document.getElementById('editModal').classList.remove('show');
+        applyFiltersAndPaginate();
+    } catch (err) {
+        console.error(err);
+        showToast('Error al guardar cambios', 'error');
+    } finally {
+        window.hideLoading();
+    }
+}
+
+/* === MODAL ELIMINAR === */
+let deleteId = null;
+function openDeleteModal(id) {
+    deleteId = id;
+    document.getElementById('deleteModal').classList.add('show');
+}
+async function confirmDelete() {
+    if (!deleteId) return;
+    window.showLoading();
+    try {
+        const ref = doc(db, "cargas_consignaciones", deleteId);
+        await deleteDoc(ref);
+        allCargasDelMes = allCargasDelMes.filter(c => c.id !== deleteId);
+        selectedCargaIds.delete(deleteId);
+        showToast('Registro eliminado exitosamente', 'success');
+        document.getElementById('deleteModal').classList.remove('show');
+        applyFiltersAndPaginate();
+        updateCambiarEstadoButton();
+    } catch (err) {
+        console.error(err);
+        showToast('Error al eliminar', 'error');
+    } finally {
+        window.hideLoading();
+        deleteId = null;
+    }
+}
+
+/* === FUNCIONES ORIGINALES (NO MODIFICADAS) === */
 async function loadAniosYMeses() {
     window.showLoading();
     try {
@@ -319,7 +427,7 @@ function renderTable(callback = null) {
     if (cargas.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="22" style="text-align:center;padding:20px;color:#666;">
+                <td colspan="23" style="text-align:center;padding:20px;color:#666;">
                     <i class="fas fa-inbox" style="font-size:48px;display:block;margin-bottom:10px;"></i>
                     No hay cargas
                 </td>
@@ -358,6 +466,10 @@ function renderTable(callback = null) {
             <td>${escapeHtml(c.atributo)}</td>
             <td>${formatNumberWithThousandsSeparator(c.totalItem)}</td>
             <td>${c.margen === '' || c.margen == null ? '-' : c.margen}</td>
+            <td class="actions-cell">
+                <button class="btn-edit" data-id="${c.id}" title="Editar"><i class="fas fa-edit"></i></button>
+                <button class="btn-delete" data-id="${c.id}" title="Eliminar"><i class="fas fa-trash"></i></button>
+            </td>
         </tr>
     `).join('');
     tbody.innerHTML = html;
@@ -389,7 +501,7 @@ function renderTable(callback = null) {
 
 function setupColumnResize() {
     const headers = document.querySelectorAll('.cargar-table th');
-    const initialWidths = [60, 80, 90, 100, 60, 90, 70, 80, 90, 110, 80, 150, 140, 90, 120, 90, 200, 70, 80, 80, 90, 80];
+    const initialWidths = [60, 80, 90, 100, 60, 90, 70, 80, 90, 110, 80, 150, 140, 90, 120, 90, 200, 70, 80, 80, 90, 80, 80]; // +1 para Acciones
     headers.forEach((header, index) => {
         if (!initialWidths[index]) return;
         header.style.width = `${initialWidths[index]}px`;
@@ -458,6 +570,7 @@ function actualizarSelectEstados() {
     });
 }
 
+/* === DOMContentLoaded === */
 document.addEventListener('DOMContentLoaded', () => {
     const inputs = [
         { id: 'buscarEstado', filter: 'estado', event: 'change' },
@@ -517,8 +630,40 @@ document.addEventListener('DOMContentLoaded', () => {
         modalEstado.classList.remove('show');
     });
 
+    // === MODALES EDITAR Y ELIMINAR ===
+    const editModal = document.getElementById('editModal');
+    editModal.addEventListener('click', e => { if (e.target === editModal) editModal.classList.remove('show'); });
+    document.querySelector('#editModal .close')?.addEventListener('click', () => editModal.classList.remove('show'));
+    document.getElementById('cancelEdit')?.addEventListener('click', () => editModal.classList.remove('show'));
+    document.getElementById('saveEdit')?.addEventListener('click', saveEdit);
+
+    const deleteModal = document.getElementById('deleteModal');
+    deleteModal.addEventListener('click', e => { if (e.target === deleteModal) deleteModal.classList.remove('show'); });
+    document.querySelector('#deleteModal .close')?.addEventListener('click', () => deleteModal.classList.remove('show'));
+    document.getElementById('cancelDelete')?.addEventListener('click', () => deleteModal.classList.remove('show'));
+    document.getElementById('confirmDelete')?.addEventListener('click', confirmDelete);
+
+    // Delegación de eventos en tabla
+    document.querySelector('#cargarTable tbody').addEventListener('click', e => {
+        if (e.target.closest('.btn-edit')) {
+            const id = e.target.closest('.btn-edit').dataset.id;
+            openEditModal(id);
+        } else if (e.target.closest('.btn-delete')) {
+            const id = e.target.closest('.btn-delete').dataset.id;
+            openDeleteModal(id);
+        }
+    });
+
     setupColumnResize();
     onAuthStateChanged(auth, user => {
         loadAniosYMeses();
     });
 });
+
+// === IMPORTAR FUNCIONES DE CÁLCULO (para usar en saveEdit) ===
+let calcularMargen, calcularVenta;
+(async () => {
+    const mod = await import('./cargas-calculos.js');
+    calcularMargen = mod.calcularMargen;
+    calcularVenta = mod.calcularVenta;
+})();

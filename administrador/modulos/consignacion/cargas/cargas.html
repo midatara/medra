@@ -10,7 +10,7 @@
         import { getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
         import { 
             getFirestore, collection, getDocs, query, where, doc, 
-            orderBy, getDoc, limit, startAfter, updateDoc 
+            orderBy, getDoc, limit, startAfter, updateDoc, deleteDoc 
         } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
         
         window.firebaseModules = {
@@ -29,7 +29,8 @@
             getDoc,
             limit,
             startAfter,
-            updateDoc
+            updateDoc,
+            deleteDoc
         };
     </script>
     <link rel="stylesheet" href="cargas.css">
@@ -93,6 +94,7 @@
                         <th>Atributo<div class="resize-handle"></div></th>
                         <th>Total Item<div class="resize-handle"></div></th>
                         <th>Margen<div class="resize-handle"></div></th>
+                        <th>Acciones<div class="resize-handle"></div></th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -109,6 +111,7 @@
         </div>
     </div>
 
+    <!-- Modal Cambiar Estado -->
     <div id="cambiarEstadoModal" class="modal">
         <div class="modal-content">
             <span class="close">×</span>
@@ -128,6 +131,110 @@
             <div class="modal-footer">
                 <button id="cancelarEstado" class="modal-btn modal-btn-secondary">Cancelar</button>
                 <button id="guardarEstado" class="modal-btn modal-btn-primary">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Editar -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close">×</span>
+            <h3>Editar Carga</h3>
+            <form id="editForm" class="edit-form">
+                <input type="hidden" id="editId">
+                <div class="form-group">
+                    <label for="editReferencia">Referencia:</label>
+                    <input type="text" id="editReferencia">
+                </div>
+                <div class="form-group">
+                    <label for="editCodigo">Código:</label>
+                    <input type="text" id="editCodigo">
+                </div>
+                <div class="form-group">
+                    <label for="editCantidad">Cantidad:</label>
+                    <input type="number" id="editCantidad" min="0">
+                </div>
+                <div class="form-group">
+                    <label for="editPrevision">Previsión:</label>
+                    <input type="text" id="editPrevision">
+                </div>
+                <div class="form-group">
+                    <label for="editConvenio">Convenio:</label>
+                    <input type="text" id="editConvenio">
+                </div>
+                <div class="form-group">
+                    <label for="editAdmision">Admisión:</label>
+                    <input type="text" id="editAdmision">
+                </div>
+                <div class="form-group">
+                    <label for="editPaciente">Paciente:</label>
+                    <input type="text" id="editPaciente">
+                </div>
+                <div class="form-group">
+                    <label for="editMedico">Médico:</label>
+                    <input type="text" id="editMedico">
+                </div>
+                <div class="form-group">
+                    <label for="editFechaCX">Fecha CX:</label>
+                    <input type="date" id="editFechaCX">
+                </div>
+                <div class="form-group">
+                    <label for="editProveedor">Proveedor:</label>
+                    <input type="text" id="editProveedor">
+                </div>
+                <div class="form-group">
+                    <label for="editCodigoProducto">Código Producto:</label>
+                    <input type="text" id="editCodigoProducto">
+                </div>
+                <div class="form-group">
+                    <label for="editDescripcion">Descripción:</label>
+                    <input type="text" id="editDescripcion">
+                </div>
+                <div class="form-group">
+                    <label for="editCantidadProducto">Cantidad Producto:</label>
+                    <input type="number" id="editCantidadProducto" min="0">
+                </div>
+                <div class="form-group">
+                    <label for="editPrecio">Precio:</label>
+                    <input type="number" id="editPrecio" min="0" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label for="editAtributo">Atributo:</label>
+                    <select id="editAtributo">
+                        <option value="CONSIGNACION">Consignación</option>
+                        <option value="COTIZACION">Cotización</option>
+                        <option value="">Otro</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editVenta">Venta (calculada):</label>
+                    <input type="text" id="editVenta" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="editMargen">Margen (calculado):</label>
+                    <input type="text" id="editMargen" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="editTotalItem">Total Item (calculado):</label>
+                    <input type="text" id="editTotalItem" readonly>
+                </div>
+            </form>
+            <div class="modal-footer">
+                <button id="cancelEdit" class="modal-btn modal-btn-secondary">Cancelar</button>
+                <button id="saveEdit" class="modal-btn modal-btn-primary">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Eliminar -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-content">
+            <span class="close">×</span>
+            <h3>Confirmar Eliminación</h3>
+            <p>¿Estás seguro de eliminar esta carga? Esta acción no se puede deshacer.</p>
+            <div class="modal-footer">
+                <button id="cancelDelete" class="modal-btn modal-btn-secondary">Cancelar</button>
+                <button id="confirmDelete" class="modal-btn modal-btn-danger">Eliminar</button>
             </div>
         </div>
     </div>
