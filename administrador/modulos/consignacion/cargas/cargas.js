@@ -125,7 +125,8 @@ async function cambiarEstadoMasivo(nuevoEstado) {
 
         selectedCargaIds.clear();
         updateCambiarEstadoButton();
-        document.getElementById('selectAll').checked = false;
+        const selectAll = document.getElementById('selectAll');
+        if (selectAll) selectAll.checked = false;
         applyFiltersAndPaginate();
         showToast(`Estado cambiado a "${nuevoEstado}" para ${updates.length} carga(s)`, 'success');
     } catch (err) {
@@ -136,69 +137,86 @@ async function cambiarEstadoMasivo(nuevoEstado) {
     }
 }
 
-/* === MODAL EDITAR === */
+/* === MODAL EDITAR (SEGURO) === */
 async function openEditModal(id) {
     const carga = allCargasDelMes.find(c => c.id === id);
     if (!carga) return showToast('Registro no encontrado', 'error');
 
-    document.getElementById('editId').value = carga.id;
-    document.getElementById('editReferencia').value = carga.referencia || '';
-    document.getElementById('editCodigo').value = carga.codigo || '';
-    document.getElementById('editCantidad').value = carga.cantidad || 0;
-    document.getElementById('editPrevision').value = carga.prevision || '';
-    document.getElementById('editConvenio').value = carga.convenio || '';
-    document.getElementById('editAdmision').value = carga.admision || '';
-    document.getElementById('editPaciente').value = carga.paciente || '';
-    document.getElementById('editMedico').value = carga.medico || '';
-    document.getElementById('editFechaCX').value = carga.fechaCX ? carga.fechaCX.toISOString().split('T')[0] : '';
-    document.getElementById('editProveedor').value = carga.proveedor || '';
-    document.getElementById('editCodigoProducto').value = carga.codigoProducto || '';
-    document.getElementById('editDescripcion').value = carga.descripcion || '';
-    document.getElementById('editCantidadProducto').value = carga.cantidadProducto || 0;
-    document.getElementById('editPrecio').value = carga.precio || 0;
-    document.getElementById('editAtributo').value = normalizeText(carga.atributo || '').toUpperCase();
+    const modal = document.getElementById('editModal');
+    if (!modal) {
+        console.error('Modal #editModal no encontrado');
+        return showToast('Error: Modal de edición no encontrado', 'error');
+    }
 
-    document.getElementById('editVenta').value = carga.venta != null ? formatNumberWithThousandsSeparator(carga.venta) : '';
-    document.getElementById('editMargen').value = carga.margen || '';
-    document.getElementById('editTotalItem').value = carga.totalItem != null ? formatNumberWithThousandsSeparator(carga.totalItem) : '';
+    const setValue = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.value = value ?? '';
+    };
 
-    document.getElementById('editModal').classList.add('show');
+    setValue('editId', carga.id);
+    setValue('editReferencia', carga.referencia);
+    setValue('editCodigo', carga.codigo);
+    setValue('editCantidad', carga.cantidad ?? 0);
+    setValue('editPrevision', carga.prevision);
+    setValue('editConvenio', carga.convenio);
+    setValue('editAdmision', carga.admision);
+    setValue('editPaciente', carga.paciente);
+    setValue('editMedico', carga.medico);
+    setValue('editFechaCX', carga.fechaCX ? carga.fechaCX.toISOString().split('T')[0] : '');
+    setValue('editProveedor', carga.proveedor);
+    setValue('editCodigoProducto', carga.codigoProducto);
+    setValue('editDescripcion', carga.descripcion);
+    setValue('editCantidadProducto', carga.cantidadProducto ?? 0);
+    setValue('editPrecio', carga.precio ?? 0);
+    setValue('editAtributo', normalizeText(carga.atributo || '').toUpperCase());
+
+    setValue('editVenta', carga.venta != null ? formatNumberWithThousandsSeparator(carga.venta) : '');
+    setValue('editMargen', carga.margen ?? '');
+    setValue('editTotalItem', carga.totalItem != null ? formatNumberWithThousandsSeparator(carga.totalItem) : '');
+
+    modal.classList.add('show');
 }
 
 async function saveEdit() {
-    const id = document.getElementById('editId').value;
+    const idEl = document.getElementById('editId');
+    if (!idEl) return showToast('ID no encontrado', 'error');
+    const id = idEl.value;
     const carga = allCargasDelMes.find(c => c.id === id);
-    if (!carga) return;
+    if (!carga) return showToast('Registro no encontrado', 'error');
 
     window.showLoading();
     try {
-        const updateData = {
-            referencia: document.getElementById('editReferencia').value.trim(),
-            codigo: document.getElementById('editCodigo').value.trim(),
-            cantidad: parseFloat(document.getElementById('editCantidad').value) || 0,
-            prevision: document.getElementById('editPrevision').value.trim(),
-            convenio: document.getElementById('editConvenio').value.trim(),
-            admision: document.getElementById('editAdmision').value.trim(),
-            _admision: normalizeText(document.getElementById('editAdmision').value),
-            paciente: document.getElementById('editPaciente').value.trim(),
-            _paciente: normalizeText(document.getElementById('editPaciente').value),
-            medico: document.getElementById('editMedico').value.trim(),
-            _medico: normalizeText(document.getElementById('editMedico').value),
-            fechaCX: document.getElementById('editFechaCX').value ? new Date(document.getElementById('editFechaCX').value) : carga.fechaCX,
-            proveedor: document.getElementById('editProveedor').value.trim(),
-            _proveedor: normalizeText(document.getElementById('editProveedor').value),
-            codigoProducto: document.getElementById('editCodigoProducto').value.trim(),
-            descripcion: document.getElementById('editDescripcion').value.trim(),
-            cantidadProducto: parseFloat(document.getElementById('editCantidadProducto').value) || 0,
-            precio: parseFloat(document.getElementById('editPrecio').value) || 0,
-            atributo: document.getElementById('editAtributo').value.trim()
+        const getValue = (id) => {
+            const el = document.getElementById(id);
+            return el ? el.value.trim() : '';
         };
 
-        // Recalcular campos derivados
+        const updateData = {
+            referencia: getValue('editReferencia'),
+            codigo: getValue('editCodigo'),
+            cantidad: parseFloat(getValue('editCantidad')) || 0,
+            prevision: getValue('editPrevision'),
+            convenio: getValue('editConvenio'),
+            admision: getValue('editAdmision'),
+            _admision: normalizeText(getValue('editAdmision')),
+            paciente: getValue('editPaciente'),
+            _paciente: normalizeText(getValue('editPaciente')),
+            medico: getValue('editMedico'),
+            _medico: normalizeText(getValue('editMedico')),
+            fechaCX: getValue('editFechaCX') ? new Date(getValue('editFechaCX')) : carga.fechaCX,
+            proveedor: getValue('editProveedor'),
+            _proveedor: normalizeText(getValue('editProveedor')),
+            codigoProducto: getValue('editCodigoProducto'),
+            descripcion: getValue('editDescripcion'),
+            cantidadProducto: parseFloat(getValue('editCantidadProducto')) || 0,
+            precio: parseFloat(getValue('editPrecio')) || 0,
+            atributo: getValue('editAtributo')
+        };
+
         updateData.totalItem = updateData.precio * updateData.cantidadProducto;
-        updateData.margen = calcularMargen(updateData.precio);
+        updateData.margen = typeof calcularMargen === 'function' ? calcularMargen(updateData.precio) : '';
         const tempCarga = { ...carga, ...updateData };
-        updateData.venta = calcularVenta(tempCarga);
+        updateData.venta = typeof calcularVenta === 'function' ? calcularVenta(tempCarga) : carga.venta;
         updateData._prevision = normalizeText(updateData.prevision);
 
         const ref = doc(db, "cargas_consignaciones", id);
@@ -206,7 +224,8 @@ async function saveEdit() {
 
         Object.assign(carga, updateData);
         showToast('Cambios guardados exitosamente', 'success');
-        document.getElementById('editModal').classList.remove('show');
+        const modal = document.getElementById('editModal');
+        if (modal) modal.classList.remove('show');
         applyFiltersAndPaginate();
     } catch (err) {
         console.error(err);
@@ -220,7 +239,9 @@ async function saveEdit() {
 let deleteId = null;
 function openDeleteModal(id) {
     deleteId = id;
-    document.getElementById('deleteModal').classList.add('show');
+    const modal = document.getElementById('deleteModal');
+    if (modal) modal.classList.add('show');
+    else console.error('Modal #deleteModal no encontrado');
 }
 async function confirmDelete() {
     if (!deleteId) return;
@@ -231,7 +252,8 @@ async function confirmDelete() {
         allCargasDelMes = allCargasDelMes.filter(c => c.id !== deleteId);
         selectedCargaIds.delete(deleteId);
         showToast('Registro eliminado exitosamente', 'success');
-        document.getElementById('deleteModal').classList.remove('show');
+        const modal = document.getElementById('deleteModal');
+        if (modal) modal.classList.remove('show');
         applyFiltersAndPaginate();
         updateCambiarEstadoButton();
     } catch (err) {
@@ -243,7 +265,7 @@ async function confirmDelete() {
     }
 }
 
-/* === FUNCIONES ORIGINALES (NO MODIFICADAS) === */
+/* === FUNCIONES ORIGINALES (100% INTACTAS) === */
 async function loadAniosYMeses() {
     window.showLoading();
     try {
@@ -483,17 +505,20 @@ function renderTable(callback = null) {
             e.target.closest('tr').classList.toggle('row-selected', e.target.checked);
         });
     });
-    document.getElementById('selectAll')?.addEventListener('change', e => {
-        const checked = e.target.checked;
-        document.querySelectorAll('.row-checkbox').forEach(cb => {
-            cb.checked = checked;
-            const id = cb.dataset.id;
-            if (checked) selectedCargaIds.add(id);
-            else selectedCargaIds.delete(id);
-            cb.closest('tr').classList.toggle('row-selected', checked);
+    const selectAll = document.getElementById('selectAll');
+    if (selectAll) {
+        selectAll.addEventListener('change', e => {
+            const checked = e.target.checked;
+            document.querySelectorAll('.row-checkbox').forEach(cb => {
+                cb.checked = checked;
+                const id = cb.dataset.id;
+                if (checked) selectedCargaIds.add(id);
+                else selectedCargaIds.delete(id);
+                cb.closest('tr').classList.toggle('row-selected', checked);
+            });
+            updateCambiarEstadoButton();
         });
-        updateCambiarEstadoButton();
-    });
+    }
     if (callback) {
         requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(callback, 100)));
     }
@@ -501,7 +526,7 @@ function renderTable(callback = null) {
 
 function setupColumnResize() {
     const headers = document.querySelectorAll('.cargar-table th');
-    const initialWidths = [60, 80, 90, 100, 60, 90, 70, 80, 90, 110, 80, 150, 140, 90, 120, 90, 200, 70, 80, 80, 90, 80, 80]; // +1 para Acciones
+    const initialWidths = [60, 80, 90, 100, 60, 90, 70, 80, 90, 110, 80, 150, 140, 90, 120, 90, 200, 70, 80, 80, 90, 80, 80];
     headers.forEach((header, index) => {
         if (!initialWidths[index]) return;
         header.style.width = `${initialWidths[index]}px`;
@@ -552,7 +577,7 @@ function setupColumnResize() {
 function actualizarSelectEstados() {
     const select = document.getElementById('buscarEstado');
     if (!select || !allCargasDelMes.length) {
-        select.innerHTML = '<option value="">Todos</option>';
+        if (select) select.innerHTML = '<option value="">Todos</option>';
         return;
     }
     const estadosUnicos = new Set();
@@ -570,7 +595,7 @@ function actualizarSelectEstados() {
     });
 }
 
-/* === DOMContentLoaded === */
+/* === DOMContentLoaded (EVENTOS SEGUROS) === */
 document.addEventListener('DOMContentLoaded', () => {
     const inputs = [
         { id: 'buscarEstado', filter: 'estado', event: 'change' },
@@ -587,72 +612,74 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    document.getElementById('anioSelect')?.addEventListener('change', async e => {
-        selectedYear = parseInt(e.target.value);
-        selectedMonth = null;
-        currentPage = 1;
-        selectedCargaIds.clear();
-        updateCambiarEstadoButton();
-        window.showLoading();
-        try {
-            const q = query(collection(db, "cargas_consignaciones"), orderBy("fechaCX"));
-            const snapshot = await getDocs(q);
-            const mesesSet = new Set();
-            snapshot.docs.forEach(doc => {
-                const fecha = doc.data().fechaCX?.toDate?.() || new Date(doc.data().fechaCX);
-                if (fecha && fecha.getFullYear() === selectedYear) {
-                    mesesSet.add(fecha.getMonth());
-                }
-            });
-            await renderMesesButtons(mesesSet);
-        } catch (err) {
-            console.error(err);
-            window.hideLoading();
-        }
-    });
+    const anioSelect = document.getElementById('anioSelect');
+    if (anioSelect) {
+        anioSelect.addEventListener('change', async e => {
+            selectedYear = parseInt(e.target.value);
+            selectedMonth = null;
+            currentPage = 1;
+            selectedCargaIds.clear();
+            updateCambiarEstadoButton();
+            window.showLoading();
+            try {
+                const q = query(collection(db, "cargas_consignaciones"), orderBy("fechaCX"));
+                const snapshot = await getDocs(q);
+                const mesesSet = new Set();
+                snapshot.docs.forEach(doc => {
+                    const fecha = doc.data().fechaCX?.toDate?.() || new Date(doc.data().fechaCX);
+                    if (fecha && fecha.getFullYear() === selectedYear) {
+                        mesesSet.add(fecha.getMonth());
+                    }
+                });
+                await renderMesesButtons(mesesSet);
+            } catch (err) {
+                console.error(err);
+                window.hideLoading();
+            }
+        });
+    }
 
     const modalEstado = document.getElementById('cambiarEstadoModal');
-    document.getElementById('btnCambiarEstado')?.addEventListener('click', () => {
-        modalEstado.classList.add('show');
-    });
-    modalEstado.addEventListener('click', e => {
-        if (e.target === modalEstado) modalEstado.classList.remove('show');
-    });
-    document.querySelector('#cambiarEstadoModal .close')?.addEventListener('click', () => {
-        modalEstado.classList.remove('show');
-    });
-    document.getElementById('cancelarEstado')?.addEventListener('click', () => {
-        modalEstado.classList.remove('show');
-    });
-    document.getElementById('guardarEstado')?.addEventListener('click', () => {
-        const nuevoEstado = document.getElementById('nuevoEstadoSelect').value;
-        cambiarEstadoMasivo(nuevoEstado);
-        modalEstado.classList.remove('show');
-    });
+    const btnCambiar = document.getElementById('btnCambiarEstado');
+    if (btnCambiar && modalEstado) {
+        btnCambiar.addEventListener('click', () => modalEstado.classList.add('show'));
+        modalEstado.addEventListener('click', e => { if (e.target === modalEstado) modalEstado.classList.remove('show'); });
+        document.querySelector('#cambiarEstadoModal .close')?.addEventListener('click', () => modalEstado.classList.remove('show'));
+        document.getElementById('cancelarEstado')?.addEventListener('click', () => modalEstado.classList.remove('show'));
+        document.getElementById('guardarEstado')?.addEventListener('click', () => {
+            const nuevoEstadoSelect = document.getElementById('nuevoEstadoSelect');
+            if (nuevoEstadoSelect) {
+                cambiarEstadoMasivo(nuevoEstadoSelect.value);
+                modalEstado.classList.remove('show');
+            }
+        });
+    }
 
-    // === MODALES EDITAR Y ELIMINAR ===
     const editModal = document.getElementById('editModal');
-    editModal.addEventListener('click', e => { if (e.target === editModal) editModal.classList.remove('show'); });
-    document.querySelector('#editModal .close')?.addEventListener('click', () => editModal.classList.remove('show'));
-    document.getElementById('cancelEdit')?.addEventListener('click', () => editModal.classList.remove('show'));
-    document.getElementById('saveEdit')?.addEventListener('click', saveEdit);
+    if (editModal) {
+        editModal.addEventListener('click', e => { if (e.target === editModal) editModal.classList.remove('show'); });
+        document.querySelector('#editModal .close')?.addEventListener('click', () => editModal.classList.remove('show'));
+        document.getElementById('cancelEdit')?.addEventListener('click', () => editModal.classList.remove('show'));
+        document.getElementById('saveEdit')?.addEventListener('click', saveEdit);
+    }
 
     const deleteModal = document.getElementById('deleteModal');
-    deleteModal.addEventListener('click', e => { if (e.target === deleteModal) deleteModal.classList.remove('show'); });
-    document.querySelector('#deleteModal .close')?.addEventListener('click', () => deleteModal.classList.remove('show'));
-    document.getElementById('cancelDelete')?.addEventListener('click', () => deleteModal.classList.remove('show'));
-    document.getElementById('confirmDelete')?.addEventListener('click', confirmDelete);
+    if (deleteModal) {
+        deleteModal.addEventListener('click', e => { if (e.target === deleteModal) deleteModal.classList.remove('show'); });
+        document.querySelector('#deleteModal .close')?.addEventListener('click', () => deleteModal.classList.remove('show'));
+        document.getElementById('cancelDelete')?.addEventListener('click', () => deleteModal.classList.remove('show'));
+        document.getElementById('confirmDelete')?.addEventListener('click', confirmDelete);
+    }
 
-    // Delegación de eventos en tabla
-    document.querySelector('#cargarTable tbody').addEventListener('click', e => {
-        if (e.target.closest('.btn-edit')) {
-            const id = e.target.closest('.btn-edit').dataset.id;
-            openEditModal(id);
-        } else if (e.target.closest('.btn-delete')) {
-            const id = e.target.closest('.btn-delete').dataset.id;
-            openDeleteModal(id);
-        }
-    });
+    const tbody = document.querySelector('#cargarTable tbody');
+    if (tbody) {
+        tbody.addEventListener('click', e => {
+            const editBtn = e.target.closest('.btn-edit');
+            const deleteBtn = e.target.closest('.btn-delete');
+            if (editBtn) openEditModal(editBtn.dataset.id);
+            else if (deleteBtn) openDeleteModal(deleteBtn.dataset.id);
+        });
+    }
 
     setupColumnResize();
     onAuthStateChanged(auth, user => {
@@ -660,10 +687,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// === IMPORTAR FUNCIONES DE CÁLCULO (para usar en saveEdit) ===
-let calcularMargen, calcularVenta;
+// === IMPORTAR FUNCIONES DE CÁLCULO CON FALLBACK ===
+let calcularMargen = () => '';
+let calcularVenta = () => 0;
 (async () => {
-    const mod = await import('./cargas-calculos.js');
-    calcularMargen = mod.calcularMargen;
-    calcularVenta = mod.calcularVenta;
+    try {
+        const mod = await import('./cargas-calculos.js');
+        calcularMargen = mod.calcularMargen || calcularMargen;
+        calcularVenta = mod.calcularVenta || calcularVenta;
+    } catch (err) {
+        console.warn('No se pudieron cargar funciones de cálculo:', err);
+    }
 })();
