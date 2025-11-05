@@ -612,3 +612,12 @@ html, body {
 .guias-modal-table tbody tr:hover {
     background-color: #f8f9fa;
 }
+
+.guias-btn-pack {
+    background-color: #6f42c1;
+    color: white;
+}
+
+.guias-btn-pack:hover {
+    background-color: #5a32a3;
+}

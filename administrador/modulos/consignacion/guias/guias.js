@@ -605,6 +605,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     row.innerHTML = `
                         <td class="guias-actions">
                             <button title="Ver Detalles" class="guias-btn-view" onclick="openViewModal('${guia.id}')"><i class="fas fa-eye"></i></button>
+                            <button title="Paquetizar" class="guias-btn-pack" onclick="paquetizarGuia('${guia.id}', event)"><i class="fas fa-boxes"></i></button>
                         </td>
                         <td>${guia.rznSoc || ''}</td>
                         <td>${guia.folio || ''}</td>
@@ -844,4 +845,24 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('Error: Firebase Authentication no está inicializado.', 'error');
         window.location.replace('../index.html');
     }
+
+    window.paquetizarGuia = function (id, event) {
+        event.stopPropagation(); // Evita que se abra el modal de ver
+
+        // Buscar la guía por ID
+        const guia = guias.find(g => g.id === id);
+        if (!guia) {
+            showToast('Guía no encontrada.', 'error');
+            return;
+        }
+
+        showToast(`Paquetizando guía: ${guia.folio} - ${guia.rznSoc}`, 'success');
+
+        // Aquí puedes:
+        // - Abrir un modal para crear un kit
+        // - Agregar a una lista temporal de "paquete en construcción"
+        // - Guardar en Firestore
+        console.log('Paquetizar guía:', guia);
+    };
+
 });
