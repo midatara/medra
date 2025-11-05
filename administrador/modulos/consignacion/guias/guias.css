@@ -621,3 +621,12 @@ html, body {
 .guias-btn-pack:hover {
     background-color: #5a32a3;
 }
+
+.guias-pack-subtitle {
+    font-size: 13px;
+    font-weight: bold;
+    color: #5a32a3;
+    margin: 10px 0 15px 0;
+    padding-bottom: 8px;
+    border-bottom: 1px dashed #ddd;
+}

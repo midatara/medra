@@ -93,6 +93,42 @@
                 </div>
             </div>
         </div>
+
+        <div id="packModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="packModalTitle">Paquetización</h2>
+                    <span class="close" id="closePackModal">&times;</span>
+                </div>
+                <div class="modal-content-body">
+                    <div id="packSubtitle" class="guias-pack-subtitle"></div>
+                    
+                    <div class="guias-guide-section">
+                        <h3>Encabezado</h3>
+                        <table class="guias-modal-table" id="packHeaderTable"></table>
+                    </div>
+
+                    <div class="guias-guide-section">
+                        <h3>Detalles (desde ítem 2)</h3>
+                        <table class="guias-modal-table">
+                            <thead>
+                                <tr>
+                                    <th>Código</th>
+                                    <th>Cantidad</th>
+                                    <th>Descripción</th>
+                                    <th>Fecha Vencimiento</th>
+                                </tr>
+                            </thead>
+                            <tbody id="packDetailsBody"></tbody>
+                        </table>
+                    </div>
+
+                    <div class="modal-buttons">
+                        <button id="closePackBtn" class="modal-btn modal-btn-secondary">Cerrar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     <script type="module" src="guias.js"></script>
 </body>

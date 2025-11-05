@@ -846,23 +846,88 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.replace('../index.html');
     }
 
-    window.paquetizarGuia = function (id, event) {
-        event.stopPropagation(); // Evita que se abra el modal de ver
+    window.paquetizarGuia = async function (id, event) {
+    event.stopPropagation();
 
-        // Buscar la guía por ID
-        const guia = guias.find(g => g.id === id);
-        if (!guia) {
+    const packModal = document.getElementById('packModal');
+    const packModalTitle = document.getElementById('packModalTitle');
+    const packSubtitle = document.getElementById('packSubtitle');
+    const packHeaderTable = document.getElementById('packHeaderTable');
+    const packDetailsBody = document.getElementById('packDetailsBody');
+    const closePackModal = document.getElementById('closePackModal');
+    const closePackBtn = document.getElementById('closePackBtn');
+
+    if (!packModal || !db) {
+        showToast('Error: Modal o Firebase no disponible.', 'error');
+        return;
+    }
+
+    showLoading();
+    try {
+        const docSnap = await db.collection("guias_medtronic").doc(id).get();
+        hideLoading();
+
+        if (!docSnap.exists) {
             showToast('Guía no encontrada.', 'error');
             return;
         }
 
-        showToast(`Paquetizando guía: ${guia.folio} - ${guia.rznSoc}`, 'success');
+        const data = docSnap.data();
+        const doc = data.fullData.Documento;
+        const detalles = Array.isArray(doc.Detalle) ? doc.Detalle : [doc.Detalle];
+        const primerItem = detalles[0];
 
-        // Aquí puedes:
-        // - Abrir un modal para crear un kit
-        // - Agregar a una lista temporal de "paquete en construcción"
-        // - Guardar en Firestore
-        console.log('Paquetizar guía:', guia);
+        // Título: Folio + Folio Referencia
+        packModalTitle.textContent = `Folio: ${data.folio || 'N/A'} | Folio Referencia: ${data.folioRef || 'N/A'}`;
+
+        // Subtítulo: Ítem 1 - Nombre del producto
+        packSubtitle.textContent = primerItem 
+            ? `Ítem 1 - ${primerItem.NmbItem || 'Sin nombre'}`
+            : 'Sin ítems';
+
+        // Encabezado (tabla simple)
+        const encabezado = doc.Encabezado;
+        packHeaderTable.innerHTML = `
+            <tr><th>Emisor</th><td>${encabezado.Emisor?.RznSoc || ''}</td></tr>
+            <tr><th>Receptor</th><td>${encabezado.Receptor?.RznSocRecep || ''}</td></tr>
+            <tr><th>Fecha Emisión</th><td>${encabezado.IdDoc?.FchEmis || ''}</td></tr>
+            <tr><th>Monto Total</th><td>${encabezado.Totales?.MntTotal || ''}</td></tr>
+        `;
+
+        // Detalles desde ítem 2
+        packDetailsBody.innerHTML = '';
+        if (detalles.length > 1) {
+            detalles.slice(1).forEach((detalle, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${detalle.CdgItem?.VlrCodigo || ''}</td>
+                    <td>${detalle.QtyItem || ''}</td>
+                    <td>${detalle.DscItem || detalle.NmbItem || ''}</td>
+                    <td>${detalle.FchVencim || ''}</td>
+                `;
+                packDetailsBody.appendChild(row);
+            });
+        } else {
+            packDetailsBody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#999;">No hay más ítems</td></tr>';
+        }
+
+        // Mostrar modal
+        packModal.style.display = 'block';
+
+    } catch (error) {
+        hideLoading();
+        showToast('Error al cargar datos: ' + error.message, 'error');
+    }
+
+    // Cerrar modal
+    const closeModal = () => {
+        packModal.style.display = 'none';
     };
+    closePackModal.onclick = closeModal;
+    closePackBtn.onclick = closeModal;
+    window.onclick = (e) => {
+        if (e.target === packModal) closeModal();
+    };
+};
 
 });
