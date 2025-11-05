@@ -890,10 +890,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 detalles.slice(1).forEach((detalle, index) => {
                     const qty = detalle.QtyItem;
                     const qtyFormatted = qty ? Math.round(parseFloat(qty)) : '';
+                    const codigoLimpio = detalle.CdgItem?.VlrCodigo ? detalle.CdgItem.VlrCodigo.split(' ')[0] : '';
 
                     const row = document.createElement('tr');
                     row.innerHTML = `
-                        <td>${detalle.CdgItem?.VlrCodigo || ''}</td>
+                        <td>${codigoLimpio}</td>
                         <td>${qtyFormatted}</td>
                         <td>${detalle.DscItem || detalle.NmbItem || ''}</td>
                         <td>${detalle.FchVencim || ''}</td>
