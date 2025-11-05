@@ -686,6 +686,105 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentDeleteId = null;
     let currentDeleteAdmision = null;
 
+    // === VERIFICACIÓN DE DOC DELIVERY CON FOLIO REFERENCIA ===
+const docDeliveryInput = document.getElementById('docDelivery');
+const guiaStatusSpan = document.getElementById('guiaStatus');
+
+let docDeliveryDebounce = null;
+
+if (docDeliveryInput && guiaStatusSpan) {
+    docDeliveryInput.addEventListener('input', (e) => {
+        const valor = normalizeText(e.target.value);
+        clearTimeout(docDeliveryDebounce);
+        guiaStatusSpan.textContent = 'Buscando...';
+        guiaStatusSpan.style.color = '#999';
+
+        if (!valor) {
+            guiaStatusSpan.textContent = '';
+            return;
+        }
+
+        docDeliveryDebounce = setTimeout(async () => {
+            try {
+                const q = query(
+                    collection(db, "guias_medtronic"),
+                    where("folioRef", "==", valor)
+                );
+                const snapshot = await getDocs(q);
+
+                if (!snapshot.empty) {
+                    const guia = snapshot.docs[0].data();
+                    guiaStatusSpan.textContent = `Folio: ${guia.folio || 'N/A'}`;
+                    guiaStatusSpan.style.color = 'green';
+                } else {
+                    guiaStatusSpan.textContent = 'Documento no encontrado';
+                    guiaStatusSpan.style.color = 'red';
+                }
+            } catch (error) {
+                console.error('Error verificando docDelivery:', error);
+                guiaStatusSpan.textContent = 'Error';
+                guiaStatusSpan.style.color = 'red';
+            }
+        }, 500); // debounce 500ms
+    });
+
+    // Limpiar al enfocar si está vacío
+    docDeliveryInput.addEventListener('focus', () => {
+        if (!docDeliveryInput.value.trim()) {
+            guiaStatusSpan.textContent = '';
+        }
+    });
+}
+
+// === PARA EL MODAL DE EDICIÓN ===
+const editDocDeliveryInput = document.getElementById('editDocDelivery');
+const editGuiaStatusSpan = document.getElementById('editGuiaStatus');
+
+let editDocDeliveryDebounce = null;
+
+if (editDocDeliveryInput && editGuiaStatusSpan) {
+    editDocDeliveryInput.addEventListener('input', (e) => {
+        const valor = normalizeText(e.target.value);
+        clearTimeout(editDocDeliveryDebounce);
+        editGuiaStatusSpan.textContent = 'Buscando...';
+        editGuiaStatusSpan.style.color = '#999';
+
+        if (!valor) {
+            editGuiaStatusSpan.textContent = '';
+            return;
+        }
+
+        editDocDeliveryDebounce = setTimeout(async () => {
+            try {
+                const q = query(
+                    collection(db, "guias_medtronic"),
+                    where("folioRef", "==", valor)
+                );
+                const snapshot = await getDocs(q);
+
+                if (!snapshot.empty) {
+                    const guia = snapshot.docs[0].data();
+                    editGuiaStatusSpan.textContent = `Folio: ${guia.folio || 'N/A'}`;
+                    editGuiaStatusSpan.style.color = 'green';
+                } else {
+                    editGuiaStatusSpan.textContent = 'Documento no encontrado';
+                    editGuiaStatusSpan.style.color = 'red';
+                }
+            } catch (error) {
+                console.error('Error verificando editDocDelivery:', error);
+                editGuiaStatusSpan.textContent = 'Error';
+                editGuiaStatusSpan.style.color = 'red';
+            }
+        }, 500);
+    });
+
+    editDocDeliveryInput.addEventListener('focus', () => {
+        if (!editDocDeliveryInput.value.trim()) {
+            editGuiaStatusSpan.textContent = '';
+        }
+    });
+}
+
     [precioUnitarioInput, editPrecioUnitarioInput].forEach(input => {
         if (input) {
             input.addEventListener('input', e => {
