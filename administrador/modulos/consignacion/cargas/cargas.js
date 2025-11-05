@@ -102,7 +102,6 @@ async function cambiarEstadoMasivo(nuevoEstado) {
             if (!carga) return null;
 
             const updateData = { estado: nuevoEstado };
-
             if (nuevoEstado === 'CARGADO' && !carga.fechaCarga) {
                 updateData.fechaCarga = new Date();
             }
@@ -137,16 +136,13 @@ async function cambiarEstadoMasivo(nuevoEstado) {
     }
 }
 
-/* === MODAL EDITAR (CON CÁLCULO EN TIEMPO REAL) === */
+/* === MODAL EDITAR (SIMPLIFICADO + CÁLCULO EN TIEMPO REAL) === */
 async function openEditModal(id) {
     const carga = allCargasDelMes.find(c => c.id === id);
     if (!carga) return showToast('Registro no encontrado', 'error');
 
     const modal = document.getElementById('editModal');
-    if (!modal) {
-        console.error('Modal #editModal no encontrado');
-        return showToast('Error: Modal de edición no encontrado', 'error');
-    }
+    if (!modal) return showToast('Error: Modal no encontrado', 'error');
 
     const setValue = (id, value) => {
         const el = document.getElementById(id);
@@ -155,8 +151,7 @@ async function openEditModal(id) {
 
     setValue('editId', carga.id);
     setValue('editReferencia', carga.referencia);
-    setValue('editCodigo', carga.codigo);
-    setValue('editCantidad', carga.cantidad ?? 0);
+    setValue('editCodigo', carga.codigo || carga.codigoProducto || ''); // Prioriza uno
     setValue('editPrevision', carga.prevision);
     setValue('editConvenio', carga.convenio);
     setValue('editAdmision', carga.admision);
@@ -164,9 +159,8 @@ async function openEditModal(id) {
     setValue('editMedico', carga.medico);
     setValue('editFechaCX', carga.fechaCX ? carga.fechaCX.toISOString().split('T')[0] : '');
     setValue('editProveedor', carga.proveedor);
-    setValue('editCodigoProducto', carga.codigoProducto);
     setValue('editDescripcion', carga.descripcion);
-    setValue('editCantidadProducto', carga.cantidadProducto ?? 0);
+    setValue('editCantidadProducto', carga.cantidadProducto ?? carga.cantidad ?? 0);
     setValue('editPrecio', carga.precio ?? 0);
     setValue('editAtributo', normalizeText(carga.atributo || '').toUpperCase());
 
@@ -177,7 +171,7 @@ async function openEditModal(id) {
         const totalItem = precio * cantidad;
 
         const margen = typeof calcularMargen === 'function' ? calcularMargen(precio) : '';
-        const tempCarga = { ...carga, precio, cantidadProducto: cantidad };
+        const tempCarga = { ...carga, precio, cantidadProducto: cantidad, cantidad };
         const venta = typeof calcularVenta === 'function' ? calcularVenta(tempCarga) : 0;
 
         const setDisplay = (id, value, format = false) => {
@@ -190,10 +184,8 @@ async function openEditModal(id) {
         setDisplay('editVenta', venta, true);
     };
 
-    // Ejecutar al abrir
     recalcularCampos();
 
-    // === EVENTOS EN TIEMPO REAL ===
     const inputs = ['editPrecio', 'editCantidadProducto'];
     inputs.forEach(id => {
         const el = document.getElementById(id);
@@ -208,7 +200,10 @@ async function openEditModal(id) {
 
 async function saveEdit() {
     const idEl = document.getElementById('editId');
-    if (!idEl || !idEl.value) return showToast('ID no encontrado', 'error');
+    if (!idEl || !idEl.value) {
+        console.error('Falta #editId o está vacío');
+        return showToast('Error: ID no válido', 'error');
+    }
     const id = idEl.value.trim();
     const carga = allCargasDelMes.find(c => c.id === id);
     if (!carga) return showToast('Registro no encontrado', 'error');
@@ -220,10 +215,15 @@ async function saveEdit() {
             return el ? el.value.trim() : '';
         };
 
+        const codigo = getValue('editCodigo');
+        const cantidad = parseFloat(getValue('editCantidadProducto')) || 0;
+
         const updateData = {
             referencia: getValue('editReferencia'),
-            codigo: getValue('editCodigo'),
-            cantidad: parseFloat(getValue('editCantidad')) || 0,
+            codigo: codigo,
+            codigoProducto: codigo, // ← SE GUARDA EN AMBOS
+            cantidad: cantidad,
+            cantidadProducto: cantidad, // ← SE GUARDA EN AMBOS
             prevision: getValue('editPrevision'),
             convenio: getValue('editConvenio'),
             admision: getValue('editAdmision'),
@@ -235,14 +235,12 @@ async function saveEdit() {
             fechaCX: getValue('editFechaCX') ? new Date(getValue('editFechaCX')) : carga.fechaCX,
             proveedor: getValue('editProveedor'),
             _proveedor: normalizeText(getValue('editProveedor')),
-            codigoProducto: getValue('editCodigoProducto'),
             descripcion: getValue('editDescripcion'),
-            cantidadProducto: parseFloat(getValue('editCantidadProducto')) || 0,
             precio: parseFloat(getValue('editPrecio')) || 0,
             atributo: getValue('editAtributo')
         };
 
-        // Recalcular campos derivados
+        // Recalcular
         updateData.totalItem = updateData.precio * updateData.cantidadProducto;
         updateData.margen = typeof calcularMargen === 'function' ? calcularMargen(updateData.precio) : '';
         const tempCarga = { ...carga, ...updateData };
@@ -253,12 +251,12 @@ async function saveEdit() {
         await updateDoc(ref, updateData);
 
         Object.assign(carga, updateData);
-        showToast('Cambios guardados exitosamente', 'success');
+        showToast('Cambios guardados', 'success');
         const modal = document.getElementById('editModal');
         if (modal) modal.classList.remove('show');
         applyFiltersAndPaginate();
     } catch (err) {
-        console.error(err);
+        console.error('Error al guardar:', err);
         showToast('Error al guardar cambios', 'error');
     } finally {
         window.hideLoading();
@@ -271,7 +269,6 @@ function openDeleteModal(id) {
     deleteId = id;
     const modal = document.getElementById('deleteModal');
     if (modal) modal.classList.add('show');
-    else console.error('Modal #deleteModal no encontrado');
 }
 async function confirmDelete() {
     if (!deleteId) return;
@@ -281,7 +278,7 @@ async function confirmDelete() {
         await deleteDoc(ref);
         allCargasDelMes = allCargasDelMes.filter(c => c.id !== deleteId);
         selectedCargaIds.delete(deleteId);
-        showToast('Registro eliminado exitosamente', 'success');
+        showToast('Registro eliminado', 'success');
         const modal = document.getElementById('deleteModal');
         if (modal) modal.classList.remove('show');
         applyFiltersAndPaginate();
@@ -295,7 +292,7 @@ async function confirmDelete() {
     }
 }
 
-/* === FUNCIONES ORIGINALES (100% INTACTAS) === */
+/* === RESTO DEL CÓDIGO (100% INTACTO) === */
 async function loadAniosYMeses() {
     window.showLoading();
     try {
@@ -625,7 +622,7 @@ function actualizarSelectEstados() {
     });
 }
 
-/* === DOMContentLoaded (EVENTOS SEGUROS) === */
+/* === DOMContentLoaded === */
 document.addEventListener('DOMContentLoaded', () => {
     const inputs = [
         { id: 'buscarEstado', filter: 'estado', event: 'change' },
@@ -717,7 +714,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// === IMPORTAR FUNCIONES DE CÁLCULO CON FALLBACK ===
+// === FALLBACK CÁLCULOS ===
 let calcularMargen = () => '';
 let calcularVenta = () => 0;
 (async () => {
@@ -726,6 +723,6 @@ let calcularVenta = () => 0;
         calcularMargen = mod.calcularMargen || calcularMargen;
         calcularVenta = mod.calcularVenta || calcularVenta;
     } catch (err) {
-        console.warn('No se pudieron cargar funciones de cálculo:', err);
+        console.warn('No se cargaron funciones de cálculo:', err);
     }
 })();
