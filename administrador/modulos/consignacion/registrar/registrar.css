@@ -862,25 +862,27 @@ html, body {
     background-color: #c82333;
 }
 
-.doc-delivery-container {
+.doc-delivery-wrapper {
     position: relative;
     display: flex;
     align-items: center;
+    width: 100%;
 }
 
-.doc-delivery-container input {
+.doc-delivery-wrapper input {
     flex: 1;
-    padding-right: 140px;
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1em;
     box-sizing: border-box;
 }
 
 .doc-delivery-status {
-    position: absolute;
-    right: 8px;
+    margin-left: 8px;
     font-weight: bold;
     white-space: nowrap;
-    pointer-events: none;
     font-size: 0.9em;
-    top: 50%;
-    transform: translateY(-50%);
+    min-width: 140px;
+    text-align: left;
 }
