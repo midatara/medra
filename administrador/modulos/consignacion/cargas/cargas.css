@@ -130,13 +130,25 @@ html, body {
 
 .cargar-table th,
 .cargar-table td {
-    padding: 4px;
+    padding: 4px !important; /* Forzamos padding uniforme */
     text-align: left;
     border: 1px solid #ddd;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     box-sizing: border-box;
+    height: 28px !important; /* Altura fija para TODAS las celdas */
+    line-height: 1.2;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.cargar-table td:nth-child(1),
+.cargar-table th:nth-child(1) {
+    justify-content: center;
+    gap: 4px;
+    padding: 0 !important;
 }
 
 .cargar-table th {
@@ -209,8 +221,9 @@ html, body {
     align-items: center;
     justify-content: center;
     gap: 4px;
-    padding: 0 !important;
+    width: 100%;
     height: 100%;
+    padding: 0 !important;
 }
 
 .checkbox-cell input[type="checkbox"] {
@@ -239,6 +252,13 @@ html, body {
 
 .checkbox-cell .cargar-btn-history:hover {
     background-color: #138496;
+}
+
+.cargar-table td:nth-child(23),
+.cargar-table th:nth-child(23) {
+    justify-content: center;
+    gap: 2px;
+    padding: 0 !important;
 }
 
 .row-selected {
@@ -547,10 +567,12 @@ html, body {
 
 .actions-cell {
     display: flex;
+    align-items: center;
     justify-content: center;
     gap: 2px;
-    padding: 0 !important;
+    width: 100%;
     height: 100%;
+    padding: 0 !important;
 }
 
 .btn-edit,
@@ -583,6 +605,18 @@ html, body {
 
 .btn-delete:hover {
     background-color: #c82333;
+}
+
+.cargar-table tbody tr {
+    height: 28px !important;
+}
+
+.cargar-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.row-selected {
+    background-color: #e3f2fd !important;
 }
 
 #editModal .modal-content {
