@@ -37,12 +37,21 @@ html, body {
     margin-bottom: 10px;
 }
 
-.registrar-first-row, .registrar-second-row, .registrar-search-row {
+.registrar-first-row, .registrar-second-row {
     display: flex;
     justify-content: flex-start;
     gap: 10px;
     align-items: flex-end;
     flex-wrap: nowrap;
+    width: 100%;
+}
+
+.registrar-search-row {
+    display: flex;
+    justify-content: flex-start;
+    gap: 10px;
+    align-items: flex-end;
+    flex-wrap: wrap;
     width: 100%;
 }
 
