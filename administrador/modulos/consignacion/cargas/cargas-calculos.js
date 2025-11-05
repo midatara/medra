@@ -93,7 +93,6 @@ export async function procesarMargenes(cargas) {
             try {
                 const cargaRef = doc(db, "cargas_consignaciones", c.id);
                 await updateDoc(cargaRef, updates);
-                console.log(`Actualizado ${c.id}:`, updates);
             } catch (err) {
                 console.warn(`Error actualizando ${c.id}:`, err);
             }

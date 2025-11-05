@@ -128,7 +128,6 @@ html, body {
     box-sizing: border-box;
 }
 
-/* === CELDAS GENERALES === */
 .cargar-table th,
 .cargar-table td {
     padding: 0 4px;
@@ -143,7 +142,6 @@ html, body {
     text-align: left;
 }
 
-/* === ENCABEZADOS === */
 .cargar-table th {
     background-color: #f2f2f2;
     font-size: 11px;
@@ -170,7 +168,6 @@ html, body {
     background: #007bff;
 }
 
-/* === HOVER EN FILAS === */
 .cargar-table tbody tr:hover {
     background-color: #f8f9fa;
 }
@@ -179,7 +176,6 @@ html, body {
     height: 28px;
 }
 
-/* === ANCHOS DE COLUMNAS === */
 .cargar-table th:nth-child(1), .cargar-table td:nth-child(1) { width: 60px; min-width: 60px; max-width: 120px; }
 .cargar-table th:nth-child(2), .cargar-table td:nth-child(2) { width: 80px; min-width: 80px; max-width: 160px; }
 .cargar-table th:nth-child(3), .cargar-table td:nth-child(3) { width: 90px; min-width: 90px; max-width: 180px; }
@@ -204,7 +200,6 @@ html, body {
 .cargar-table th:nth-child(22), .cargar-table td:nth-child(22) { width: 80px; min-width: 80px; max-width: 160px; }
 .cargar-table th:nth-child(23), .cargar-table td:nth-child(23) { width: 80px; min-width: 80px; max-width: 160px; }
 
-/* === NÚMEROS A LA DERECHA === */
 .cargar-table td:nth-child(7),
 .cargar-table td:nth-child(18),
 .cargar-table td:nth-child(19),
@@ -215,7 +210,6 @@ html, body {
     font-family: monospace;
 }
 
-/* === COLUMNA 1: CHECKBOX + HISTORIAL === */
 .cargar-table th:nth-child(1),
 .cargar-table td:nth-child(1) {
     text-align: center;
@@ -260,7 +254,6 @@ html, body {
     background-color: #138496;
 }
 
-/* === COLUMNA 23: ACCIONES === */
 .cargar-table th:nth-child(23),
 .cargar-table td:nth-child(23) {
     text-align: center;
@@ -309,7 +302,6 @@ html, body {
     background-color: #c82333;
 }
 
-/* === FILA SELECCIONADA === */
 .row-selected {
     background-color: #e3f2fd !important;
 }
@@ -324,7 +316,6 @@ html, body {
     vertical-align: middle;
 }
 
-/* === BOTÓN CAMBIAR ESTADO === */
 .btn-cambiar-estado {
     padding: 6px 14px;
     font-size: 13px;
@@ -355,7 +346,6 @@ html, body {
     margin-left: 0 !important;
 }
 
-/* === MODALES === */
 .modal {
     position: fixed;
     top: 0;
@@ -504,7 +494,6 @@ html, body {
     background-color: #c82333;
 }
 
-/* === PAGINACIÓN Y TOAST === */
 .cargar-pagination {
     display: flex;
     justify-content: space-between;
@@ -551,7 +540,6 @@ html, body {
 .cargar-toast.success { background-color: #28a745; }
 .cargar-toast.error { background-color: #dc3545; }
 
-/* === LOADING === */
 .loading-modal {
     display: none;
     position: fixed;
@@ -593,7 +581,6 @@ html, body {
     100% { transform: rotate(360deg); }
 }
 
-/* === RESPONSIVE === */
 @media screen and (max-width: 1200px) {
     .cargar-search-row { flex-wrap: wrap; }
     .cargar-form-group { max-width: 100%; min-width: 200px; }
@@ -604,7 +591,6 @@ html, body {
     .cargar-form-group { min-width: 100%; }
 }
 
-/* === MODAL EDITAR === */
 #editModal .modal-content {
     max-width: 900px;
     width: 95%;

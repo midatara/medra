@@ -65,7 +65,6 @@ export async function completarDatosCargas(cargas) {
             if (Object.keys(updates).length > 0) {
                 const cargaRef = doc(db, "cargas_consignaciones", c.id);
                 await updateDoc(cargaRef, updates);
-                console.log(`Rellenado carga ${c.id}:`, updates);
             }
 
             return {
