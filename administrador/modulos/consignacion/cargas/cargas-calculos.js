@@ -7,9 +7,6 @@ export function initCalculosDb(database) {
     db = database;
 }
 
-/**
- * Calcula el margen según el precio unitario (solo para Consignación)
- */
 function calcularMargen(precio) {
     if (!precio || isNaN(precio)) return null;
     const p = Number(precio);
@@ -25,71 +22,62 @@ function calcularMargen(precio) {
     return null;
 }
 
-/**
- * Extrae el factor decimal de un string de porcentaje: "500%" → 5.0
- */
 function parsePorcentaje(porcentajeStr) {
     if (!porcentajeStr) return 0;
     const match = porcentajeStr.toString().trim().match(/([\d.]+)%?/);
     return match ? parseFloat(match[1]) / 100 : 0;
 }
 
-/**
- * Calcula la VENTA según los 3 requisitos EXACTOS:
- * 1. Consignación → usa margen calculado (500%, 400%, etc)
- * 2. Cotización + ISL → 100%
- * 3. Cotización + otra previsión → 30%
- */
 function calcularVenta(carga) {
     const { precio, cantidad, atributo, prevision } = carga;
     const p = Number(precio);
     const c = Number(cantidad);
-    const attr = (atributo || "").toString().trim();
-    const prev = (prevision || "").toString().trim().toUpperCase();
 
-    // Validación básica
+    const attr = (atributo || "")
+        .toString()
+        .trim()
+        .toUpperCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+
+    const prev = (prevision || "")
+        .toString()
+        .trim()
+        .toUpperCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+
     if (isNaN(p) || isNaN(c) || p <= 0 || c <= 0) return null;
 
     let factor = 0;
 
-    if (attr === "Consignación") {
-        // Usa el margen calculado (ej: "500%")
+    if (attr === "CONSIGNACION") {
         const margenStr = carga.margen?.toString().trim();
         const match = margenStr?.match(/([\d.]+)%?/);
         if (!match) return null;
-        factor = parseFloat(match[1]) / 100; // "500%" → 5.0
+        factor = parseFloat(match[1]) / 100;
     } 
-    else if (attr === "Cotización") {
-        if (prev === "ISL") {
-            factor = 1.0; // 100%
-        } else {
-            factor = 0.3; // 30%
-        }
+    else if (attr === "COTIZACION") {
+        factor = prev === "ISL" ? 1.0 : 0.3;
     } 
     else {
-        return null; // No aplica (otro atributo)
+        return null;
     }
 
-    // Fórmula: (precio + precio * factor) * cantidad
     const precioConIncremento = p + (p * factor);
     return Math.round(precioConIncremento * c * 100) / 100;
 }
 
-/**
- * Procesa márgenes y ventas para todas las cargas
- */
 export async function procesarMargenes(cargas) {
     if (!cargas || cargas.length === 0 || !db) return cargas;
 
     const promesas = cargas.map(async (c) => {
         let needsUpdate = false;
         const updates = {};
-
         const precio = Number(c.precio);
         const margenActual = c.margen?.toString().trim();
         const margenCalculado = calcularMargen(precio);
 
-        // === 1. ACTUALIZAR MÁRGEN (solo para Consignación) ===
         if (!margenCalculado) {
             if (margenActual && margenActual !== '') {
                 updates.margen = '';
@@ -102,7 +90,6 @@ export async function procesarMargenes(cargas) {
             needsUpdate = true;
         }
 
-        // === 2. ACTUALIZAR VENTA ===
         const ventaCalculada = calcularVenta(c);
         const ventaActual = c.venta != null ? Number(c.venta) : null;
 
@@ -120,7 +107,6 @@ export async function procesarMargenes(cargas) {
             }
         }
 
-        // === 3. GUARDAR EN FIRESTORE SI HAY CAMBIOS ===
         if (needsUpdate) {
             try {
                 const cargaRef = doc(db, "cargas_consignaciones", c.id);
