@@ -117,7 +117,7 @@ async function cambiarEstadoMasivo(nuevoEstado) {
             if (selectedCargaIds.has(c.id)) {
                 c.estado = nuevoEstado;
                 c._estado = normalizeText(nuevoEstado);
-                if (nuevoEstado === 'CARGADO' && !c.fechaCarga) {
+                if (nuevoEstado === 'CARGADO' && !carga.fechaCarga) {
                     c.fechaCarga = new Date();
                 }
             }
@@ -137,7 +137,7 @@ async function cambiarEstadoMasivo(nuevoEstado) {
     }
 }
 
-/* === MODAL EDITAR (SEGURO) === */
+/* === MODAL EDITAR (CON CÁLCULO EN TIEMPO REAL) === */
 async function openEditModal(id) {
     const carga = allCargasDelMes.find(c => c.id === id);
     if (!carga) return showToast('Registro no encontrado', 'error');
@@ -170,17 +170,46 @@ async function openEditModal(id) {
     setValue('editPrecio', carga.precio ?? 0);
     setValue('editAtributo', normalizeText(carga.atributo || '').toUpperCase());
 
-    setValue('editVenta', carga.venta != null ? formatNumberWithThousandsSeparator(carga.venta) : '');
-    setValue('editMargen', carga.margen ?? '');
-    setValue('editTotalItem', carga.totalItem != null ? formatNumberWithThousandsSeparator(carga.totalItem) : '');
+    // === CÁLCULO EN TIEMPO REAL ===
+    const recalcularCampos = () => {
+        const precio = parseFloat(document.getElementById('editPrecio')?.value) || 0;
+        const cantidad = parseFloat(document.getElementById('editCantidadProducto')?.value) || 0;
+        const totalItem = precio * cantidad;
+
+        const margen = typeof calcularMargen === 'function' ? calcularMargen(precio) : '';
+        const tempCarga = { ...carga, precio, cantidadProducto: cantidad };
+        const venta = typeof calcularVenta === 'function' ? calcularVenta(tempCarga) : 0;
+
+        const setDisplay = (id, value, format = false) => {
+            const el = document.getElementById(id);
+            if (el) el.value = format ? formatNumberWithThousandsSeparator(value) : value;
+        };
+
+        setDisplay('editTotalItem', totalItem, true);
+        setDisplay('editMargen', margen);
+        setDisplay('editVenta', venta, true);
+    };
+
+    // Ejecutar al abrir
+    recalcularCampos();
+
+    // === EVENTOS EN TIEMPO REAL ===
+    const inputs = ['editPrecio', 'editCantidadProducto'];
+    inputs.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.removeEventListener('input', recalcularCampos);
+            el.addEventListener('input', recalcularCampos);
+        }
+    });
 
     modal.classList.add('show');
 }
 
 async function saveEdit() {
     const idEl = document.getElementById('editId');
-    if (!idEl) return showToast('ID no encontrado', 'error');
-    const id = idEl.value;
+    if (!idEl || !idEl.value) return showToast('ID no encontrado', 'error');
+    const id = idEl.value.trim();
     const carga = allCargasDelMes.find(c => c.id === id);
     if (!carga) return showToast('Registro no encontrado', 'error');
 
@@ -213,6 +242,7 @@ async function saveEdit() {
             atributo: getValue('editAtributo')
         };
 
+        // Recalcular campos derivados
         updateData.totalItem = updateData.precio * updateData.cantidadProducto;
         updateData.margen = typeof calcularMargen === 'function' ? calcularMargen(updateData.precio) : '';
         const tempCarga = { ...carga, ...updateData };
