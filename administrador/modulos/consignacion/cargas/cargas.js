@@ -5,7 +5,6 @@ import {
 import {
     getFirestore, collection, getDocs, query, where, orderBy, doc, updateDoc, deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
-
 const firebaseConfig = {
     apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
     authDomain: "datara-salud.firebaseapp.com",
@@ -14,20 +13,16 @@ const firebaseConfig = {
     messagingSenderId: "198886910481",
     appId: "1:198886910481:web:abbc345203a423a6329fb0"
 };
-
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 setPersistence(auth, browserSessionPersistence);
-
 import('./cargas-reportes.js').then(module => {
     module.initReportesDb(db);
 });
-
 import('./cargas-calculos.js').then(module => {
     module.initCalculosDb(db);
 });
-
 let allCargasDelMes = [];
 let cargas = [];
 let currentPage = 1;
@@ -35,13 +30,11 @@ const PAGE_SIZE = 50;
 let selectedYear = null;
 let selectedMonth = null;
 let selectedCargaIds = new Set();
-
 const searchFilters = {
     estado: '',
     admision: '',
     paciente: ''
 };
-
 const loading = document.getElementById('loading');
 window.showLoading = () => {
     if (loading) loading.classList.add('show');
@@ -49,7 +42,6 @@ window.showLoading = () => {
 window.hideLoading = () => {
     if (loading) loading.classList.remove('show');
 };
-
 function normalizeText(text) {
     return text?.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") || '';
 }
@@ -86,13 +78,11 @@ function showToast(text, type = 'success') {
         setTimeout(() => toast.remove(), 300);
     }, 4000);
 }
-
 function updateCambiarEstadoButton() {
     const container = document.getElementById('cambiarEstadoContainer');
     if (!container) return;
     container.style.display = selectedCargaIds.size > 0 ? 'block' : 'none';
 }
-
 async function cambiarEstadoMasivo(nuevoEstado) {
     if (selectedCargaIds.size === 0) return;
     window.showLoading();
@@ -100,18 +90,14 @@ async function cambiarEstadoMasivo(nuevoEstado) {
         const updates = Array.from(selectedCargaIds).map(id => {
             const carga = allCargasDelMes.find(c => c.id === id);
             if (!carga) return null;
-
             const updateData = { estado: nuevoEstado };
             if (nuevoEstado === 'CARGADO' && !carga.fechaCarga) {
                 updateData.fechaCarga = new Date();
             }
-
             const ref = doc(db, "cargas_consignaciones", id);
             return updateDoc(ref, updateData);
         }).filter(Boolean);
-
         await Promise.all(updates);
-
         allCargasDelMes.forEach(c => {
             if (selectedCargaIds.has(c.id)) {
                 c.estado = nuevoEstado;
@@ -121,7 +107,6 @@ async function cambiarEstadoMasivo(nuevoEstado) {
                 }
             }
         });
-
         selectedCargaIds.clear();
         updateCambiarEstadoButton();
         const selectAll = document.getElementById('selectAll');
@@ -135,20 +120,15 @@ async function cambiarEstadoMasivo(nuevoEstado) {
         window.hideLoading();
     }
 }
-
-/* === MODAL EDITAR (CÁLCULO EN TIEMPO REAL + FECHA CORRECTA) === */
 async function openEditModal(id) {
     const carga = allCargasDelMes.find(c => c.id === id);
     if (!carga) return showToast('Registro no encontrado', 'error');
-
     const modal = document.getElementById('editModal');
     if (!modal) return showToast('Error: Modal no encontrado', 'error');
-
     const setValue = (id, value) => {
         const el = document.getElementById(id);
         if (el) el.value = value ?? '';
     };
-
     setValue('editId', carga.id);
     setValue('editReferencia', carga.referencia);
     setValue('editCodigo', carga.codigo || carga.codigoProducto || '');
@@ -157,53 +137,48 @@ async function openEditModal(id) {
     setValue('editAdmision', carga.admision);
     setValue('editPaciente', carga.paciente);
     setValue('editMedico', carga.medico);
-
-    // === FECHA CX: yyyy-mm-dd (CORRECTO) ===
     let fechaCX = '';
     if (carga.fechaCX) {
         const d = carga.fechaCX.toDate ? carga.fechaCX.toDate() : new Date(carga.fechaCX);
         if (!isNaN(d)) {
-            fechaCX = d.toISOString().split('T')[0]; // → 2025-11-04
+            fechaCX = d.toISOString().split('T')[0];
         }
     }
     setValue('editFechaCX', fechaCX);
-
     setValue('editProveedor', carga.proveedor);
     setValue('editDescripcion', carga.descripcion);
     setValue('editCantidadProducto', carga.cantidadProducto ?? carga.cantidad ?? 0);
     setValue('editPrecio', carga.precio ?? 0);
     setValue('editAtributo', normalizeText(carga.atributo || '').toUpperCase());
-
-    // === CÁLCULO EN TIEMPO REAL ===
     const recalcularCampos = () => {
         const precio = parseFloat(document.getElementById('editPrecio')?.value) || 0;
         const cantidad = parseFloat(document.getElementById('editCantidadProducto')?.value) || 0;
+        const prevision = document.getElementById('editPrevision')?.value || '';
+        const atributo = document.getElementById('editAtributo')?.value || '';
         const totalItem = precio * cantidad;
-
         const margen = calcularMargen(precio);
         const tempCarga = {
-            ...carga,
             precio,
             cantidadProducto: cantidad,
             cantidad,
-            prevision: document.getElementById('editPrevision')?.value || '',
-            atributo: document.getElementById('editAtributo')?.value || '',
+            prevision,
+            atributo,
             margen
         };
         const venta = calcularVenta(tempCarga);
-
         const setDisplay = (id, value, format = false) => {
             const el = document.getElementById(id);
-            if (el) el.value = format ? formatNumberWithThousandsSeparator(value) : value;
+            if (el) {
+                el.value = format
+                    ? (value != null ? formatNumberWithThousandsSeparator(value) : '-')
+                    : (value ?? '-');
+            }
         };
-
         setDisplay('editTotalItem', totalItem, true);
         setDisplay('editMargen', margen || '-');
         setDisplay('editVenta', venta != null ? venta : '-', true);
     };
-
-    recalcularCampos();
-
+    setTimeout(recalcularCampos, 50);
     const inputs = ['editPrecio', 'editCantidadProducto', 'editPrevision', 'editAtributo'];
     inputs.forEach(id => {
         const el = document.getElementById(id);
@@ -212,10 +187,8 @@ async function openEditModal(id) {
             el.addEventListener('input', recalcularCampos);
         }
     });
-
     modal.classList.add('show');
 }
-
 async function saveEdit() {
     const idEl = document.getElementById('editId');
     if (!idEl || !idEl.value) {
@@ -225,21 +198,17 @@ async function saveEdit() {
     const id = idEl.value.trim();
     const carga = allCargasDelMes.find(c => c.id === id);
     if (!carga) return showToast('Registro no encontrado', 'error');
-
     window.showLoading();
     try {
         const getValue = (id) => {
             const el = document.getElementById(id);
             return el ? el.value.trim() : '';
         };
-
         const codigo = getValue('editCodigo');
         const cantidad = parseFloat(getValue('editCantidadProducto')) || 0;
         const precio = parseFloat(getValue('editPrecio')) || 0;
         const prevision = getValue('editPrevision');
         const atributo = getValue('editAtributo');
-
-        // === FECHA CX: yyyy-mm-dd → Date (CORRECTO) ===
         let fechaCX = carga.fechaCX;
         const fechaInput = getValue('editFechaCX');
         if (fechaInput) {
@@ -247,7 +216,6 @@ async function saveEdit() {
             fechaCX = new Date(year, month - 1, day);
             if (isNaN(fechaCX)) fechaCX = carga.fechaCX;
         }
-
         const updateData = {
             referencia: getValue('editReferencia'),
             codigo: codigo,
@@ -270,16 +238,19 @@ async function saveEdit() {
             atributo: atributo,
             _prevision: normalizeText(prevision)
         };
-
-        // === RECÁLCULO FINAL ===
         updateData.totalItem = precio * cantidad;
         updateData.margen = calcularMargen(precio) || '';
-        const tempCarga = { ...carga, ...updateData };
+        const tempCarga = {
+            precio,
+            cantidadProducto: cantidad,
+            cantidad,
+            prevision,
+            atributo,
+            margen: updateData.margen
+        };
         updateData.venta = calcularVenta(tempCarga);
-
         const ref = doc(db, "cargas_consignaciones", id);
         await updateDoc(ref, updateData);
-
         Object.assign(carga, updateData);
         showToast('Cambios guardados', 'success');
         const modal = document.getElementById('editModal');
@@ -292,8 +263,6 @@ async function saveEdit() {
         window.hideLoading();
     }
 }
-
-/* === MODAL ELIMINAR === */
 let deleteId = null;
 function openDeleteModal(id) {
     deleteId = id;
@@ -321,8 +290,6 @@ async function confirmDelete() {
         deleteId = null;
     }
 }
-
-/* === RESTO DEL CÓDIGO (100% INTACTO) === */
 async function loadAniosYMeses() {
     window.showLoading();
     try {
@@ -366,7 +333,6 @@ async function loadAniosYMeses() {
         window.hideLoading();
     }
 }
-
 async function renderMesesButtons(mesesSet) {
     const container = document.getElementById('mesesContainer');
     container.innerHTML = '';
@@ -404,7 +370,6 @@ async function renderMesesButtons(mesesSet) {
     }
     await loadCargas();
 }
-
 async function loadCargas() {
     window.showLoading();
     try {
@@ -432,7 +397,6 @@ async function loadCargas() {
                 cirugiaSeleccionada: data.cirugiaSeleccionada || ''
             };
         });
-
         let cargasProcesadas = cargasBase;
         try {
             const { completarDatosCargas } = await import('./cargas-reportes.js');
@@ -440,7 +404,6 @@ async function loadCargas() {
         } catch (err) {
             console.error('Error al completar datos de reportes:', err);
         }
-
         try {
             const { procesarMargenes } = await import('./cargas-calculos.js');
             allCargasDelMes = await procesarMargenes(cargasProcesadas);
@@ -448,7 +411,6 @@ async function loadCargas() {
             console.error('Error al calcular márgenes:', err);
             allCargasDelMes = cargasProcesadas;
         }
-
         selectedCargaIds.clear();
         updateCambiarEstadoButton();
         currentPage = 1;
@@ -461,7 +423,6 @@ async function loadCargas() {
         window.hideLoading();
     }
 }
-
 async function applyFiltersAndPaginateAsync() {
     return new Promise(resolve => applyFiltersAndPaginate(resolve));
 }
@@ -470,7 +431,6 @@ function applyFiltersAndPaginate(callback = null) {
     if (searchFilters.estado) filtered = filtered.filter(c => c._estado.includes(searchFilters.estado));
     if (searchFilters.admision) filtered = filtered.filter(c => c._admision.includes(searchFilters.admision));
     if (searchFilters.paciente) filtered = filtered.filter(c => c._paciente.includes(searchFilters.paciente));
-
     const startIdx = (currentPage - 1) * PAGE_SIZE;
     const endIdx = startIdx + PAGE_SIZE;
     cargas = filtered.slice(startIdx, endIdx);
@@ -496,7 +456,6 @@ const debouncedLoad = debounce(() => {
     currentPage = 1;
     applyFiltersAndPaginate();
 }, 300);
-
 function renderTable(callback = null) {
     const tbody = document.querySelector('#cargarTable tbody');
     if (!tbody) {
@@ -552,7 +511,6 @@ function renderTable(callback = null) {
         </tr>
     `).join('');
     tbody.innerHTML = html;
-
     document.querySelectorAll('.row-checkbox').forEach(cb => {
         cb.addEventListener('change', e => {
             const id = e.target.dataset.id;
@@ -580,7 +538,6 @@ function renderTable(callback = null) {
         requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(callback, 100)));
     }
 }
-
 function setupColumnResize() {
     const headers = document.querySelectorAll('.cargar-table th');
     const initialWidths = [60, 80, 90, 100, 60, 90, 70, 80, 90, 110, 80, 150, 140, 90, 120, 90, 200, 70, 80, 80, 90, 80, 80];
@@ -630,7 +587,6 @@ function setupColumnResize() {
         document.addEventListener('touchend', stop);
     });
 }
-
 function actualizarSelectEstados() {
     const select = document.getElementById('buscarEstado');
     if (!select || !allCargasDelMes.length) {
@@ -651,8 +607,6 @@ function actualizarSelectEstados() {
         select.appendChild(opt);
     });
 }
-
-/* === DOMContentLoaded === */
 document.addEventListener('DOMContentLoaded', () => {
     const inputs = [
         { id: 'buscarEstado', filter: 'estado', event: 'change' },
@@ -668,7 +622,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
     });
-
     const anioSelect = document.getElementById('anioSelect');
     if (anioSelect) {
         anioSelect.addEventListener('change', async e => {
@@ -695,7 +648,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-
     const modalEstado = document.getElementById('cambiarEstadoModal');
     const btnCambiar = document.getElementById('btnCambiarEstado');
     if (btnCambiar && modalEstado) {
@@ -711,7 +663,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-
     const editModal = document.getElementById('editModal');
     if (editModal) {
         editModal.addEventListener('click', e => { if (e.target === editModal) editModal.classList.remove('show'); });
@@ -719,7 +670,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('cancelEdit')?.addEventListener('click', () => editModal.classList.remove('show'));
         document.getElementById('saveEdit')?.addEventListener('click', saveEdit);
     }
-
     const deleteModal = document.getElementById('deleteModal');
     if (deleteModal) {
         deleteModal.addEventListener('click', e => { if (e.target === deleteModal) deleteModal.classList.remove('show'); });
@@ -727,7 +677,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('cancelDelete')?.addEventListener('click', () => deleteModal.classList.remove('show'));
         document.getElementById('confirmDelete')?.addEventListener('click', confirmDelete);
     }
-
     const tbody = document.querySelector('#cargarTable tbody');
     if (tbody) {
         tbody.addEventListener('click', e => {
@@ -737,23 +686,19 @@ document.addEventListener('DOMContentLoaded', () => {
             else if (deleteBtn) openDeleteModal(deleteBtn.dataset.id);
         });
     }
-
     setupColumnResize();
     onAuthStateChanged(auth, user => {
         loadAniosYMeses();
     });
 });
-
-// === CARGAR FUNCIONES DE CÁLCULO AL INICIO ===
 let calcularMargen = () => '';
-let calcularVenta = () => 0;
+let calcularVenta = () => null;
 (async () => {
     try {
         const mod = await import('./cargas-calculos.js');
         calcularMargen = mod.calcularMargen || calcularMargen;
         calcularVenta = mod.calcularVenta || calcularVenta;
-        console.log('Funciones de cálculo cargadas');
     } catch (err) {
-        console.warn('No se cargaron funciones de cálculo:', err);
+        console.error('Error crítico: no se cargaron funciones de cálculo', err);
     }
 })();
