@@ -59,8 +59,13 @@ function escapeHtml(text) {
     return text?.toString().replace(/[&<>"']/g, m => map[m]) || '';
 }
 function formatNumberWithThousandsSeparator(number) {
-    if (!number) return '';
-    return Number(number).toLocaleString('es-CL');
+    if (!number && number !== 0) return '';
+    const num = Number(number);
+    if (isNaN(num)) return '';
+    return Math.round(num).toLocaleString('es-CL', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    }).replace(/,/g, '.');
 }
 function debounce(func, wait) {
     let timeout;
