@@ -136,7 +136,7 @@ async function cambiarEstadoMasivo(nuevoEstado) {
     }
 }
 
-/* === MODAL EDITAR (SIMPLIFICADO + CÁLCULO EN TIEMPO REAL) === */
+/* === MODAL EDITAR (CÁLCULO EN TIEMPO REAL + FECHA CORRECTA) === */
 async function openEditModal(id) {
     const carga = allCargasDelMes.find(c => c.id === id);
     if (!carga) return showToast('Registro no encontrado', 'error');
@@ -151,13 +151,23 @@ async function openEditModal(id) {
 
     setValue('editId', carga.id);
     setValue('editReferencia', carga.referencia);
-    setValue('editCodigo', carga.codigo || carga.codigoProducto || ''); // Prioriza uno
+    setValue('editCodigo', carga.codigo || carga.codigoProducto || '');
     setValue('editPrevision', carga.prevision);
     setValue('editConvenio', carga.convenio);
     setValue('editAdmision', carga.admision);
     setValue('editPaciente', carga.paciente);
     setValue('editMedico', carga.medico);
-    setValue('editFechaCX', carga.fechaCX ? carga.fechaCX.toISOString().split('T')[0] : '');
+
+    // === FECHA CX: yyyy-mm-dd (CORRECTO) ===
+    let fechaCX = '';
+    if (carga.fechaCX) {
+        const d = carga.fechaCX.toDate ? carga.fechaCX.toDate() : new Date(carga.fechaCX);
+        if (!isNaN(d)) {
+            fechaCX = d.toISOString().split('T')[0]; // → 2025-11-04
+        }
+    }
+    setValue('editFechaCX', fechaCX);
+
     setValue('editProveedor', carga.proveedor);
     setValue('editDescripcion', carga.descripcion);
     setValue('editCantidadProducto', carga.cantidadProducto ?? carga.cantidad ?? 0);
@@ -170,9 +180,17 @@ async function openEditModal(id) {
         const cantidad = parseFloat(document.getElementById('editCantidadProducto')?.value) || 0;
         const totalItem = precio * cantidad;
 
-        const margen = typeof calcularMargen === 'function' ? calcularMargen(precio) : '';
-        const tempCarga = { ...carga, precio, cantidadProducto: cantidad, cantidad };
-        const venta = typeof calcularVenta === 'function' ? calcularVenta(tempCarga) : 0;
+        const margen = calcularMargen(precio);
+        const tempCarga = {
+            ...carga,
+            precio,
+            cantidadProducto: cantidad,
+            cantidad,
+            prevision: document.getElementById('editPrevision')?.value || '',
+            atributo: document.getElementById('editAtributo')?.value || '',
+            margen
+        };
+        const venta = calcularVenta(tempCarga);
 
         const setDisplay = (id, value, format = false) => {
             const el = document.getElementById(id);
@@ -180,13 +198,13 @@ async function openEditModal(id) {
         };
 
         setDisplay('editTotalItem', totalItem, true);
-        setDisplay('editMargen', margen);
-        setDisplay('editVenta', venta, true);
+        setDisplay('editMargen', margen || '-');
+        setDisplay('editVenta', venta != null ? venta : '-', true);
     };
 
     recalcularCampos();
 
-    const inputs = ['editPrecio', 'editCantidadProducto'];
+    const inputs = ['editPrecio', 'editCantidadProducto', 'editPrevision', 'editAtributo'];
     inputs.forEach(id => {
         const el = document.getElementById(id);
         if (el) {
@@ -201,7 +219,7 @@ async function openEditModal(id) {
 async function saveEdit() {
     const idEl = document.getElementById('editId');
     if (!idEl || !idEl.value) {
-        console.error('Falta #editId o está vacío');
+        console.error('Falta #editId');
         return showToast('Error: ID no válido', 'error');
     }
     const id = idEl.value.trim();
@@ -217,14 +235,26 @@ async function saveEdit() {
 
         const codigo = getValue('editCodigo');
         const cantidad = parseFloat(getValue('editCantidadProducto')) || 0;
+        const precio = parseFloat(getValue('editPrecio')) || 0;
+        const prevision = getValue('editPrevision');
+        const atributo = getValue('editAtributo');
+
+        // === FECHA CX: yyyy-mm-dd → Date (CORRECTO) ===
+        let fechaCX = carga.fechaCX;
+        const fechaInput = getValue('editFechaCX');
+        if (fechaInput) {
+            const [year, month, day] = fechaInput.split('-');
+            fechaCX = new Date(year, month - 1, day);
+            if (isNaN(fechaCX)) fechaCX = carga.fechaCX;
+        }
 
         const updateData = {
             referencia: getValue('editReferencia'),
             codigo: codigo,
-            codigoProducto: codigo, // ← SE GUARDA EN AMBOS
+            codigoProducto: codigo,
             cantidad: cantidad,
-            cantidadProducto: cantidad, // ← SE GUARDA EN AMBOS
-            prevision: getValue('editPrevision'),
+            cantidadProducto: cantidad,
+            prevision: prevision,
             convenio: getValue('editConvenio'),
             admision: getValue('editAdmision'),
             _admision: normalizeText(getValue('editAdmision')),
@@ -232,20 +262,20 @@ async function saveEdit() {
             _paciente: normalizeText(getValue('editPaciente')),
             medico: getValue('editMedico'),
             _medico: normalizeText(getValue('editMedico')),
-            fechaCX: getValue('editFechaCX') ? new Date(getValue('editFechaCX')) : carga.fechaCX,
+            fechaCX: fechaCX,
             proveedor: getValue('editProveedor'),
             _proveedor: normalizeText(getValue('editProveedor')),
             descripcion: getValue('editDescripcion'),
-            precio: parseFloat(getValue('editPrecio')) || 0,
-            atributo: getValue('editAtributo')
+            precio: precio,
+            atributo: atributo,
+            _prevision: normalizeText(prevision)
         };
 
-        // Recalcular
-        updateData.totalItem = updateData.precio * updateData.cantidadProducto;
-        updateData.margen = typeof calcularMargen === 'function' ? calcularMargen(updateData.precio) : '';
+        // === RECÁLCULO FINAL ===
+        updateData.totalItem = precio * cantidad;
+        updateData.margen = calcularMargen(precio) || '';
         const tempCarga = { ...carga, ...updateData };
-        updateData.venta = typeof calcularVenta === 'function' ? calcularVenta(tempCarga) : carga.venta;
-        updateData._prevision = normalizeText(updateData.prevision);
+        updateData.venta = calcularVenta(tempCarga);
 
         const ref = doc(db, "cargas_consignaciones", id);
         await updateDoc(ref, updateData);
@@ -714,7 +744,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// === FALLBACK CÁLCULOS ===
+// === CARGAR FUNCIONES DE CÁLCULO AL INICIO ===
 let calcularMargen = () => '';
 let calcularVenta = () => 0;
 (async () => {
@@ -722,6 +752,7 @@ let calcularVenta = () => 0;
         const mod = await import('./cargas-calculos.js');
         calcularMargen = mod.calcularMargen || calcularMargen;
         calcularVenta = mod.calcularVenta || calcularVenta;
+        console.log('Funciones de cálculo cargadas');
     } catch (err) {
         console.warn('No se cargaron funciones de cálculo:', err);
     }

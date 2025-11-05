@@ -7,7 +7,7 @@ export function initCalculosDb(database) {
 }
 
 function calcularMargen(precio) {
-    if (!precio || isNaN(precio)) return null;
+    if (!precio || isNaN(precio)) return '';
     const p = Number(precio);
     if (p < 301) return "500%";
     if (p < 1001) return "400%";
@@ -18,7 +18,7 @@ function calcularMargen(precio) {
     if (p < 100001) return "140%";
     if (p < 200001) return "80%";
     if (p < 10000000) return "50%";
-    return null;
+    return '';
 }
 
 function parsePorcentaje(porcentajeStr) {
