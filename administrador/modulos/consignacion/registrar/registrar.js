@@ -12,7 +12,7 @@ window.showLoading = function (caller = 'unknown') {
     if (!loading) return;
     loadingCounter++;
     loading.classList.add('show');
-    setTimeout(() => {}, 10);
+    setTimeout(() => { }, 10);
 };
 
 window.hideLoading = function (caller = 'unknown') {
@@ -240,7 +240,7 @@ function setupAtributoFilter() {
         const normalized = normalizeText(nuevoAtributo);
         if (atributoFilter === normalized) return;
         ['codigo', 'descripcion', 'referencia', 'proveedor', 'precioUnitario', 'atributo', 'totalItems',
-         'editCodigo', 'editDescripcion', 'editReferencia', 'editProveedor', 'editPrecioUnitario', 'editAtributo', 'editTotalItems']
+            'editCodigo', 'editDescripcion', 'editReferencia', 'editProveedor', 'editPrecioUnitario', 'editAtributo', 'editTotalItems']
             .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
         ['codigoDropdown', 'descripcionDropdown', 'editCodigoDropdown', 'editDescripcionDropdown']
             .forEach(id => { const d = document.getElementById(id); if (d) d.style.display = 'none'; });
@@ -612,10 +612,10 @@ function renderTable() {
             loadRegistros();
         });
     }
-    
+
     if (window.updateTraspasarButton) {
-    window.updateTraspasarButton(registros.length > 0);
-}
+        window.updateTraspasarButton(registros.length > 0);
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -686,104 +686,101 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentDeleteId = null;
     let currentDeleteAdmision = null;
 
-    // === VERIFICACIÓN DE DOC DELIVERY CON FOLIO REFERENCIA ===
-const docDeliveryInput = document.getElementById('docDelivery');
-const guiaStatusSpan = document.getElementById('guiaStatus');
+    const docDeliveryInput = document.getElementById('docDelivery');
+    const guiaStatusSpan = document.getElementById('guiaStatus');
 
-let docDeliveryDebounce = null;
+    let docDeliveryDebounce = null;
 
-if (docDeliveryInput && guiaStatusSpan) {
-    docDeliveryInput.addEventListener('input', (e) => {
-        const valor = normalizeText(e.target.value);
-        clearTimeout(docDeliveryDebounce);
-        guiaStatusSpan.textContent = 'Buscando...';
-        guiaStatusSpan.style.color = '#999';
+    if (docDeliveryInput && guiaStatusSpan) {
+        docDeliveryInput.addEventListener('input', (e) => {
+            const valor = normalizeText(e.target.value);
+            clearTimeout(docDeliveryDebounce);
+            guiaStatusSpan.textContent = 'Buscando...';
+            guiaStatusSpan.style.color = '#999';
 
-        if (!valor) {
-            guiaStatusSpan.textContent = '';
-            return;
-        }
+            if (!valor) {
+                guiaStatusSpan.textContent = '';
+                return;
+            }
 
-        docDeliveryDebounce = setTimeout(async () => {
-            try {
-                const q = query(
-                    collection(db, "guias_medtronic"),
-                    where("folioRef", "==", valor)
-                );
-                const snapshot = await getDocs(q);
+            docDeliveryDebounce = setTimeout(async () => {
+                try {
+                    const q = query(
+                        collection(db, "guias_medtronic"),
+                        where("folioRef", "==", valor)
+                    );
+                    const snapshot = await getDocs(q);
 
-                if (!snapshot.empty) {
-                    const guia = snapshot.docs[0].data();
-                    guiaStatusSpan.textContent = `Folio: ${guia.folio || 'N/A'}`;
-                    guiaStatusSpan.style.color = 'green';
-                } else {
-                    guiaStatusSpan.textContent = 'Documento no encontrado';
+                    if (!snapshot.empty) {
+                        const guia = snapshot.docs[0].data();
+                        guiaStatusSpan.textContent = `Folio: ${guia.folio || 'N/A'}`;
+                        guiaStatusSpan.style.color = 'green';
+                    } else {
+                        guiaStatusSpan.textContent = 'Documento no encontrado';
+                        guiaStatusSpan.style.color = 'red';
+                    }
+                } catch (error) {
+                    console.error('Error verificando docDelivery:', error);
+                    guiaStatusSpan.textContent = 'Error';
                     guiaStatusSpan.style.color = 'red';
                 }
-            } catch (error) {
-                console.error('Error verificando docDelivery:', error);
-                guiaStatusSpan.textContent = 'Error';
-                guiaStatusSpan.style.color = 'red';
+            }, 500); 
+        });
+
+        docDeliveryInput.addEventListener('focus', () => {
+            if (!docDeliveryInput.value.trim()) {
+                guiaStatusSpan.textContent = '';
             }
-        }, 500); // debounce 500ms
-    });
+        });
+    }
 
-    // Limpiar al enfocar si está vacío
-    docDeliveryInput.addEventListener('focus', () => {
-        if (!docDeliveryInput.value.trim()) {
-            guiaStatusSpan.textContent = '';
-        }
-    });
-}
+    const editDocDeliveryInput = document.getElementById('editDocDelivery');
+    const editGuiaStatusSpan = document.getElementById('editGuiaStatus');
 
-// === PARA EL MODAL DE EDICIÓN ===
-const editDocDeliveryInput = document.getElementById('editDocDelivery');
-const editGuiaStatusSpan = document.getElementById('editGuiaStatus');
+    let editDocDeliveryDebounce = null;
 
-let editDocDeliveryDebounce = null;
+    if (editDocDeliveryInput && editGuiaStatusSpan) {
+        editDocDeliveryInput.addEventListener('input', (e) => {
+            const valor = normalizeText(e.target.value);
+            clearTimeout(editDocDeliveryDebounce);
+            editGuiaStatusSpan.textContent = 'Buscando...';
+            editGuiaStatusSpan.style.color = '#999';
 
-if (editDocDeliveryInput && editGuiaStatusSpan) {
-    editDocDeliveryInput.addEventListener('input', (e) => {
-        const valor = normalizeText(e.target.value);
-        clearTimeout(editDocDeliveryDebounce);
-        editGuiaStatusSpan.textContent = 'Buscando...';
-        editGuiaStatusSpan.style.color = '#999';
+            if (!valor) {
+                editGuiaStatusSpan.textContent = '';
+                return;
+            }
 
-        if (!valor) {
-            editGuiaStatusSpan.textContent = '';
-            return;
-        }
+            editDocDeliveryDebounce = setTimeout(async () => {
+                try {
+                    const q = query(
+                        collection(db, "guias_medtronic"),
+                        where("folioRef", "==", valor)
+                    );
+                    const snapshot = await getDocs(q);
 
-        editDocDeliveryDebounce = setTimeout(async () => {
-            try {
-                const q = query(
-                    collection(db, "guias_medtronic"),
-                    where("folioRef", "==", valor)
-                );
-                const snapshot = await getDocs(q);
-
-                if (!snapshot.empty) {
-                    const guia = snapshot.docs[0].data();
-                    editGuiaStatusSpan.textContent = `Folio: ${guia.folio || 'N/A'}`;
-                    editGuiaStatusSpan.style.color = 'green';
-                } else {
-                    editGuiaStatusSpan.textContent = 'Documento no encontrado';
+                    if (!snapshot.empty) {
+                        const guia = snapshot.docs[0].data();
+                        editGuiaStatusSpan.textContent = `Folio: ${guia.folio || 'N/A'}`;
+                        editGuiaStatusSpan.style.color = 'green';
+                    } else {
+                        editGuiaStatusSpan.textContent = 'Documento no encontrado';
+                        editGuiaStatusSpan.style.color = 'red';
+                    }
+                } catch (error) {
+                    console.error('Error verificando editDocDelivery:', error);
+                    editGuiaStatusSpan.textContent = 'Error';
                     editGuiaStatusSpan.style.color = 'red';
                 }
-            } catch (error) {
-                console.error('Error verificando editDocDelivery:', error);
-                editGuiaStatusSpan.textContent = 'Error';
-                editGuiaStatusSpan.style.color = 'red';
-            }
-        }, 500);
-    });
+            }, 500);
+        });
 
-    editDocDeliveryInput.addEventListener('focus', () => {
-        if (!editDocDeliveryInput.value.trim()) {
-            editGuiaStatusSpan.textContent = '';
-        }
-    });
-}
+        editDocDeliveryInput.addEventListener('focus', () => {
+            if (!editDocDeliveryInput.value.trim()) {
+                editGuiaStatusSpan.textContent = '';
+            }
+        });
+    }
 
     [precioUnitarioInput, editPrecioUnitarioInput].forEach(input => {
         if (input) {
@@ -919,7 +916,7 @@ if (editDocDeliveryInput && editGuiaStatusSpan) {
         { input: buscarDescripcionInput, var: 'searchDescripcion' },
         { input: buscarProveedorInput, var: 'searchProveedor' }
     ];
-    
+
     searchInputs.forEach(({ input, var: varName }) => {
         if (input) {
             input.addEventListener('input', e => {
@@ -1003,7 +1000,7 @@ if (editDocDeliveryInput && editGuiaStatusSpan) {
     limpiarBtn?.addEventListener('click', e => {
         e.preventDefault();
         [admisionInput, pacienteInput, medicoInput, fechaCXInput, codigoInput, descripcionInput, cantidadInput, referenciaInput, proveedorInput, precioUnitarioInput, atributoInput, totalItemsInput,
-         buscarAdmisionInput, buscarPacienteInput, buscarMedicoInput, buscarDescripcionInput, buscarProveedorInput].forEach(i => { if (i) i.value = ''; });
+            buscarAdmisionInput, buscarPacienteInput, buscarMedicoInput, buscarDescripcionInput, buscarProveedorInput].forEach(i => { if (i) i.value = ''; });
         [dateDay, dateWeek, dateMonth].forEach(r => { if (r) r.checked = false; });
         window.searchAdmision = window.searchPaciente = window.searchMedico = window.searchDescripcion = window.searchProveedor = '';
         dateFilter = fechaDia = fechaDesde = fechaHasta = mes = anio = null;
@@ -1048,17 +1045,17 @@ if (editDocDeliveryInput && editGuiaStatusSpan) {
 
     window.openEditModal = (id, r) => {
         currentEditId = id; currentEditOldData = { ...r };
-        editAdmisionInput.value = r.admision; 
-        editPacienteInput.value = r.paciente; 
-        editMedicoInput.value = r.medico; 
+        editAdmisionInput.value = r.admision;
+        editPacienteInput.value = r.paciente;
+        editMedicoInput.value = r.medico;
         editFechaCXInput.value = r.fechaCX ? r.fechaCX.toISOString().split('T')[0] : '';
-        editCodigoInput.value = r.codigo; 
-        editDescripcionInput.value = r.descripcion; 
+        editCodigoInput.value = r.codigo;
+        editDescripcionInput.value = r.descripcion;
         editCantidadInput.value = r.cantidad;
-        editReferenciaInput.value = r.referencia; 
+        editReferenciaInput.value = r.referencia;
         editProveedorInput.value = r.proveedor;
         editPrecioUnitarioInput.value = formatNumberWithThousandsSeparator(r.precioUnitario);
-        editAtributoInput.value = r.atributo; 
+        editAtributoInput.value = r.atributo;
         editTotalItemsInput.value = formatNumberWithThousandsSeparator(r.totalItems);
         document.querySelectorAll('input[name="editAtributoFilter"]').forEach(rad => rad.checked = rad.value === r.atributo);
         editModal.style.display = 'block';
