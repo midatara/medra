@@ -861,3 +861,26 @@ html, body {
 #traspasarBtn:not(:disabled):hover {
     background-color: #c82333;
 }
+
+.doc-delivery-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.doc-delivery-container input {
+    flex: 1;
+    padding-right: 140px;
+    box-sizing: border-box;
+}
+
+.doc-delivery-status {
+    position: absolute;
+    right: 8px;
+    font-weight: bold;
+    white-space: nowrap;
+    pointer-events: none;
+    font-size: 0.9em;
+    top: 50%;
+    transform: translateY(-50%);
+}
