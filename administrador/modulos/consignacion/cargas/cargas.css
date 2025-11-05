@@ -669,3 +669,23 @@ html, body {
     font-size: 14px;
     color: #555;
 }
+
+/* Corrige alineación vertical de celdas */
+.table td, 
+.table th {
+    vertical-align: middle !important;
+}
+
+/* Centra los checkboxes y botones dentro de sus columnas */
+.table td:first-child,
+.table td:last-child {
+    text-align: center;
+}
+
+/* Asegura que los íconos y botones estén alineados correctamente */
+.table td .btn,
+.table td input[type="checkbox"] {
+    vertical-align: middle;
+    margin: 0 auto;
+    display: inline-block;
+}
