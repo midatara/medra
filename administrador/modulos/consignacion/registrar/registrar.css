@@ -53,7 +53,6 @@ html, body {
     gap: 4px;
     flex: 1;
     min-width: 120px;
-    max-width: 160px;
 }
 
 .registrar-form-group.button-group {
@@ -118,6 +117,17 @@ html, body {
 #fechaDia, #fechaDesde, #fechaHasta, #mesSelect, #anioSelect,
 #editAdmision, #editPaciente, #editMedico, #editFechaCX, #editCodigo, #editDescripcion, #editCantidad,
 #editReferencia, #editProveedor, #editPrecioUnitario, #editAtributo, #editTotalItems {
+    width: 100%;
+    padding: 4px 6px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 11px;
+    box-sizing: border-box;
+    height: 28px;
+    line-height: 16px;
+}
+
+.doc-delivery-input {
     width: 100%;
     padding: 4px 6px;
     border: 1px solid #ddd;
@@ -195,7 +205,8 @@ html, body {
 #admision:focus, #paciente:focus, #medico:focus, #fechaCX:focus, #codigo:focus, #descripcion:focus, #cantidad:focus,
 #buscarAdmision:focus, #buscarPaciente:focus, #buscarDescripcion:focus, #buscarProveedor:focus, #buscarMedico:focus,
 #fechaDia:focus, #fechaDesde:focus, #fechaHasta:focus, #mesSelect:focus, #anioSelect:focus,
-#editAdmision:focus, #editPaciente:focus, #editMedico:focus, #editFechaCX:focus, #editCodigo:focus, #editDescripcion:focus, #editCantidad:focus {
+#editAdmision:focus, #editPaciente:focus, #editMedico:focus, #editFechaCX:focus, #editCodigo:focus, #editDescripcion:focus, #editCantidad:focus,
+.doc-delivery-input:focus {
     box-shadow: 0 0 8px rgba(0, 123, 255, 0.3);
     outline: none;
 }
@@ -637,7 +648,6 @@ html, body {
     gap: 4px;
     flex: 1;
     min-width: 120px;
-    max-width: 160px;
 }
 
 .modal-form-group label {
@@ -869,20 +879,10 @@ html, body {
     width: 100%;
 }
 
-.doc-delivery-input {
-    flex: 1;
-    min-width: 0;
-    padding: 8px 12px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 1em;
-    box-sizing: border-box;
-}
-
 .doc-delivery-status {
     font-weight: bold;
     white-space: nowrap;
-    font-size: 0.9em;
-    min-width: 140px;
+    font-size: 11px;
+    min-width: 130px;
     color: #999;
 }
