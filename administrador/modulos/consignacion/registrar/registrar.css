@@ -113,7 +113,7 @@ html, body {
 }
 
 #admision, #paciente, #medico, #fechaCX, #codigo, #descripcion, #cantidad,
-#referencia, #proveedor, #precioUnitario, #atributo, #totalItems, #docDelivery,
+#referencia, #proveedor, #precioUnitario, #atributo, #totalItems,
 #buscarAdmision, #buscarPaciente, #buscarDescripcion, #buscarProveedor, #buscarMedico,
 #fechaDia, #fechaDesde, #fechaHasta, #mesSelect, #anioSelect,
 #editAdmision, #editPaciente, #editMedico, #editFechaCX, #editCodigo, #editDescripcion, #editCantidad,
@@ -862,15 +862,18 @@ html, body {
     background-color: #c82333;
 }
 
+/* Contenedor flex para input + status */
 .doc-delivery-wrapper {
-    position: relative;
     display: flex;
     align-items: center;
+    gap: 8px;
     width: 100%;
 }
 
-.doc-delivery-wrapper input {
+/* Input ocupa todo el espacio disponible */
+.doc-delivery-input {
     flex: 1;
+    min-width: 0; /* Permite que flex funcione bien */
     padding: 8px 12px;
     border: 1px solid #ccc;
     border-radius: 4px;
@@ -878,11 +881,11 @@ html, body {
     box-sizing: border-box;
 }
 
+/* Status: al lado derecho, con ancho fijo opcional */
 .doc-delivery-status {
-    margin-left: 8px;
     font-weight: bold;
     white-space: nowrap;
     font-size: 0.9em;
     min-width: 140px;
-    text-align: left;
+    color: #999;
 }
