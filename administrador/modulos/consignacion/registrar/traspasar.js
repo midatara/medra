@@ -1,8 +1,3 @@
-import {
-    getFirestore, collection, getDocs, doc, setDoc, deleteDoc,
-    writeBatch, increment, Timestamp
-} from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
-
 const db = getFirestore();
 let traspasarBtn = null;
 let traspasarModal = null;

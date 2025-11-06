@@ -1023,7 +1023,7 @@ document.addEventListener('DOMContentLoaded', () => {
             proveedor: normalizeText(proveedorInput?.value),
             precioUnitario: parseInt((precioUnitarioInput?.value || '').replace(/[^\d]/g, '')) || 0,
             atributo: normalizeText(atributoInput?.value),
-            totalItems: parseInt((totalItemsInput?.value || '').replace(/[^\d]/g, '')) || 0
+            totalItems: parseInt((totalItemsInput?.value || '').replace(/[^\d]/g, '')) || 0,
             docDelivery: normalizeText(docDeliveryInput?.value) || ''
         };
 
@@ -1076,7 +1076,7 @@ document.addEventListener('DOMContentLoaded', () => {
             proveedor: normalizeText(editProveedorInput?.value),
             precioUnitario: parseInt((editPrecioUnitarioInput?.value || '').replace(/[^\d]/g, '')) || 0,
             atributo: normalizeText(editAtributoInput?.value),
-            totalItems: parseInt((editTotalItemsInput?.value || '').replace(/[^\d]/g, '')) || 0
+            totalItems: parseInt((editTotalItemsInput?.value || '').replace(/[^\d]/g, '')) || 0,
             docDelivery: normalizeText(editDocDeliveryInput?.value) || ''
         };
 
