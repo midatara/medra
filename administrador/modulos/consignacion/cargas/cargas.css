@@ -130,7 +130,7 @@ html, body {
 
 .cargar-table th,
 .cargar-table td {
-    padding: 0 4px;
+    padding: 0 !important;
     border: 1px solid #ddd;
     white-space: nowrap;
     overflow: hidden;
@@ -654,4 +654,22 @@ html, body {
     margin: 16px 0;
     font-size: 14px;
     color: #555;
+}
+
+.checkbox-cell,
+.actions-cell {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 0 4px;
+    box-sizing: border-box;
+}
+
+.checkbox-cell input[type="checkbox"],
+.checkbox-cell .cargar-btn-history,
+.actions-cell .btn-edit,
+.actions-cell .btn-delete {
+    margin: 0 !important;
+    vertical-align: middle;
 }
