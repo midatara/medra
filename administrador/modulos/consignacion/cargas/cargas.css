@@ -656,14 +656,16 @@ html, body {
     color: #555;
 }
 
+/* === CORRECCIÓN FINAL: ALTURA UNIFORME EN CHECKBOX Y ACCIONES === */
 .checkbox-cell,
 .actions-cell {
     display: flex !important;
     align-items: center;
     justify-content: center;
-    height: 100%;
-    padding: 0 4px;
+    height: 100% !important;
+    padding: 0 4px !important;
     box-sizing: border-box;
+    width: 100%;
 }
 
 .checkbox-cell input[type="checkbox"],
@@ -671,5 +673,13 @@ html, body {
 .actions-cell .btn-edit,
 .actions-cell .btn-delete {
     margin: 0 !important;
-    vertical-align: middle;
+    flex-shrink: 0;
+}
+
+/* Asegura que las celdas no tengan padding que interfiera */
+.cargar-table td.checkbox-cell,
+.cargar-table td.actions-cell {
+    padding: 0 !important;
+    height: 28px !important;
+    line-height: 28px !important;
 }
