@@ -394,7 +394,7 @@ async function logAction(registroId, action, oldData = null, newData = null) {
 
 function setupColumnResize() {
     const headers = document.querySelectorAll('.registrar-table th');
-    const initialWidths = [70, 130, 200, 80, 100, 300, 80, 130, 150, 100, 80, 100, 130, 65];
+    const initialWidths = [70, 130, 200, 80, 100, 300, 80, 130, 150, 100, 80, 100, 130, 100, 65]; 
 
     headers.forEach((header, index) => {
         if (!initialWidths[index]) return;
@@ -588,6 +588,7 @@ function renderTable() {
                 <td class="registrar-cell precio">${formatNumberWithThousandsSeparator(r.precioUnitario)}</td>
                 <td class="registrar-cell atributo">${escapeHtml(r.atributo)}</td>
                 <td class="registrar-cell total">${formatNumberWithThousandsSeparator(r.totalItems)}</td>
+                <td class="registrar-cell doc-delivery">${escapeHtml(r.docDelivery || '')}</td>
                 <td class="registrar-cell usuario">${escapeHtml(r.userFullName || '—')}</td>
                 <td class="registrar-actions">
                     <button class="registrar-btn-edit" data-id="${r.id}"><i class="fas fa-edit"></i></button>
@@ -1023,6 +1024,7 @@ document.addEventListener('DOMContentLoaded', () => {
             precioUnitario: parseInt((precioUnitarioInput?.value || '').replace(/[^\d]/g, '')) || 0,
             atributo: normalizeText(atributoInput?.value),
             totalItems: parseInt((totalItemsInput?.value || '').replace(/[^\d]/g, '')) || 0
+            docDelivery: normalizeText(docDeliveryInput?.value) || ''
         };
 
         if (Object.values(data).some(v => !v && v !== 0)) return showToast('Completa todos los campos', 'error');
@@ -1075,6 +1077,7 @@ document.addEventListener('DOMContentLoaded', () => {
             precioUnitario: parseInt((editPrecioUnitarioInput?.value || '').replace(/[^\d]/g, '')) || 0,
             atributo: normalizeText(editAtributoInput?.value),
             totalItems: parseInt((editTotalItemsInput?.value || '').replace(/[^\d]/g, '')) || 0
+            docDelivery: normalizeText(editDocDeliveryInput?.value) || ''
         };
 
         if (Object.values(data).some(v => !v && v !== 0)) return showToast('Completa todos', 'error');
