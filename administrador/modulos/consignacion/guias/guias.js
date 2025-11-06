@@ -887,9 +887,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     const qty = detalle.QtyItem;
                     const qtyFormatted = qty ? Math.round(parseFloat(qty)) : '';
                     const codigoLimpio = detalle.CdgItem?.VlrCodigo ? detalle.CdgItem.VlrCodigo.split(' ')[0] : '';
+                    const folio = data.folio || 'N/A'; // Folio para repetir en cada fila
 
                     const row = document.createElement('tr');
                     row.innerHTML = `
+                        <td>${index + 1}</td>
+                        <td>${folio}</td>
                         <td>${codigoLimpio}</td>
                         <td>${qtyFormatted}</td>
                         <td>${detalle.DscItem || detalle.NmbItem || ''}</td>
@@ -898,7 +901,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     packDetailsBody.appendChild(row);
                 });
             } else {
-                packDetailsBody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#999;">No hay más ítems</td></tr>';
+                packDetailsBody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#999;">No hay más ítems</td></tr>';
             }
 
             packModal.style.display = 'block';
