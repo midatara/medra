@@ -13,12 +13,12 @@ html,body{margin:0;padding:0;height:100%;font-family:Arial,sans-serif;background
 .meses-buttons button.active{background:#007bff;color:white;font-weight:bold}
 .cargar-table-container{width:100%;max-height:500px;overflow-y:auto;overflow-x:auto;margin-bottom:20px;border:1px solid #ddd;border-radius:4px;flex-grow:1}
 .cargar-table{table-layout:fixed;border-collapse:collapse;font-size:11px;width:100%;box-sizing:border-box}
-.cargar-table th,.cargar-table td{padding:0 !important;border:1px solid #ddd;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box;vertical-align:middle;text-align:left;height:28px;line-height:28px}
+.cargar-table th,.cargar-table td{padding:0 !important;border:1px solid #ddd;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box;vertical-align:middle;text-align:left;height:28px !important;line-height:28px !important}
 .cargar-table th{background-color:#f2f2f2;font-size:11px;position:sticky;top:0;z-index:10;cursor:default;user-select:none}
 .cargar-table th .resize-handle{position:absolute;right:0;top:0;width:5px;height:100%;cursor:col-resize;background:transparent;z-index:11}
 .cargar-table th .resize-handle:hover,.cargar-table th .resize-handle.active{background:#007bff}
 .cargar-table tbody tr:hover{background-color:#f8f9fa}
-.cargar-table tbody tr{height:28px}
+.cargar-table tbody tr{height:28px !important}
 .cargar-table th:nth-child(1),.cargar-table td:nth-child(1){width:60px;min-width:60px;max-width:120px;text-align:center}
 .cargar-table th:nth-child(2),.cargar-table td:nth-child(2){width:80px;min-width:80px;max-width:160px}
 .cargar-table th:nth-child(3),.cargar-table td:nth-child(3){width:90px;min-width:90px;max-width:180px}
@@ -41,13 +41,14 @@ html,body{margin:0;padding:0;height:100%;font-family:Arial,sans-serif;background
 .cargar-table th:nth-child(20),.cargar-table td:nth-child(20){width:80px;min-width:80px;max-width:160px}
 .cargar-table th:nth-child(21),.cargar-table td:nth-child(21){width:90px;min-width:90px;max-width:180px;text-align:right;padding-right:8px;font-family:monospace}
 .cargar-table th:nth-child(22),.cargar-table td:nth-child(22){width:80px;min-width:80px;max-width:160px;text-align:right;padding-right:8px;font-family:monospace}
-.cargar-table th:nth-child(23),.cargar-table td:nth-child(23){width:80px;min-width:80px;max-width:160px;text-align:center}
+.cargar-table th:nth-child(23),.cargar-table td:nth-child(23){width:80px;min-width:80px;text-align:center}
 .cargar-table th:nth-child(24),.cargar-table td:nth-child(24){width:100px;min-width:100px;max-width:200px}
-.checkbox-cell,.actions-cell{display:flex;align-items:center;justify-content:center;width:100%;height:100%;padding:0 4px;box-sizing:border-box;gap:4px}
-.checkbox-cell input[type=checkbox]{width:16px;height:16px;margin:0;cursor:pointer;accent-color:#007bff}
-.checkbox-cell .cargar-btn-history{width:18px;height:18px;font-size:10px;background-color:#17a2b8;color:white;border:none;border-radius:3px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;margin:0;transition:background .2s}
+.checkbox-cell,.actions-cell{display:table-cell !important;vertical-align:middle;text-align:center;height:28px !important;line-height:28px !important;padding:0 4px !important;box-sizing:border-box;width:100%}
+.checkbox-cell input[type=checkbox],.checkbox-cell .cargar-btn-history,.btn-edit,.btn-delete{display:inline-block;vertical-align:middle;margin:0 2px;flex-shrink:0}
+.checkbox-cell input[type=checkbox]{width:16px;height:16px;cursor:pointer;accent-color:#007bff}
+.checkbox-cell .cargar-btn-history{width:18px;height:18px;font-size:10px;background-color:#17a2b8;color:white;border:none;border-radius:3px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;transition:background .2s}
 .checkbox-cell .cargar-btn-history:hover{background-color:#138496}
-.btn-edit,.btn-delete{width:18px;height:18px;border:none;border-radius:3px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;transition:all .2s;margin:0;padding:0}
+.btn-edit,.btn-delete{width:18px;height:18px;border:none;border-radius:3px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:10px;transition:all .2s;padding:0}
 .btn-edit{background-color:#ffc107;color:#212529}
 .btn-edit:hover{background-color:#e0a800}
 .btn-delete{background-color:#dc3545;color:white}
@@ -101,8 +102,6 @@ html,body{margin:0;padding:0;height:100%;font-family:Arial,sans-serif;background
 #deleteModal .modal-content{max-width:400px;text-align:center}
 #deleteModal p{margin:16px 0;font-size:14px;color:#555}
 
-/* SOLUCIÓN DEFINITIVA: ALTURA UNIFORME */
-.cargar-table td,.cargar-table th{height:28px !important;line-height:28px !important}
-.cargar-table tbody tr{height:28px !important}
-.checkbox-cell,.actions-cell{height:28px !important;display:flex !important;align-items:center;justify-content:center;padding:0 4px;box-sizing:border-box;width:100%}
-.checkbox-cell input[type=checkbox],.checkbox-cell .cargar-btn-history,.btn-edit,.btn-delete{flex-shrink:0;margin:0}
+/* SOLUCIÓN 100% GARANTIZADA: SIN FLEX, SIN ALTURA VARIABLE */
+.checkbox-cell,.actions-cell{display:table-cell !important;vertical-align:middle !important;text-align:center !important;height:28px !important;line-height:28px !important;padding:0 4px !important;box-sizing:border-box !important}
+.checkbox-cell input[type=checkbox],.checkbox-cell .cargar-btn-history,.btn-edit,.btn-delete{display:inline-block !important;vertical-align:middle !important;margin:0 2px !important}
