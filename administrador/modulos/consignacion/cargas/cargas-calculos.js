@@ -1,4 +1,4 @@
-import { doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
+import { doc, updateDoc, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
 
 let db = null;
 
@@ -31,18 +31,8 @@ export function calcularVenta(carga) {
     const { precio, cantidad, atributo, prevision } = carga;
     const p = Number(precio);
     const c = Number(cantidad);
-    const attr = (atributo || "")
-        .toString()
-        .trim()
-        .toUpperCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "");
-    const prev = (prevision || "")
-        .toString()
-        .trim()
-        .toUpperCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "");
+    const attr = (atributo || "").toString().trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const prev = (prevision || "").toString().trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
     if (isNaN(p) || isNaN(c) || p <= 0 || c <= 0) return null;
 
@@ -52,11 +42,9 @@ export function calcularVenta(carga) {
         const match = margenStr?.match(/([\d.]+)%?/);
         if (!match) return null;
         factor = parseFloat(match[1]) / 100;
-    }
-    else if (attr === "COTIZACION") {
+    } else if (attr === "COTIZACION") {
         factor = prev === "ISL" ? 1.0 : 0.3;
-    }
-    else {
+    } else {
         return null;
     }
 
@@ -64,41 +52,112 @@ export function calcularVenta(carga) {
     return Math.round(precioConIncremento * c * 100) / 100;
 }
 
-/**
- * NUEVA FUNCIÓN: Calcula totalPaciente como suma de totalItem
- * para registros con misma admision + proveedor
- */
-function calcularTotalPacientePorGrupo(cargas) {
-    // Normalizamos admision y proveedor para comparación
+// === NUEVA FUNCIÓN: Busca totalPaciente en pacientes_consignaciones ===
+async function asignarTotalCotizacionDesdePacientes(cargas) {
+    if (!cargas.length || !db) return;
+
     const normalize = (str) => (str || '').toString().trim().toUpperCase()
         .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-    const grupos = new Map(); // clave: "admission|proveedor" → total
-
-    // Paso 1: Sumar totalItem por grupo
+    // 1. Obtener todas las admisiones+proveedores únicas de las cargas
+    const grupos = new Map();
     cargas.forEach(c => {
-        const admision = normalize(c.admision);
-        const proveedor = normalize(c.proveedor);
-        const clave = `${admision}|${proveedor}`;
+        const adm = normalize(c.admision);
+        const prov = normalize(c.proveedor);
+        const clave = `${adm}|${prov}`;
+        if (!grupos.has(clave)) {
+            grupos.set(clave, { admision: c.admision, proveedor: c.proveedor, cargas: [] });
+        }
+        grupos.get(clave).cargas.push(c);
+    });
+
+    // 2. Consultar Firestore por cada grupo
+    const promesas = Array.from(grupos.values()).map(async (grupo) => {
+        const q = query(
+            collection(db, "pacientes_consignaciones"),
+            where("admision", "==", grupo.admision),
+            where("proveedor", "==", grupo.proveedor)
+        );
+
+        try {
+            const snapshot = await getDocs(q);
+            if (snapshot.empty) return;
+
+            // Tomamos el primer registro (asumimos que es único o todos tienen mismo totalPaciente)
+            const pacienteDoc = snapshot.docs[0];
+            const totalPaciente = Number(pacienteDoc.data().totalPaciente) || 0;
+
+            // Asignar a todas las cargas del grupo
+            grupo.cargas.forEach(carga => {
+                const actual = Number(carga.totalCotizacion) || 0;
+                if (Math.abs(actual - totalPaciente) > 0.01) {
+                    carga.totalCotizacion = totalPaciente;
+                }
+            });
+
+            return { grupo, totalPaciente };
+        } catch (err) {
+            console.warn(`Error buscando paciente para admisión ${grupo.admision} / proveedor ${grupo.proveedor}:`, err);
+            return null;
+        }
+    });
+
+    const resultados = await Promise.all(promesas);
+    const updates = [];
+
+    // 3. Aplicar actualizaciones en Firestore
+    resultados.forEach(resultado => {
+        if (!resultado) return;
+        resultado.grupo.cargas.forEach(carga => {
+            const actual = Number(carga.totalCotizacion) || 0;
+            if (Math.abs(actual - resultado.totalPaciente) > 0.01) {
+                updates.push({
+                    id: carga.id,
+                    update: { totalCotizacion: resultado.totalPaciente }
+                });
+            }
+        });
+    });
+
+    if (updates.length > 0) {
+        const promesasUpdates = updates.map(async ({ id, update }) => {
+            try {
+                const ref = doc(db, "cargas_consignaciones", id);
+                await updateDoc(ref, update);
+            } catch (err) {
+                console.warn(`Error actualizando totalCotizacion en carga ${id}:`, err);
+            }
+        });
+        await Promise.all(promesasUpdates);
+    }
+}
+
+// === CÁLCULO DE totalPaciente (suma de totalItem por grupo) ===
+function calcularTotalPacientePorGrupo(cargas) {
+    const normalize = (str) => (str || '').toString().trim().toUpperCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+    const grupos = new Map();
+
+    cargas.forEach(c => {
+        const adm = normalize(c.admision);
+        const prov = normalize(c.proveedor);
+        const clave = `${adm}|${prov}`;
         const totalItem = Number(c.totalItem) || 0;
 
-        if (!grupos.has(clave)) {
-            grupos.set(clave, 0);
-        }
+        if (!grupos.has(clave)) grupos.set(clave, 0);
         grupos.set(clave, grupos.get(clave) + totalItem);
     });
 
-    // Paso 2: Asignar el total del grupo a cada carga
     const updates = [];
     cargas.forEach(c => {
-        const admision = normalize(c.admision);
-        const proveedor = normalize(c.proveedor);
-        const clave = `${admision}|${proveedor}`;
+        const adm = normalize(c.admision);
+        const prov = normalize(c.proveedor);
+        const clave = `${adm}|${prov}`;
         const totalGrupo = grupos.get(clave) || 0;
-        const totalPacienteActual = Number(c.totalPaciente) || 0;
+        const actual = Number(c.totalPaciente) || 0;
 
-        // Solo actualizamos si cambió
-        if (Math.abs(totalPacienteActual - totalGrupo) > 0.01) {
+        if (Math.abs(actual - totalGrupo) > 0.01) {
             c.totalPaciente = totalGrupo;
             updates.push({
                 id: c.id,
@@ -117,7 +176,7 @@ export async function procesarMargenes(cargas) {
         let needsUpdate = false;
         const updates = {};
 
-        // === Cálculo de margen ===
+        // === Margen ===
         const precio = Number(c.precio);
         const margenActual = c.margen?.toString().trim();
         const margenCalculado = calcularMargen(precio);
@@ -134,7 +193,7 @@ export async function procesarMargenes(cargas) {
             needsUpdate = true;
         }
 
-        // === Cálculo de venta ===
+        // === Venta ===
         const ventaCalculada = calcularVenta(c);
         const ventaActual = c.venta != null ? Number(c.venta) : null;
 
@@ -152,7 +211,6 @@ export async function procesarMargenes(cargas) {
             }
         }
 
-        // === Aplicar actualización si es necesario ===
         if (needsUpdate) {
             try {
                 const cargaRef = doc(db, "cargas_consignaciones", c.id);
@@ -167,20 +225,21 @@ export async function procesarMargenes(cargas) {
 
     const cargasConMargen = await Promise.all(promesas);
 
-    // === NUEVO: Cálculo de totalPaciente por grupo ===
+    // === 1. totalPaciente = suma de totalItem (misma admisión + proveedor) ===
     const updatesTotalPaciente = calcularTotalPacientePorGrupo(cargasConMargen);
-
     if (updatesTotalPaciente.length > 0) {
-        const promesasUpdates = updatesTotalPaciente.map(async ({ id, update }) => {
+        await Promise.all(updatesTotalPaciente.map(async ({ id, update }) => {
             try {
                 const ref = doc(db, "cargas_consignaciones", id);
                 await updateDoc(ref, update);
             } catch (err) {
                 console.warn(`Error actualizando totalPaciente ${id}:`, err);
             }
-        });
-        await Promise.all(promesasUpdates);
+        }));
     }
+
+    // === 2. totalCotizacion = totalPaciente de pacientes_consignaciones ===
+    await asignarTotalCotizacionDesdePacientes(cargasConMargen);
 
     return cargasConMargen;
 }
