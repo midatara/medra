@@ -8,8 +8,8 @@ html,body{margin:0;padding:0;height:100%;font-family:Arial,sans-serif;background
 .cargar-label{font-size:10px;font-weight:bold;color:#333;white-space:nowrap}
 #buscarEstado,#buscarAdmision,#buscarPaciente,#anioSelect{width:100%;padding:4px 6px;border:1px solid #ddd;border-radius:4px;font-size:11px;box-sizing:border-box;height:28px;line-height:16px}
 #buscarEstado:focus,#buscarAdmision:focus,#buscarPaciente:focus,#anioSelect:focus{box-shadow:0 0 8px rgba(0,123,255,0.3);outline:none}
-.meses-buttons button{padding:5px 10px;border:1px solid #007bff;background:white;color:#007bff;border-radius:4px;cursor:pointer;font-size:12px;transition:all .2s;min-width:48px}
-.meses-buttons button:hover{background:#007bff;color:white}
+.meses-buttons button,.btn-cambiar-estado{padding:4px 10px;height:28px;font-size:11px;border:1px solid #007bff;background:white;color:#007bff;border-radius:4px;cursor:pointer;transition:all .2s;min-width:48px;display:inline-flex;align-items:center;justify-content:center}
+.meses-buttons button:hover,.btn-cambiar-estado:hover{background:#007bff;color:white}
 .meses-buttons button.active{background:#007bff;color:white;font-weight:bold}
 .cargar-table-container{width:100%;max-height:500px;overflow-y:auto;overflow-x:auto;margin-bottom:20px;border:1px solid #ddd;border-radius:4px;flex-grow:1}
 .cargar-table{table-layout:fixed;border-collapse:collapse;font-size:11px;width:100%;box-sizing:border-box}
@@ -43,8 +43,8 @@ html,body{margin:0;padding:0;height:100%;font-family:Arial,sans-serif;background
 .cargar-table th:nth-child(22),.cargar-table td:nth-child(22){width:80px;min-width:80px;max-width:160px;text-align:right;padding-right:8px;font-family:monospace}
 .cargar-table th:nth-child(23),.cargar-table td:nth-child(23){width:80px;min-width:80px;text-align:center}
 .cargar-table th:nth-child(24),.cargar-table td:nth-child(24){width:100px;min-width:100px;max-width:200px}
-.checkbox-cell,.actions-cell{display:table-cell !important;vertical-align:middle;text-align:center;height:28px !important;line-height:28px !important;padding:0 4px !important;box-sizing:border-box;width:100%}
-.checkbox-cell input[type=checkbox],.checkbox-cell .cargar-btn-history,.btn-edit,.btn-delete{display:inline-block;vertical-align:middle;margin:0 2px;flex-shrink:0}
+.checkbox-cell,.actions-cell{display:table-cell !important;vertical-align:middle !important;text-align:center !important;height:28px !important;line-height:28px !important;padding:0 4px !important;box-sizing:border-box !important}
+.checkbox-cell input[type=checkbox],.checkbox-cell .cargar-btn-history,.btn-edit,.btn-delete{display:inline-block !important;vertical-align:middle !important;margin:0 2px !important}
 .checkbox-cell input[type=checkbox]{width:16px;height:16px;cursor:pointer;accent-color:#007bff}
 .checkbox-cell .cargar-btn-history{width:18px;height:18px;font-size:10px;background-color:#17a2b8;color:white;border:none;border-radius:3px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;transition:background .2s}
 .checkbox-cell .cargar-btn-history:hover{background-color:#138496}
@@ -55,9 +55,6 @@ html,body{margin:0;padding:0;height:100%;font-family:Arial,sans-serif;background
 .btn-delete:hover{background-color:#c82333}
 .row-selected{background-color:#e3f2fd !important}
 #selectAll{width:16px;height:16px;cursor:pointer;accent-color:#007bff;margin:0;padding:0}
-.btn-cambiar-estado{padding:6px 14px;font-size:13px;font-weight:bold;background-color:#007bff;color:white;border:none;border-radius:6px;cursor:pointer;white-space:nowrap;height:36px;transition:all .2s ease;box-shadow:0 2px 4px rgba(0,123,255,0.2)}
-.btn-cambiar-estado:hover{background-color:#0056b3;transform:translateY(-1px);box-shadow:0 4px 8px rgba(0,123,255,0.3)}
-.btn-cambiar-estado:active{transform:translateY(0)}
 .cambiar-estado-btn{display:none;margin-left:0 !important}
 .modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;justify-content:center;align-items:center;z-index:1000;opacity:0;visibility:hidden;transition:all .2s ease}
 .modal.show{opacity:1;visibility:visible}
@@ -101,7 +98,3 @@ html,body{margin:0;padding:0;height:100%;font-family:Arial,sans-serif;background
 .edit-grid label{font-size:12px;font-weight:bold;color:#444;margin-bottom:4px;display:block}
 #deleteModal .modal-content{max-width:400px;text-align:center}
 #deleteModal p{margin:16px 0;font-size:14px;color:#555}
-
-/* SOLUCIÓN 100% GARANTIZADA: SIN FLEX, SIN ALTURA VARIABLE */
-.checkbox-cell,.actions-cell{display:table-cell !important;vertical-align:middle !important;text-align:center !important;height:28px !important;line-height:28px !important;padding:0 4px !important;box-sizing:border-box !important}
-.checkbox-cell input[type=checkbox],.checkbox-cell .cargar-btn-history,.btn-edit,.btn-delete{display:inline-block !important;vertical-align:middle !important;margin:0 2px !important}
