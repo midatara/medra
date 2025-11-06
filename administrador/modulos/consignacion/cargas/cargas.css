@@ -13,18 +13,18 @@ html,body{margin:0;padding:0;height:100%;font-family:Arial,sans-serif;background
 .meses-buttons button.active{background:#007bff;color:white;font-weight:bold}
 .cargar-table-container{width:100%;max-height:500px;overflow-y:auto;overflow-x:auto;margin-bottom:20px;border:1px solid #ddd;border-radius:4px;flex-grow:1}
 .cargar-table{table-layout:fixed;border-collapse:collapse;font-size:11px;width:100%;box-sizing:border-box}
-.cargar-table th,.cargar-table td{padding:0 !important;border:1px solid #ddd;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box;vertical-align:middle;text-align:left;height:28px !important;line-height:28px}
+.cargar-table th,.cargar-table td{padding:0 !important;border:1px solid #ddd;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box;vertical-align:middle;text-align:left;height:28px;line-height:28px}
 .cargar-table th{background-color:#f2f2f2;font-size:11px;position:sticky;top:0;z-index:10;cursor:default;user-select:none}
 .cargar-table th .resize-handle{position:absolute;right:0;top:0;width:5px;height:100%;cursor:col-resize;background:transparent;z-index:11}
 .cargar-table th .resize-handle:hover,.cargar-table th .resize-handle.active{background:#007bff}
 .cargar-table tbody tr:hover{background-color:#f8f9fa}
-.cargar-table tbody tr{height:28px !important}
+.cargar-table tbody tr{height:28px}
 .cargar-table th:nth-child(1),.cargar-table td:nth-child(1){width:60px;min-width:60px;max-width:120px;text-align:center}
 .cargar-table th:nth-child(2),.cargar-table td:nth-child(2){width:80px;min-width:80px;max-width:160px}
 .cargar-table th:nth-child(3),.cargar-table td:nth-child(3){width:90px;min-width:90px;max-width:180px}
 .cargar-table th:nth-child(4),.cargar-table td:nth-child(4){width:100px;min-width:100px;max-width:200px}
 .cargar-table th:nth-child(5),.cargar-table td:nth-child(5){width:60px;min-width:60px;max-width:120px}
-.cargar-table th:nth-child(6),.cargar-table td:nth-child(6){width:90px;min-width:90 Emanuel;max-width:180px}
+.cargar-table th:nth-child(6),.cargar-table td:nth-child(6){width:90px;min-width:90px;max-width:180px}
 .cargar-table th:nth-child(7),.cargar-table td:nth-child(7){width:70px;min-width:70px;max-width:140px;text-align:right;padding-right:8px;font-family:monospace}
 .cargar-table th:nth-child(8),.cargar-table td:nth-child(8){width:80px;min-width:80px;max-width:160px}
 .cargar-table th:nth-child(9),.cargar-table td:nth-child(9){width:90px;min-width:90px;max-width:380px}
@@ -100,3 +100,9 @@ html,body{margin:0;padding:0;height:100%;font-family:Arial,sans-serif;background
 .edit-grid label{font-size:12px;font-weight:bold;color:#444;margin-bottom:4px;display:block}
 #deleteModal .modal-content{max-width:400px;text-align:center}
 #deleteModal p{margin:16px 0;font-size:14px;color:#555}
+
+/* SOLUCIÓN DEFINITIVA: ALTURA UNIFORME */
+.cargar-table td,.cargar-table th{height:28px !important;line-height:28px !important}
+.cargar-table tbody tr{height:28px !important}
+.checkbox-cell,.actions-cell{height:28px !important;display:flex !important;align-items:center;justify-content:center;padding:0 4px;box-sizing:border-box;width:100%}
+.checkbox-cell input[type=checkbox],.checkbox-cell .cargar-btn-history,.btn-edit,.btn-delete{flex-shrink:0;margin:0}
