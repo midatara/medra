@@ -52,14 +52,12 @@ export function calcularVenta(carga) {
     return Math.round(precioConIncremento * c * 100) / 100;
 }
 
-// === NUEVA FUNCIÓN: Busca totalPaciente en pacientes_consignaciones ===
 async function asignarTotalCotizacionDesdePacientes(cargas) {
     if (!cargas.length || !db) return;
 
     const normalize = (str) => (str || '').toString().trim().toUpperCase()
         .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-    // 1. Obtener todas las admisiones+proveedores únicas de las cargas
     const grupos = new Map();
     cargas.forEach(c => {
         const adm = normalize(c.admision);
@@ -71,7 +69,6 @@ async function asignarTotalCotizacionDesdePacientes(cargas) {
         grupos.get(clave).cargas.push(c);
     });
 
-    // 2. Consultar Firestore por cada grupo
     const promesas = Array.from(grupos.values()).map(async (grupo) => {
         const q = query(
             collection(db, "pacientes_consignaciones"),
@@ -83,11 +80,9 @@ async function asignarTotalCotizacionDesdePacientes(cargas) {
             const snapshot = await getDocs(q);
             if (snapshot.empty) return;
 
-            // Tomamos el primer registro (asumimos que es único o todos tienen mismo totalPaciente)
             const pacienteDoc = snapshot.docs[0];
             const totalPaciente = Number(pacienteDoc.data().totalPaciente) || 0;
 
-            // Asignar a todas las cargas del grupo
             grupo.cargas.forEach(carga => {
                 const actual = Number(carga.totalCotizacion) || 0;
                 if (Math.abs(actual - totalPaciente) > 0.01) {
@@ -105,7 +100,6 @@ async function asignarTotalCotizacionDesdePacientes(cargas) {
     const resultados = await Promise.all(promesas);
     const updates = [];
 
-    // 3. Aplicar actualizaciones en Firestore
     resultados.forEach(resultado => {
         if (!resultado) return;
         resultado.grupo.cargas.forEach(carga => {
@@ -132,7 +126,6 @@ async function asignarTotalCotizacionDesdePacientes(cargas) {
     }
 }
 
-// === CÁLCULO DE totalPaciente (suma de totalItem por grupo) ===
 function calcularTotalPacientePorGrupo(cargas) {
     const normalize = (str) => (str || '').toString().trim().toUpperCase()
         .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -176,7 +169,6 @@ export async function procesarMargenes(cargas) {
         let needsUpdate = false;
         const updates = {};
 
-        // === Margen ===
         const precio = Number(c.precio);
         const margenActual = c.margen?.toString().trim();
         const margenCalculado = calcularMargen(precio);
@@ -193,7 +185,6 @@ export async function procesarMargenes(cargas) {
             needsUpdate = true;
         }
 
-        // === Venta ===
         const ventaCalculada = calcularVenta(c);
         const ventaActual = c.venta != null ? Number(c.venta) : null;
 
@@ -225,7 +216,6 @@ export async function procesarMargenes(cargas) {
 
     const cargasConMargen = await Promise.all(promesas);
 
-    // === 1. totalPaciente = suma de totalItem (misma admisión + proveedor) ===
     const updatesTotalPaciente = calcularTotalPacientePorGrupo(cargasConMargen);
     if (updatesTotalPaciente.length > 0) {
         await Promise.all(updatesTotalPaciente.map(async ({ id, update }) => {
@@ -238,7 +228,6 @@ export async function procesarMargenes(cargas) {
         }));
     }
 
-    // === 2. totalCotizacion = totalPaciente de pacientes_consignaciones ===
     await asignarTotalCotizacionDesdePacientes(cargasConMargen);
 
     return cargasConMargen;
