@@ -450,11 +450,13 @@ async function loadCargas() {
         });
 
         let cargasProcesadas = cargasBase;
+
         try {
-            const { completarDatosCargas } = await import('./cargas-reportes.js');
-            cargasProcesadas = await completarDatosCargas(cargasBase);
+            const reportesModule = await import('./cargas-reportes.js');
+            cargasProcesadas = await reportesModule.completarDatosCargas(cargasBase);
+            cargasProcesadas = await reportesModule.vincularGuias(cargasProcesadas);
         } catch (err) {
-            console.error('Error al completar datos de reportes:', err);
+            console.error('Error al procesar reportes o vincular guías:', err);
         }
 
         try {
@@ -524,10 +526,13 @@ function renderTable(callback = null) {
         return;
     }
 
+    // Limpiar subfilas anteriores
+    document.querySelectorAll('tr.subrow').forEach(row => row.remove());
+
     if (cargas.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="28" style="text-align:center;padding:20px;color:#666;">
+                <td colspan="30" style="text-align:center;padding:20px;color:#666;">
                     <i class="fas fa-inbox" style="font-size:48px;display:block;margin-bottom:10px;"></i>
                     No hay cargas
                 </td>
@@ -542,9 +547,11 @@ function renderTable(callback = null) {
         <tr data-id="${c.id}" class="${selectedCargaIds.has(c.id) ? 'row-selected' : ''}">
             <td class="checkbox-cell">
                 <input type="checkbox" class="row-checkbox" data-id="${c.id}" ${selectedCargaIds.has(c.id) ? 'checked' : ''}>
-                <button class="cargar-btn-history" data-id="${c.id}" title="Ver historial" style="margin-left:4px;">
-                    <i class="fas fa-history"></i>
-                </button>
+                ${c.guiaRelacionada ? `
+                    <button class="cargar-btn-toggle-subrows" data-id="${c.id}" title="Ver guía relacionada" style="margin-left:4px;">
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                ` : ''}
             </td>
             <td>${escapeHtml(c.estado)}</td>
             <td>${c.fechaCarga && c.estado === 'CARGADO' ? c.fechaCarga.toLocaleDateString('es-CL') : ''}</td>
@@ -581,13 +588,14 @@ function renderTable(callback = null) {
             <td>${escapeHtml(c.docDelivery || '')}</td>
             <td class="actions-cell">
                 <button class="btn-edit" data-id="${c.id}" title="Editar"><i class="fas fa-edit"></i></button>
-                <button class="btn-delete" data-id="${c.id}" title="Eliminar"><i class="fas fa-trash"></i></button>
+                <button class="btn-delete" data-id="${c.id}" title="Hacer clic para eliminar"><i class="fas fa-trash"></i></button>
             </td>
         </tr>
     `).join('');
 
     tbody.innerHTML = html;
 
+    // Checkboxes
     document.querySelectorAll('.row-checkbox').forEach(cb => {
         cb.addEventListener('change', e => {
             const id = e.target.dataset.id;
@@ -614,6 +622,54 @@ function renderTable(callback = null) {
             updateNCLFButton();
         });
     }
+
+    // TOGGLE SUBFILAS
+    document.querySelectorAll('.cargar-btn-toggle-subrows').forEach(btn => {
+        btn.addEventListener('click', e => {
+            e.stopPropagation();
+            const id = btn.dataset.id;
+            const row = btn.closest('tr');
+            const icon = btn.querySelector('i');
+            const subrow = row.nextElementSibling;
+
+            if (subrow && subrow.classList.contains('subrow')) {
+                subrow.remove();
+                icon.classList.replace('fa-chevron-up', 'fa-chevron-down');
+            } else {
+                icon.classList.replace('fa-chevron-down', 'fa-chevron-up');
+                const carga = allCargasDelMes.find(c => c.id === id);
+                const guia = carga.guiaRelacionada;
+
+                const subrowHtml = `
+                    <tr class="subrow" data-parent="${id}">
+                        <td colspan="30" style="padding:0; border:none; background:#f9f9f9;">
+                            <div style="padding:12px 16px; background:#fff; border-left:4px solid #007bff; margin:4px 8px; border-radius:4px; font-size:11px;">
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                                    <strong>Guía relacionada:</strong>
+                                    <span style="font-size:10px; color:#666;">Folio: <strong>${escapeHtml(guia.folio)}</strong></span>
+                                </div>
+                                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:11px;">
+                                    <div><strong>Emisor:</strong> ${escapeHtml(guia.rznSoc)}</div>
+                                    <div><strong>Fecha Emisión:</strong> ${guia.fchEmis}</div>
+                                    <div><strong>Folio Referencia:</strong> ${escapeHtml(guia.folioRef)}</div>
+                                    <div><strong>ID Firestore:</strong> <code style="font-size:9px;">${guia.id}</code></div>
+                                </div>
+                                ${guia.fullData ? `
+                                    <details style="margin-top:8px; font-size:10px;">
+                                        <summary style="cursor:pointer; color:#007bff;">Ver datos completos (JSON)</summary>
+                                        <pre style="background:#f5f5f5; padding:8px; border-radius:4px; overflow:auto; max-height:200px; margin-top:4px;">
+${JSON.stringify(guia.fullData, null, 2)}
+                                        </pre>
+                                    </details>
+                                ` : ''}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                row.insertAdjacentHTML('afterend', subrowHtml);
+            }
+        });
+    });
 
     if (callback) {
         requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(callback, 100)));

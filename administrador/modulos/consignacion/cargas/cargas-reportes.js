@@ -83,3 +83,55 @@ export async function completarDatosCargas(cargas) {
 
     return Promise.all(promesas);
 }
+
+/**
+ * Vincula guías de despacho con cargas si docDelivery === folioRef
+ */
+export async function vincularGuias(cargas) {
+    if (!cargas || cargas.length === 0 || !db) return cargas;
+
+    const docDeliveries = cargas
+        .filter(c => c.docDelivery && c.docDelivery.trim() !== '')
+        .map(c => c.docDelivery.trim());
+
+    if (docDeliveries.length === 0) {
+        return cargas.map(c => ({ ...c, guiaRelacionada: null }));
+    }
+
+    try {
+        const q = query(
+            collection(db, "guias_medtronic"),
+            where("folioRef", "in", docDeliveries)
+        );
+        const snapshot = await getDocs(q);
+
+        const guiasMap = new Map();
+        snapshot.docs.forEach(doc => {
+            const data = doc.data();
+            const folioRef = data.folioRef?.trim();
+            if (folioRef) {
+                guiasMap.set(folioRef, {
+                    id: doc.id,
+                    folio: data.folio || '',
+                    fchEmis: data.fchEmis || '',
+                    rznSoc: data.rznSoc || '',
+                    folioRef: data.folioRef || '',
+                    fullData: data.fullData || null
+                });
+            }
+        });
+
+        return cargas.map(c => {
+            const docDelivery = c.docDelivery?.trim();
+            const guia = docDelivery ? guiasMap.get(docDelivery) : null;
+            return {
+                ...c,
+                guiaRelacionada: guia || null
+            };
+        });
+
+    } catch (err) {
+        console.warn('Error al vincular guías:', err);
+        return cargas.map(c => ({ ...c, guiaRelacionada: null }));
+    }
+}
