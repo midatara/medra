@@ -95,6 +95,12 @@ function updateCambiarEstadoButton() {
     container.style.display = selectedCargaIds.size > 0 ? 'block' : 'none';
 }
 
+function updateNCLFButton() {
+    const container = document.getElementById('ingresarNCLFContainer');
+    if (!container) return;
+    container.style.display = selectedCargaIds.size > 0 ? 'block' : 'none';
+}
+
 async function cambiarEstadoMasivo(nuevoEstado) {
     if (selectedCargaIds.size === 0) return;
     window.showLoading();
@@ -121,6 +127,7 @@ async function cambiarEstadoMasivo(nuevoEstado) {
         });
         selectedCargaIds.clear();
         updateCambiarEstadoButton();
+        updateNCLFButton();
         const selectAll = document.getElementById('selectAll');
         if (selectAll) selectAll.checked = false;
         applyFiltersAndPaginate();
@@ -281,7 +288,7 @@ async function saveEdit() {
         await updateDoc(ref, updateData);
         Object.assign(carga, updateData);
 
-        showToast('Cambios guardados', 'success');
+        showToast('Cambios guard|ardados', 'success');
         const modal = document.getElementById('editModal');
         if (modal) modal.classList.remove('show');
         applyFiltersAndPaginate();
@@ -313,6 +320,7 @@ async function confirmDelete() {
         if (modal) modal.classList.remove('show');
         applyFiltersAndPaginate();
         updateCambiarEstadoButton();
+        updateNCLFButton();
     } catch (err) {
         console.error(err);
         showToast('Error al eliminar', 'error');
@@ -396,6 +404,7 @@ async function renderMesesButtons(mesesSet) {
             currentPage = 1;
             selectedCargaIds.clear();
             updateCambiarEstadoButton();
+            updateNCLFButton();
             await loadCargas();
         };
         container.appendChild(btn);
@@ -458,6 +467,7 @@ async function loadCargas() {
 
         selectedCargaIds.clear();
         updateCambiarEstadoButton();
+        updateNCLFButton();
         currentPage = 1;
         await applyFiltersAndPaginateAsync();
         actualizarSelectEstados();
@@ -538,8 +548,8 @@ function renderTable(callback = null) {
             </td>
             <td>${escapeHtml(c.estado)}</td>
             <td>${c.fechaCarga && c.estado === 'CARGADO' ? c.fechaCarga.toLocaleDateString('es-CL') : ''}</td>
-            <td></td> <!-- N° cotización -->
-            <td>${c.totalCotizacion != null ? formatNumberWithThousandsSeparator(c.totalCotizacion) : ''}</td> <!-- Total cotización -->
+            <td></td>
+            <td>${c.totalCotizacion != null ? formatNumberWithThousandsSeparator(c.totalCotizacion) : ''}</td>
             <td>${c.totalPaciente != null ? formatNumberWithThousandsSeparator(c.totalPaciente) : ''}</td>
             <td class="verificacion-cell">
                 ${c.totalPaciente != null && c.totalCotizacion != null && Math.abs(c.totalPaciente - c.totalCotizacion) < 0.01
@@ -583,9 +593,8 @@ function renderTable(callback = null) {
             const id = e.target.dataset.id;
             if (e.target.checked) selectedCargaIds.add(id);
             else selectedCargaIds.delete(id);
-            
-            updateCambiarEstadoButton();  // Ya existe
-            updateNCLFButton();           // ← FALTA ESTA LÍNEA
+            updateCambiarEstadoButton();
+            updateNCLFButton();
             e.target.closest('tr').classList.toggle('row-selected', e.target.checked);
         });
     });
@@ -601,9 +610,8 @@ function renderTable(callback = null) {
                 else selectedCargaIds.delete(id);
                 cb.closest('tr').classList.toggle('row-selected', checked);
             });
-            
-            updateCambiarEstadoButton();  // Ya existe
-            updateNCLFButton();           // ← FALTA ESTA LÍNEA
+            updateCambiarEstadoButton();
+            updateNCLFButton();
         });
     }
 
@@ -614,12 +622,11 @@ function renderTable(callback = null) {
 
 function setupColumnResize() {
     const headers = document.querySelectorAll('.cargar-table th');
-    // 23 originales + 5 nuevas = 28 columnas
     const initialWidths = [
-        60, 80, 90,      // 1-3
-        100, 110, 110,   // 4-6: N° cotización, Total cotización, Total paciente
-        90,              // 7: Verificación
-        90, 90,          // 8-9: Lote, Vencimiento
+        60, 80, 90,
+        100, 110, 110,
+        90,
+        90, 90,
         100, 60, 90, 70, 80, 90, 110, 80, 150, 140, 90, 120, 90, 200, 70, 80, 80, 90, 80, 100
     ];
     headers.forEach((header, index) => {
@@ -723,6 +730,7 @@ document.addEventListener('DOMContentLoaded', () => {
             currentPage = 1;
             selectedCargaIds.clear();
             updateCambiarEstadoButton();
+            updateNCLFButton();
             window.showLoading();
             try {
                 const q = query(collection(db, "cargas_consignaciones"), orderBy("fechaCX"));
@@ -784,19 +792,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // === BOTÓN INGRESAR NCLF ===
     const nclfContainer = document.getElementById('ingresarNCLFContainer');
     const btnIngresarNCLF = document.getElementById('btnIngresarNCLF');
     const nclfModal = document.getElementById('nclfModal');
 
-    function updateNCLFButton() {
-        if (!nclfContainer) return;
-        nclfContainer.style.display = selectedCargaIds.size > 0 ? 'block' : 'none';
-    }
-
     if (btnIngresarNCLF) {
         btnIngresarNCLF.addEventListener('click', () => {
-            // Limpiar campos
             document.getElementById('nclfNumero').value = '';
             document.getElementById('nclfLote').value = '';
             document.getElementById('nclfVencimiento').value = '';
@@ -804,7 +805,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Cerrar modal
     nclfModal?.addEventListener('click', e => {
         if (e.target === nclfModal) nclfModal.classList.remove('show');
     });
@@ -815,7 +815,6 @@ document.addEventListener('DOMContentLoaded', () => {
         nclfModal.classList.remove('show');
     });
 
-    // Guardar NCLF
     document.getElementById('guardarNCLF')?.addEventListener('click', async () => {
         const numero = document.getElementById('nclfNumero').value.trim();
         const lote = document.getElementById('nclfLote').value.trim();
@@ -846,7 +845,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (lote) updateData.lote = lote;
                 if (vencimiento) updateData.vencimiento = vencimiento;
 
-                // Actualizar objeto local
                 Object.assign(carga, updateData);
 
                 const ref = doc(db, "cargas_consignaciones", id);
@@ -864,13 +862,6 @@ document.addEventListener('DOMContentLoaded', () => {
             window.hideLoading();
         }
     });
-
-    // Actualizar visibilidad del botón
-    const originalUpdate = updateCambiarEstadoButton;
-    window.updateCambiarEstadoButton = () => {
-        originalUpdate();
-        updateNCLFButton();
-    };
 
     setupColumnResize();
     onAuthStateChanged(auth, user => {
