@@ -120,7 +120,7 @@ async function cambiarEstadoMasivo(nuevoEstado) {
             if (selectedCargaIds.has(c.id)) {
                 c.estado = nuevoEstado;
                 c._estado = normalizeText(nuevoEstado);
-                if (nuevoEstado === 'CARGADO' && !carga.fechaCarga) {
+                if (nuevoEstado === 'CARGADO' && !c.fechaCarga) {
                     c.fechaCarga = new Date();
                 }
             }
