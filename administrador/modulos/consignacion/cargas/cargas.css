@@ -19,30 +19,38 @@ html,body{margin:0;padding:0;height:100%;font-family:Arial,sans-serif;background
 .cargar-table th .resize-handle:hover,.cargar-table th .resize-handle.active{background:#007bff}
 .cargar-table tbody tr:hover{background-color:#f8f9fa}
 .cargar-table tbody tr{height:28px !important}
-.cargar-table th:nth-child(1),.cargar-table td:nth-child(1){width:60px;min-width:60px;max-width:120px;text-align:center}
-.cargar-table th:nth-child(2),.cargar-table td:nth-child(2){width:80px;min-width:80px;max-width:160px}
-.cargar-table th:nth-child(3),.cargar-table td:nth-child(3){width:90px;min-width:90px;max-width:180px}
-.cargar-table th:nth-child(4),.cargar-table td:nth-child(4){width:100px;min-width:100px;max-width:200px}
-.cargar-table th:nth-child(5),.cargar-table td:nth-child(5){width:60px;min-width:60px;max-width:120px}
-.cargar-table th:nth-child(6),.cargar-table td:nth-child(6){width:90px;min-width:90px;max-width:180px}
-.cargar-table th:nth-child(7),.cargar-table td:nth-child(7){width:70px;min-width:70px;max-width:140px;text-align:right;padding-right:8px;font-family:monospace}
-.cargar-table th:nth-child(8),.cargar-table td:nth-child(8){width:80px;min-width:80px;max-width:160px}
-.cargar-table th:nth-child(9),.cargar-table td:nth-child(9){width:90px;min-width:90px;max-width:380px}
-.cargar-table th:nth-child(10),.cargar-table td:nth-child(10){width:110px;min-width:110px;max-width:220px}
-.cargar-table th:nth-child(11),.cargar-table td:nth-child(11){width:80px;min-width:80px;max-width:160px}
-.cargar-table th:nth-child(12),.cargar-table td:nth-child(12){width:150px;min-width:150px;max-width:300px}
-.cargar-table th:nth-child(13),.cargar-table td:nth-child(13){width:140px;min-width:140px;max-width:280px}
-.cargar-table th:nth-child(14),.cargar-table td:nth-child(14){width:90px;min-width:90px;max-width:180px}
-.cargar-table th:nth-child(15),.cargar-table td:nth-child(15){width:120px;min-width:120px;max-width:240px}
-.cargar-table th:nth-child(16),.cargar-table td:nth-child(16){width:90px;min-width:90px;max-width:180px}
-.cargar-table th:nth-child(17),.cargar-table td:nth-child(17){width:200px;min-width:200px;max-width:400px}
-.cargar-table th:nth-child(18),.cargar-table td:nth-child(18){width:70px;min-width:70px;max-width:140px;text-align:right;padding-right:8px;font-family:monospace}
-.cargar-table th:nth-child(19),.cargar-table td:nth-child(19){width:80px;min-width:80px;max-width:160px;text-align:right;padding-right:8px;font-family:monospace}
-.cargar-table th:nth-child(20),.cargar-table td:nth-child(20){width:80px;min-width:80px;max-width:160px}
-.cargar-table th:nth-child(21),.cargar-table td:nth-child(21){width:90px;min-width:90px;max-width:180px;text-align:right;padding-right:8px;font-family:monospace}
-.cargar-table th:nth-child(22),.cargar-table td:nth-child(22){width:80px;min-width:80px;max-width:160px;text-align:right;padding-right:8px;font-family:monospace}
-.cargar-table th:nth-child(23),.cargar-table td:nth-child(23){width:80px;min-width:80px;text-align:center}
-.cargar-table th:nth-child(24),.cargar-table td:nth-child(24){width:100px;min-width:100px;max-width:200px}
+
+/* Colu/* Nuevas columnas (4-9) */
+.cargar-table th:nth-child(4),.cargar-table td:nth-child(4){width:100px;min-width:100px;max-width:200px} /* N° cotización */
+.cargar-table th:nth-child(5),.cargar-table td:nth-child(5){width:110px;min-width:110px;max-width:220px;text-align:right;padding-right:8px;font-family:monospace} /* Total cotización */
+.cargar-table th:nth-child(6),.cargar-table td:nth-child(6){width:110px;min-width:110px;max-width:220px;text-align:right;padding-right:8px;font-family:monospace} /* Total paciente */
+.cargar-table th:nth-child(7),.cargar-table td:nth-child(7){width:90px;min-width:90px;max-width:180px;text-align:center} /* Verificación */
+.cargar-table th:nth-child(8),.cargar-table td:nth-child(8){width:90px;min-width:90px;max-width:180px} /* Lote */
+.cargar-table th:nth-child(9),.cargar-table td:nth-child(9){width:90px;min-width:90px;max-width:180px} /* Vencimiento */
+
+/* Columnas siguientes (10 en adelante, +6 al índice original) */
+.cargar-table th:nth-child(10), .cargar-table td:nth-child(10)  {width:100px;min-width:100px;max-width:200px} /* Referencia */
+.cargar-table th:nth-child(11),.cargar-table td:nth-child(11){width:60px;min-width:60px;max-width:120px} /* ID */
+.cargar-table th:nth-child(12),.cargar-table td:nth-child(12){width:90px;min-width:90px;max-width:180px} /* Código */
+.cargar-table th:nth-child(13),.cargar-table td:nth-child(13){width:70px;min-width:70px;max-width:140px;text-align:right;padding-right:8px;font-family:monospace} /* Cantidad */
+.cargar-table th:nth-child(14),.cargar-table td:nth-child(14){width:80px;min-width:80px;max-width:160px} /* Venta */
+.cargar-table th:nth-child(15),.cargar-table td:nth-child(15){width:90px;min-width:90px;max-width:380px} /* Previsión */
+.cargar-table th:nth-child(16),.cargar-table td:nth-child(16){width:110px;min-width:110px;max-width:220px} /* Convenio */
+.cargar-table th:nth-child(17),.cargar-table td:nth-child(17){width:80px;min-width:80px;max-width:160px} /* Admisión */
+.cargar-table th:nth-child(18),.cargar-table td:nth-child(18){width:150px;min-width:150px;max-width:300px} /* Paciente */
+.cargar-table th:nth-child(19),.cargar-table td:nth-child(19){width:140px;min-width:140px;max-width:280px} /* Médico */
+.cargar-table th:nth-child(20),.cargar-table td:nth-child(20){width:90px;min-width:90px;max-width:180px} /* Fecha CX */
+.cargar-table th:nth-child(21),.cargar-table td:nth-child(21){width:120px;min-width:120px;max-width:240px} /* Proveedor */
+.cargar-table th:nth-child(22),.cargar-table td:nth-child(22){width:90px;min-width:90px;max-width:180px} /* Código */
+.cargar-table th:nth-child(23),.cargar-table td:nth-child(23){width:200px;min-width:200px;max-width:400px} /* Descripción */
+.cargar-table th:nth-child(24),.cargar-table td:nth-child(24){width:70px;min-width:70px;max-width:140px;text-align:right;padding-right:8px;font-family:monospace} /* Cantidad */
+.cargar-table th:nth-child(25),.cargar-table td:nth-child(25){width:80px;min-width:80px;max-width:160px;text-align:right;padding-right:8px;font-family:monospace} /* Precio */
+.cargar-table th:nth-child(26),.cargar-table td:nth-child(26){width:80px;min-width:80px;max-width:160px} /* Atributo */
+.cargar-table th:nth-child(27),.cargar-table td:nth-child(27){width:90px;min-width:90px;max-width:180px;text-align:right;padding-right:8px;font-family:monospace} /* Total Item */
+.cargar-table th:nth-child(28),.cargar-table td:nth-child(28){width:80px;min-width:80px;max-width:160px;text-align:right;padding-right:8px;font-family:monospace} /* Margen */
+.cargar-table th:nth-child(29),.cargar-table td:nth-child(29){width:80px;min-width:80px;max-width:160px;text-align:center} /* Doc. Delivery */
+.cargar-table th:nth-child(30),.cargar-table td:nth-child(30){width:100px;min-width:100px;max-width:200px} /* Acciones */
+
 .checkbox-cell,.actions-cell{display:table-cell !important;vertical-align:middle !important;text-align:center !important;height:28px !important;line-height:28px !important;padding:0 4px !important;box-sizing:border-box !important}
 .checkbox-cell input[type=checkbox],.checkbox-cell .cargar-btn-history,.btn-edit,.btn-delete{display:inline-block !important;vertical-align:middle !important;margin:0 2px !important}
 .checkbox-cell input[type=checkbox]{width:16px;height:16px;cursor:pointer;accent-color:#007bff}
