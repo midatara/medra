@@ -288,7 +288,7 @@ async function saveEdit() {
         await updateDoc(ref, updateData);
         Object.assign(carga, updateData);
 
-        showToast('Cambios guard|ardados', 'success');
+        showToast('Cambios guardados', 'success');
         const modal = document.getElementById('editModal');
         if (modal) modal.classList.remove('show');
         applyFiltersAndPaginate();
@@ -548,7 +548,7 @@ function renderTable(callback = null) {
             </td>
             <td>${escapeHtml(c.estado)}</td>
             <td>${c.fechaCarga && c.estado === 'CARGADO' ? c.fechaCarga.toLocaleDateString('es-CL') : ''}</td>
-            <td></td>
+            <td>${escapeHtml(c.numeroCotizacion || '')}</td>
             <td>${c.totalCotizacion != null ? formatNumberWithThousandsSeparator(c.totalCotizacion) : ''}</td>
             <td>${c.totalPaciente != null ? formatNumberWithThousandsSeparator(c.totalPaciente) : ''}</td>
             <td class="verificacion-cell">
@@ -841,7 +841,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!carga) return null;
 
                 const updateData = {};
-                if (numero) updateData.totalCotizacion = numero;
+                if (numero) updateData.numeroCotizacion = numero;
                 if (lote) updateData.lote = lote;
                 if (vencimiento) updateData.vencimiento = vencimiento;
 
