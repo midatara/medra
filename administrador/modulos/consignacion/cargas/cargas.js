@@ -176,6 +176,7 @@ async function openEditModal(id) {
         };
         setDisplay('editTotalItem', totalItem, true);
         setDisplay('editMargen', margen || '-');
+        setValue('editDocDelivery', carga.docDelivery || '');
         setDisplay('editVenta', venta != null ? venta : '-', true);
     };
     setTimeout(recalcularCampos, 50);
@@ -236,6 +237,7 @@ async function saveEdit() {
             descripcion: getValue('editDescripcion'),
             precio: precio,
             atributo: atributo,
+            docDelivery: getValue('editDocDelivery'),
             _prevision: normalizeText(prevision)
         };
         updateData.totalItem = precio * cantidad;
@@ -504,6 +506,7 @@ function renderTable(callback = null) {
             <td>${escapeHtml(c.atributo)}</td>
             <td>${formatNumberWithThousandsSeparator(c.totalItem)}</td>
             <td>${c.margen === '' || c.margen == null ? '-' : c.margen}</td>
+            <td>${escapeHtml(c.docDelivery || '')}</td>
             <td class="actions-cell">
                 <button class="btn-edit" data-id="${c.id}" title="Editar"><i class="fas fa-edit"></i></button>
                 <button class="btn-delete" data-id="${c.id}" title="Eliminar"><i class="fas fa-trash"></i></button>

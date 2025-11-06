@@ -210,6 +210,13 @@ html, body {
     font-family: monospace;
 }
 
+.cargar-table th:nth-child(24),
+.cargar-table td:nth-child(24) {
+    width: 100px;
+    min-width: 100px;
+    max-width: 200px;
+}
+
 .cargar-table th:nth-child(1),
 .cargar-table td:nth-child(1) {
     text-align: center;

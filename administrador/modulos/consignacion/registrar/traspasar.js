@@ -195,7 +195,8 @@ async function ejecutarTraspaso() {
                 precio: data.precioUnitario || 0,
                 atributo: data.atributo || '',
                 totalItem: data.totalItems || 0,
-                margen: ''                     
+                margen: '',
+                docDelivery: data.docDelivery || '' 
             });
 
             batch.delete(d.ref);
