@@ -106,3 +106,15 @@ html,body{margin:0;padding:0;height:100%;font-family:Arial,sans-serif;background
 .edit-grid label{font-size:12px;font-weight:bold;color:#444;margin-bottom:4px;display:block}
 #deleteModal .modal-content{max-width:400px;text-align:center}
 #deleteModal p{margin:16px 0;font-size:14px;color:#555}
+.verificacion-cell {
+    text-align: center;
+    font-size: 18px;
+}
+
+.verificacion-ok {
+    color: #28a745; /* Verde */
+}
+
+.verificacion-error {
+    color: #dc3545; /* Rojo */
+}

@@ -541,7 +541,12 @@ function renderTable(callback = null) {
             <td></td> <!-- N° cotización -->
             <td>${c.totalCotizacion != null ? formatNumberWithThousandsSeparator(c.totalCotizacion) : ''}</td> <!-- Total cotización -->
             <td>${c.totalPaciente != null ? formatNumberWithThousandsSeparator(c.totalPaciente) : ''}</td>
-            <td></td> <!-- Verificación -->
+            <td class="verificacion-cell">
+                ${c.totalPaciente != null && c.totalCotizacion != null && Math.abs(c.totalPaciente - c.totalCotizacion) < 0.01
+                    ? '<i class="fas fa-check-circle verificacion-ok" title="Coincide"></i>'
+                    : '<i class="fas fa-times-circle verificacion-error" title="No coincide"></i>'
+                }
+            </td>
             <td></td> <!-- Lote -->
             <td></td> <!-- Vencimiento -->
             <td>${escapeHtml(c.referencia)}</td>
