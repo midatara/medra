@@ -881,17 +881,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 ? `Ítem 1 - ${primerItem.NmbItem || 'Sin nombre'}`
                 : 'Sin ítems';
 
+            const packDetailsTitle = document.getElementById('packDetailsTitle');
             packDetailsBody.innerHTML = '';
-            if (detalles.length > 1) {
-                detalles.slice(1).forEach((detalle, index) => {
+
+            const itemsDesde2 = detalles.length > 1 ? detalles.slice(1) : [];
+            const totalItemsDesde2 = itemsDesde2.length;
+
+            if (packDetailsTitle) {
+                packDetailsTitle.textContent = `Total ítems: ${totalItemsDesde2}`;
+            }
+
+            if (totalItemsDesde2 > 0) {
+                itemsDesde2.forEach((detalle, index) => {
                     const qty = detalle.QtyItem;
                     const qtyFormatted = qty ? Math.round(parseFloat(qty)) : '';
                     const codigoLimpio = detalle.CdgItem?.VlrCodigo ? detalle.CdgItem.VlrCodigo.split(' ')[0] : '';
-                    const folio = data.folio || 'N/A'; // Folio para repetir en cada fila
+                    const folio = data.folio || 'N/A';
 
                     const row = document.createElement('tr');
                     row.innerHTML = `
-                        <td>${index + 1}</td>
                         <td>${folio}</td>
                         <td>${codigoLimpio}</td>
                         <td>${qtyFormatted}</td>
@@ -901,7 +909,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     packDetailsBody.appendChild(row);
                 });
             } else {
-                packDetailsBody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#999;">No hay más ítems</td></tr>';
+                packDetailsBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#999;">No hay ítems adicionales</td></tr>';
             }
 
             packModal.style.display = 'block';
