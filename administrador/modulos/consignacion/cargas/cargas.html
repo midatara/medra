@@ -66,6 +66,9 @@
                 <div id="cambiarEstadoContainer" class="cambiar-estado-btn">
                     <button id="btnCambiarEstado" class="btn-cambiar-estado">Cambiar Estado</button>
                 </div>
+                <div id="ingresarNCLFContainer" class="cambiar-estado-btn" style="display:none;">
+                    <button id="btnIngresarNCLF" class="btn-cambiar-estado">Ingresar NCLF</button>
+                </div>
             </div>
         </div>
         <div class="cargar-table-container">
@@ -182,6 +185,31 @@
             <div class="modal-footer">
                 <button id="cancelDelete" class="modal-btn modal-btn-secondary">Cancelar</button>
                 <button id="confirmDelete" class="modal-btn modal-btn-danger">Eliminar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="nclfModal" class="modal">
+        <div class="modal-content">
+            <span class="close">×</span>
+            <h3>Ingresar NCLF</h3>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="nclfNumero">Número de Cotización:</label>
+                    <input type="text" id="nclfNumero" class="modal-input" placeholder="Ej: 12345">
+                </div>
+                <div class="form-group">
+                    <label for="nclfLote">Lote:</label>
+                    <input type="text" id="nclfLote" class="modal-input" placeholder="Ej: A123">
+                </div>
+                <div class="form-group">
+                    <label for="nclfVencimiento">Fecha de Vencimiento:</label>
+                    <input type="date" id="nclfVencimiento" class="modal-input">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="cancelarNCLF" class="modal-btn modal-btn-secondary">Cancelar</button>
+                <button id="guardarNCLF" class="modal-btn modal-btn-primary">Guardar</button>
             </div>
         </div>
     </div>

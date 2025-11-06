@@ -547,8 +547,8 @@ function renderTable(callback = null) {
                     : '<i class="fas fa-times-circle verificacion-error" title="No coincide"></i>'
                 }
             </td>
-            <td></td> <!-- Lote -->
-            <td></td> <!-- Vencimiento -->
+            <td>${c.lote || ''}</td>
+            <td>${c.vencimiento ? new Date(c.vencimiento).toLocaleDateString('es-CL') : ''}</td>
             <td>${escapeHtml(c.referencia)}</td>
             <td>${escapeHtml(c.idRegistro)}</td>
             <td>${escapeHtml(c.codigo)}</td>
@@ -583,7 +583,9 @@ function renderTable(callback = null) {
             const id = e.target.dataset.id;
             if (e.target.checked) selectedCargaIds.add(id);
             else selectedCargaIds.delete(id);
-            updateCambiarEstadoButton();
+            
+            updateCambiarEstadoButton();  // Ya existe
+            updateNCLFButton();           // ← FALTA ESTA LÍNEA
             e.target.closest('tr').classList.toggle('row-selected', e.target.checked);
         });
     });
@@ -599,7 +601,9 @@ function renderTable(callback = null) {
                 else selectedCargaIds.delete(id);
                 cb.closest('tr').classList.toggle('row-selected', checked);
             });
-            updateCambiarEstadoButton();
+            
+            updateCambiarEstadoButton();  // Ya existe
+            updateNCLFButton();           // ← FALTA ESTA LÍNEA
         });
     }
 
@@ -779,6 +783,94 @@ document.addEventListener('DOMContentLoaded', () => {
             else if (deleteBtn) openDeleteModal(deleteBtn.dataset.id);
         });
     }
+
+    // === BOTÓN INGRESAR NCLF ===
+    const nclfContainer = document.getElementById('ingresarNCLFContainer');
+    const btnIngresarNCLF = document.getElementById('btnIngresarNCLF');
+    const nclfModal = document.getElementById('nclfModal');
+
+    function updateNCLFButton() {
+        if (!nclfContainer) return;
+        nclfContainer.style.display = selectedCargaIds.size > 0 ? 'block' : 'none';
+    }
+
+    if (btnIngresarNCLF) {
+        btnIngresarNCLF.addEventListener('click', () => {
+            // Limpiar campos
+            document.getElementById('nclfNumero').value = '';
+            document.getElementById('nclfLote').value = '';
+            document.getElementById('nclfVencimiento').value = '';
+            nclfModal.classList.add('show');
+        });
+    }
+
+    // Cerrar modal
+    nclfModal?.addEventListener('click', e => {
+        if (e.target === nclfModal) nclfModal.classList.remove('show');
+    });
+    document.querySelector('#nclfModal .close')?.addEventListener('click', () => {
+        nclfModal.classList.remove('show');
+    });
+    document.getElementById('cancelarNCLF')?.addEventListener('click', () => {
+        nclfModal.classList.remove('show');
+    });
+
+    // Guardar NCLF
+    document.getElementById('guardarNCLF')?.addEventListener('click', async () => {
+        const numero = document.getElementById('nclfNumero').value.trim();
+        const lote = document.getElementById('nclfLote').value.trim();
+        const vencimientoStr = document.getElementById('nclfVencimiento').value;
+
+        if (!numero && !lote && !vencimientoStr) {
+            showToast('Debe ingresar al menos un campo', 'error');
+            return;
+        }
+
+        let vencimiento = null;
+        if (vencimientoStr) {
+            vencimiento = new Date(vencimientoStr);
+            if (isNaN(vencimiento)) {
+                showToast('Fecha inválida', 'error');
+                return;
+            }
+        }
+
+        window.showLoading();
+        try {
+            const updates = Array.from(selectedCargaIds).map(id => {
+                const carga = allCargasDelMes.find(c => c.id === id);
+                if (!carga) return null;
+
+                const updateData = {};
+                if (numero) updateData.totalCotizacion = numero;
+                if (lote) updateData.lote = lote;
+                if (vencimiento) updateData.vencimiento = vencimiento;
+
+                // Actualizar objeto local
+                Object.assign(carga, updateData);
+
+                const ref = doc(db, "cargas_consignaciones", id);
+                return updateDoc(ref, updateData);
+            }).filter(Boolean);
+
+            await Promise.all(updates);
+            nclfModal.classList.remove('show');
+            showToast(`NCLF ingresado en ${updates.length} carga(s)`, 'success');
+            applyFiltersAndPaginate();
+        } catch (err) {
+            console.error(err);
+            showToast('Error al guardar NCLF', 'error');
+        } finally {
+            window.hideLoading();
+        }
+    });
+
+    // Actualizar visibilidad del botón
+    const originalUpdate = updateCambiarEstadoButton;
+    window.updateCambiarEstadoButton = () => {
+        originalUpdate();
+        updateNCLFButton();
+    };
 
     setupColumnResize();
     onAuthStateChanged(auth, user => {
