@@ -540,7 +540,7 @@ function renderTable(callback = null) {
             <td>${c.fechaCarga && c.estado === 'CARGADO' ? c.fechaCarga.toLocaleDateString('es-CL') : ''}</td>
             <td></td> <!-- N° cotización -->
             <td></td> <!-- Total cotización -->
-            <td></td> <!-- Total paciente -->
+            <td>${c.totalPaciente != null ? formatNumberWithThousandsSeparator(c.totalPaciente) : ''}</td>
             <td></td> <!-- Verificación -->
             <td></td> <!-- Lote -->
             <td></td> <!-- Vencimiento -->
