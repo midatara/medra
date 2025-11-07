@@ -633,21 +633,23 @@ function renderTable(callback = null) {
             const id = btn.dataset.id;
             const row = btn.closest('tr');
             const icon = btn.querySelector('i');
-            const subrow = row.nextElementSibling;
+            const existingSubrows = document.querySelectorAll(`tr.subrow-item[data-parent="${id}"]`);
 
-            if (subrow && subrow.classList.contains('subrow')) {
-                subrow.remove();
+            // SI YA ESTÁN ABIERTAS → CERRAR (eliminar todas)
+            if (existingSubrows.length > 0) {
+                existingSubrows.forEach(sub => sub.remove());
                 icon.classList.replace('fa-chevron-up', 'fa-chevron-down');
                 return;
             }
 
+            // SI NO → ABRIR
             icon.classList.replace('fa-chevron-down', 'fa-chevron-up');
             const carga = allCargasDelMes.find(c => c.id === id);
             const guia = carga.guiaRelacionada;
 
             if (!guia || !guia.fullData?.Documento?.Detalle) {
                 const subrowHtml = `
-                    <tr class="subrow" data-parent="${id}">
+                    <tr class="subrow-item" data-parent="${id}">
                         <td colspan="30" style="padding:12px; background:#f9f9f9; text-align:center; color:#999; font-style:italic;">
                             No hay ítems en la guía vinculada.
                         </td>
