@@ -907,3 +907,12 @@ body {
     font-size: 12px;
     pointer-events: none;
 }
+
+.subrow-item td {
+    background: #fafafa !important;
+    font-size: 12px;
+    border-bottom: 1px solid #eee;
+}
+.subrow-item td:empty {
+    background: transparent !important;
+}

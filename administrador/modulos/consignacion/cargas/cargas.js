@@ -648,8 +648,8 @@ function renderTable(callback = null) {
             if (!guia || !guia.fullData?.Documento?.Detalle) {
                 const subrowHtml = `
                     <tr class="subrow" data-parent="${id}">
-                        <td colspan="30" style="padding:8px; background:#f9f9f9; text-align:center; color:#999;">
-                            No hay ítems en la guía.
+                        <td colspan="30" style="padding:12px; background:#f9f9f9; text-align:center; color:#999; font-style:italic;">
+                            No hay ítems en la guía vinculada.
                         </td>
                     </tr>
                 `;
@@ -661,53 +661,50 @@ function renderTable(callback = null) {
                 ? guia.fullData.Documento.Detalle
                 : [guia.fullData.Documento.Detalle];
 
-            let itemsHtml = '';
-            detalles.forEach(detalle => {
+            const subrowsHtml = detalles.map(detalle => {
+                const folio = escapeHtml(guia.folio || '');
                 const codigo = detalle.CdgItem?.VlrCodigo?.split(' ')[0] || '';
                 const cantidad = detalle.QtyItem ? Math.round(parseFloat(detalle.QtyItem)) : '';
-                const descripcion = detalle.DscItem || detalle.NmbItem || '';
+                const descripcion = escapeHtml(detalle.DscItem || detalle.NmbItem || '');
                 const fechaVenc = detalle.FchVencim ? formatDate(detalle.FchVencim) : '';
 
-                itemsHtml += `
-                    <tr>
-                        <td style="font-weight:500;">${escapeHtml(guia.folio)}</td>
-                        <td style="font-family:monospace;">${escapeHtml(codigo)}</td>
+                return `
+                    <tr class="subrow-item" data-parent="${id}">
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td style="background:#e3f2fd; font-weight:600;">${folio}</td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td style="background:#fff3e0;">${descripcion}</td>
+                        <td style="color:#d32f2f; text-align:center;">${fechaVenc}</td>
+                        <td style="background:#f3e5f5; font-family:monospace;">${escapeHtml(codigo)}</td>
+                        <td></td>
+                        <td></td>
                         <td style="text-align:center;">${cantidad}</td>
-                        <td>${escapeHtml(descripcion)}</td>
-                        <td style="text-align:center; color:#d32f2f;">${fechaVenc}</td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
                     </tr>
                 `;
-            });
+            }).join('');
 
-            const subrowHtml = `
-                <tr class="subrow" data-parent="${id}">
-                    <td colspan="30" style="padding:0; border:none; background:#f9f9f9;">
-                        <div style="margin:8px; background:white; border:1px solid #e0e0e0; border-radius:6px; overflow:hidden;">
-                            <div style="background:#007bff; color:white; padding:8px 12px; font-weight:bold; font-size:12px;">
-                                Ítems de la Guía - Folio: ${escapeHtml(guia.folio)} | Ref: ${escapeHtml(guia.folioRef)}
-                            </div>
-                            <div style="padding:8px;">
-                                <table style="width:100%; border-collapse:collapse; font-size:11px;">
-                                    <thead>
-                                        <tr style="background:#f5f5f5;">
-                                            <th style="padding:6px 8px; text-align:left; border-bottom:1px solid #ddd;">Folio</th>
-                                            <th style="padding:6px 8px; text-align:left; border-bottom:1px solid #ddd;">Código</th>
-                                            <th style="padding:6px 8px; text-align:center; border-bottom:1px solid #ddd;">Cantidad</th>
-                                            <th style="padding:6px 8px; text-align:left; border-bottom:1px solid #ddd;">Descripción</th>
-                                            <th style="padding:6px 8px; text-align:center; border-bottom:1px solid #ddd;">Vencimiento</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        ${itemsHtml || '<tr><td colspan="5" style="text-align:center; color:#999; padding:12px;">Sin ítems</td></tr>'}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </td>
-                </tr>
-            `;
-
-            row.insertAdjacentHTML('afterend', subrowHtml);
+            row.insertAdjacentHTML('afterend', subrowsHtml);
         });
     });
 
