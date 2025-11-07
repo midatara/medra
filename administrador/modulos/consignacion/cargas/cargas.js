@@ -67,6 +67,12 @@ function formatNumberWithThousandsSeparator(number) {
     }).replace(/,/g, '.');
 }
 
+function formatDate(isoDate) {
+    if (!isoDate) return '';
+    const [year, month, day] = isoDate.split('-');
+    return `${day}-${month}-${year}`;
+}
+
 function debounce(func, wait) {
     let timeout;
     return (...args) => {
@@ -526,7 +532,6 @@ function renderTable(callback = null) {
         return;
     }
 
-    // Limpiar subfilas anteriores
     document.querySelectorAll('tr.subrow').forEach(row => row.remove());
 
     if (cargas.length === 0) {
@@ -593,15 +598,8 @@ function renderTable(callback = null) {
         </tr>
     `).join('');
 
-    console.log("Cargas con guía:", cargas.filter(c => c.guiaRelacionada?.folio).map(c => ({
-        id: c.id,
-        docDelivery: c.docDelivery,
-        guiaFolio: c.guiaRelacionada.folio
-    })));
-    
     tbody.innerHTML = html;
 
-    // Checkboxes
     document.querySelectorAll('.row-checkbox').forEach(cb => {
         cb.addEventListener('change', e => {
             const id = e.target.dataset.id;
@@ -629,7 +627,6 @@ function renderTable(callback = null) {
         });
     }
 
-    // TOGGLE SUBFILAS
     document.querySelectorAll('.cargar-btn-toggle-subrows').forEach(btn => {
         btn.addEventListener('click', e => {
             e.stopPropagation();
@@ -641,39 +638,76 @@ function renderTable(callback = null) {
             if (subrow && subrow.classList.contains('subrow')) {
                 subrow.remove();
                 icon.classList.replace('fa-chevron-up', 'fa-chevron-down');
-            } else {
-                icon.classList.replace('fa-chevron-down', 'fa-chevron-up');
-                const carga = allCargasDelMes.find(c => c.id === id);
-                const guia = carga.guiaRelacionada;
+                return;
+            }
 
+            icon.classList.replace('fa-chevron-down', 'fa-chevron-up');
+            const carga = allCargasDelMes.find(c => c.id === id);
+            const guia = carga.guiaRelacionada;
+
+            if (!guia || !guia.fullData?.Documento?.Detalle) {
                 const subrowHtml = `
                     <tr class="subrow" data-parent="${id}">
-                        <td colspan="30" style="padding:0; border:none; background:#f9f9f9;">
-                            <div style="padding:12px 16px; background:#fff; border-left:4px solid #007bff; margin:4px 8px; border-radius:4px; font-size:11px;">
-                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                                    <strong>Guía relacionada:</strong>
-                                    <span style="font-size:10px; color:#666;">Folio: <strong>${escapeHtml(guia.folio)}</strong></span>
-                                </div>
-                                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:11px;">
-                                    <div><strong>Emisor:</strong> ${escapeHtml(guia.rznSoc)}</div>
-                                    <div><strong>Fecha Emisión:</strong> ${guia.fchEmis}</div>
-                                    <div><strong>Folio Referencia:</strong> ${escapeHtml(guia.folioRef)}</div>
-                                    <div><strong>ID Firestore:</strong> <code style="font-size:9px;">${guia.id}</code></div>
-                                </div>
-                                ${guia.fullData ? `
-                                    <details style="margin-top:8px; font-size:10px;">
-                                        <summary style="cursor:pointer; color:#007bff;">Ver datos completos (JSON)</summary>
-                                        <pre style="background:#f5f5f5; padding:8px; border-radius:4px; overflow:auto; max-height:200px; margin-top:4px;">
-${JSON.stringify(guia.fullData, null, 2)}
-                                        </pre>
-                                    </details>
-                                ` : ''}
-                            </div>
+                        <td colspan="30" style="padding:8px; background:#f9f9f9; text-align:center; color:#999;">
+                            No hay ítems en la guía.
                         </td>
                     </tr>
                 `;
                 row.insertAdjacentHTML('afterend', subrowHtml);
+                return;
             }
+
+            const detalles = Array.isArray(guia.fullData.Documento.Detalle)
+                ? guia.fullData.Documento.Detalle
+                : [guia.fullData.Documento.Detalle];
+
+            let itemsHtml = '';
+            detalles.forEach(detalle => {
+                const codigo = detalle.CdgItem?.VlrCodigo?.split(' ')[0] || '';
+                const cantidad = detalle.QtyItem ? Math.round(parseFloat(detalle.QtyItem)) : '';
+                const descripcion = detalle.DscItem || detalle.NmbItem || '';
+                const fechaVenc = detalle.FchVencim ? formatDate(detalle.FchVencim) : '';
+
+                itemsHtml += `
+                    <tr>
+                        <td style="font-weight:500;">${escapeHtml(guia.folio)}</td>
+                        <td style="font-family:monospace;">${escapeHtml(codigo)}</td>
+                        <td style="text-align:center;">${cantidad}</td>
+                        <td>${escapeHtml(descripcion)}</td>
+                        <td style="text-align:center; color:#d32f2f;">${fechaVenc}</td>
+                    </tr>
+                `;
+            });
+
+            const subrowHtml = `
+                <tr class="subrow" data-parent="${id}">
+                    <td colspan="30" style="padding:0; border:none; background:#f9f9f9;">
+                        <div style="margin:8px; background:white; border:1px solid #e0e0e0; border-radius:6px; overflow:hidden;">
+                            <div style="background:#007bff; color:white; padding:8px 12px; font-weight:bold; font-size:12px;">
+                                Ítems de la Guía - Folio: ${escapeHtml(guia.folio)} | Ref: ${escapeHtml(guia.folioRef)}
+                            </div>
+                            <div style="padding:8px;">
+                                <table style="width:100%; border-collapse:collapse; font-size:11px;">
+                                    <thead>
+                                        <tr style="background:#f5f5f5;">
+                                            <th style="padding:6px 8px; text-align:left; border-bottom:1px solid #ddd;">Folio</th>
+                                            <th style="padding:6px 8px; text-align:left; border-bottom:1px solid #ddd;">Código</th>
+                                            <th style="padding:6px 8px; text-align:center; border-bottom:1px solid #ddd;">Cantidad</th>
+                                            <th style="padding:6px 8px; text-align:left; border-bottom:1px solid #ddd;">Descripción</th>
+                                            <th style="padding:6px 8px; text-align:center; border-bottom:1px solid #ddd;">Vencimiento</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${itemsHtml || '<tr><td colspan="5" style="text-align:center; color:#999; padding:12px;">Sin ítems</td></tr>'}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            `;
+
+            row.insertAdjacentHTML('afterend', subrowHtml);
         });
     });
 
