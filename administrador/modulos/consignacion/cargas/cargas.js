@@ -34,6 +34,7 @@ const PAGE_SIZE = 50;
 let selectedYear = null;
 let selectedMonth = null;
 let selectedCargaIds = new Set();
+let isFirstLoad = true;
 const searchFilters = {
     estado: '',
     admision: '',
@@ -69,9 +70,7 @@ function formatNumberWithThousandsSeparator(number) {
 
 function formatDate(isoDate) {
     if (!isoDate) return '';
-
     let dateStr = '';
-
     if (isoDate.toDate) {
         dateStr = isoDate.toDate().toISOString().split('T')[0];
     } else if (typeof isoDate === 'string') {
@@ -81,7 +80,6 @@ function formatDate(isoDate) {
     } else {
         return '';
     }
-
     const [year, month, day] = dateStr.split('-');
     return `${day}-${month}-${year}`;
 }
@@ -164,12 +162,10 @@ async function openEditModal(id) {
     if (!carga) return showToast('Registro no encontrado', 'error');
     const modal = document.getElementById('editModal');
     if (!modal) return showToast('Error: Modal no encontrado', 'error');
-
     const setValue = (id, value) => {
         const el = document.getElementById(id);
         if (el) el.value = value ?? '';
     };
-
     setValue('editId', carga.id);
     setValue('editReferencia', carga.referencia);
     setValue('editCodigo', carga.codigo || carga.codigoProducto || '');
@@ -178,13 +174,10 @@ async function openEditModal(id) {
     setValue('editAdmision', carga.admision);
     setValue('editPaciente', carga.paciente);
     setValue('editMedico', carga.medico);
-
     let fechaCX = '';
     if (carga.fechaCX) {
         const d = carga.fechaCX.toDate ? carga.fechaCX.toDate() : new Date(carga.fechaCX);
-        if (!isNaN(d)) {
-            fechaCX = d.toISOString().split('T')[0];
-        }
+        if (!isNaN(d)) fechaCX = d.toISOString().split('T')[0];
     }
     setValue('editFechaCX', fechaCX);
     setValue('editProveedor', carga.proveedor);
@@ -192,7 +185,6 @@ async function openEditModal(id) {
     setValue('editCantidadProducto', carga.cantidadProducto ?? carga.cantidad ?? 0);
     setValue('editPrecio', carga.precio ?? 0);
     setValue('editAtributo', normalizeText(carga.atributo || '').toUpperCase());
-
     const recalcularCampos = () => {
         const precio = parseFloat(document.getElementById('editPrecio')?.value) || 0;
         const cantidad = parseFloat(document.getElementById('editCantidadProducto')?.value) || 0;
@@ -200,29 +192,17 @@ async function openEditModal(id) {
         const atributo = document.getElementById('editAtributo')?.value || '';
         const totalItem = precio * cantidad;
         const margen = calcularMargen(precio);
-        const tempCarga = {
-            precio,
-            cantidadProducto: cantidad,
-            cantidad,
-            prevision,
-            atributo,
-            margen
-        };
+        const tempCarga = { precio, cantidadProducto: cantidad, cantidad, prevision, atributo, margen };
         const venta = calcularVenta(tempCarga);
         const setDisplay = (id, value, format = false) => {
             const el = document.getElementById(id);
-            if (el) {
-                el.value = format
-                    ? (value != null ? formatNumberWithThousandsSeparator(value) : '-')
-                    : (value ?? '-');
-            }
+            if (el) el.value = format ? (value != null ? formatNumberWithThousandsSeparator(value) : '-') : (value ?? '-');
         };
         setDisplay('editTotalItem', totalItem, true);
         setDisplay('editMargen', margen || '-');
         setValue('editDocDelivery', carga.docDelivery || '');
         setDisplay('editVenta', venta != null ? venta : '-', true);
     };
-
     setTimeout(recalcularCampos, 50);
     const inputs = ['editPrecio', 'editCantidadProducto', 'editPrevision', 'editAtributo'];
     inputs.forEach(id => {
@@ -232,7 +212,6 @@ async function openEditModal(id) {
             el.addEventListener('input', recalcularCampos);
         }
     });
-
     modal.classList.add('show');
 }
 
@@ -245,20 +224,17 @@ async function saveEdit() {
     const id = idEl.value.trim();
     const carga = allCargasDelMes.find(c => c.id === id);
     if (!carga) return showToast('Registro no encontrado', 'error');
-
     window.showLoading();
     try {
         const getValue = (id) => {
             const el = document.getElementById(id);
             return el ? el.value.trim() : '';
         };
-
         const codigo = getValue('editCodigo');
         const cantidad = parseFloat(getValue('editCantidadProducto')) || 0;
         const precio = parseFloat(getValue('editPrecio')) || 0;
         const prevision = getValue('editPrevision');
         const atributo = getValue('editAtributo');
-
         let fechaCX = carga.fechaCX;
         const fechaInput = getValue('editFechaCX');
         if (fechaInput) {
@@ -266,7 +242,6 @@ async function saveEdit() {
             fechaCX = new Date(year, month - 1, day);
             if (isNaN(fechaCX)) fechaCX = carga.fechaCX;
         }
-
         const updateData = {
             referencia: getValue('editReferencia'),
             codigo: codigo,
@@ -290,23 +265,13 @@ async function saveEdit() {
             docDelivery: getValue('editDocDelivery'),
             _prevision: normalizeText(prevision)
         };
-
         updateData.totalItem = precio * cantidad;
         updateData.margen = calcularMargen(precio) || '';
-        const tempCarga = {
-            precio,
-            cantidadProducto: cantidad,
-            cantidad,
-            prevision,
-            atributo,
-            margen: updateData.margen
-        };
+        const tempCarga = { precio, cantidadProducto: cantidad, cantidad, prevision, atributo, margen: updateData.margen };
         updateData.venta = calcularVenta(tempCarga);
-
         const ref = doc(db, "cargas_consignaciones", id);
         await updateDoc(ref, updateData);
         Object.assign(carga, updateData);
-
         showToast('Cambios guardados', 'success');
         const modal = document.getElementById('editModal');
         if (modal) modal.classList.remove('show');
@@ -363,36 +328,27 @@ async function loadAniosYMeses() {
             if (!mesesPorAnio.has(year)) mesesPorAnio.set(year, new Set());
             mesesPorAnio.get(year).add(month);
         });
-
         const anioSelect = document.getElementById('anioSelect');
         anioSelect.innerHTML = '';
         const currentYear = new Date().getFullYear();
         let defaultYear = currentYear;
-
         const years = Array.from(mesesPorAnio.keys()).sort((a, b) => b - a);
-
         if (years.length === 0) {
             anioSelect.innerHTML = '<option value="">Sin datos</option>';
             document.getElementById('mesesContainer').innerHTML = '';
             window.hideLoading();
             return;
         }
-
-        // Priorizar año actual si tiene datos
         if (!mesesPorAnio.has(currentYear)) {
-            defaultYear = years[0]; // el más reciente
+            defaultYear = years[0];
         }
-
         years.forEach(y => {
             const opt = document.createElement('option');
             opt.value = y;
             opt.textContent = y;
-            if (y === defaultYear) {
-                opt.selected = true;
-            }
+            if (y === defaultYear) opt.selected = true;
             anioSelect.appendChild(opt);
         });
-
         selectedYear = defaultYear;
         await renderMesesButtons(mesesPorAnio.get(defaultYear));
     } catch (e) {
@@ -405,7 +361,6 @@ async function loadAniosYMeses() {
 async function renderMesesButtons(mesesSet) {
     const container = document.getElementById('mesesContainer');
     container.innerHTML = '';
-
     if (!mesesSet || mesesSet.size === 0) {
         container.innerHTML = '<span style="color:#999;">Sin registros</span>';
         selectedMonth = null;
@@ -414,27 +369,17 @@ async function renderMesesButtons(mesesSet) {
         window.hideLoading();
         return;
     }
-
     const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
     const hoy = new Date();
-    const mesActual = hoy.getMonth(); // 0-11
+    const mesActual = hoy.getMonth();
     const anioActual = hoy.getFullYear();
-
-    // Convertir Set a array y ordenar ascendente
     const mesesOrdenados = Array.from(mesesSet).sort((a, b) => a - b);
-
-    // Determinar el mes a seleccionar por prioridad
     let mesSeleccionado = null;
-
-    // 1. Si estamos en el año seleccionado y el mes actual tiene datos → usarlo
     if (selectedYear === anioActual && mesesSet.has(mesActual)) {
         mesSeleccionado = mesActual;
     } else {
-        // 2. Si no, tomar el mes más reciente (el último del array ordenado)
         mesSeleccionado = mesesOrdenados[mesesOrdenados.length - 1];
     }
-
-    // Generar botones
     mesesOrdenados.forEach(m => {
         const btn = document.createElement('button');
         btn.className = 'mes-btn';
@@ -451,16 +396,21 @@ async function renderMesesButtons(mesesSet) {
             await loadCargas();
         };
         container.appendChild(btn);
-
-        // Activar el botón del mes seleccionado
         if (m === mesSeleccionado) {
             btn.classList.add('active');
             selectedMonth = mesSeleccionado;
         }
     });
-
-    // Cargar datos del mes seleccionado
     await loadCargas();
+    if (isFirstLoad) {
+        setTimeout(() => {
+            const select = document.getElementById('buscarEstado');
+            if (select) {
+                select.value = '__PENDIENTES__';
+                showToast('Mostrando cargas pendientes (excluye "CARGADO")', 'info');
+            }
+        }, 800);
+    }
 }
 
 async function loadCargas() {
@@ -472,7 +422,6 @@ async function loadCargas() {
             const end = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59, 999);
             q = query(q, where("fechaCX", ">=", start), where("fechaCX", "<=", end));
         }
-
         const snapshot = await getDocs(q);
         const cargasBase = snapshot.docs.map(doc => {
             const data = doc.data();
@@ -491,9 +440,7 @@ async function loadCargas() {
                 cirugiaSeleccionada: data.cirugiaSeleccionada || ''
             };
         });
-
         let cargasProcesadas = cargasBase;
-
         try {
             const reportesModule = await import('./cargas-reportes.js');
             cargasProcesadas = await reportesModule.completarDatosCargas(cargasBase);
@@ -501,7 +448,6 @@ async function loadCargas() {
         } catch (err) {
             console.error('Error al procesar reportes o vincular guías:', err);
         }
-
         try {
             const { procesarMargenes } = await import('./cargas-calculos.js');
             allCargasDelMes = await procesarMargenes(cargasProcesadas);
@@ -509,7 +455,6 @@ async function loadCargas() {
             console.error('Error al calcular márgenes:', err);
             allCargasDelMes = cargasProcesadas;
         }
-
         selectedCargaIds.clear();
         updateCambiarEstadoButton();
         updateNCLFButton();
@@ -530,14 +475,26 @@ async function applyFiltersAndPaginateAsync() {
 
 function applyFiltersAndPaginate(callback = null) {
     let filtered = [...allCargasDelMes];
-    if (searchFilters.estado) filtered = filtered.filter(c => c._estado.includes(searchFilters.estado));
-    if (searchFilters.admision) filtered = filtered.filter(c => c._admision.includes(searchFilters.admision));
-    if (searchFilters.paciente) filtered = filtered.filter(c => c._paciente.includes(searchFilters.paciente));
-
+    if (isFirstLoad) {
+        filtered = filtered.filter(c => c.estado !== 'CARGADO');
+        isFirstLoad = false;
+    }
+    if (searchFilters.estado) {
+        if (searchFilters.estado === '__PENDIENTES__') {
+            filtered = filtered.filter(c => c.estado !== 'CARGADO');
+        } else {
+            filtered = filtered.filter(c => c._estado.includes(searchFilters.estado));
+        }
+    }
+    if (searchFilters.admision) {
+        filtered = filtered.filter(c => c._admision.includes(searchFilters.admision));
+    }
+    if (searchFilters.paciente) {
+        filtered = filtered.filter(c => c._paciente.includes(searchFilters.paciente));
+    }
     const startIdx = (currentPage - 1) * PAGE_SIZE;
     const endIdx = startIdx + PAGE_SIZE;
     cargas = filtered.slice(startIdx, endIdx);
-
     renderTable(() => {
         actualizarSelectEstados();
         const loadMore = document.getElementById('loadMoreContainer');
@@ -568,10 +525,7 @@ function renderTable(callback = null) {
         if (callback) callback();
         return;
     }
-
-    // LIMPIAR SUBFILAS ANTERIORES
     document.querySelectorAll('tr.subrow, tr.subrow-item').forEach(row => row.remove());
-
     if (cargas.length === 0) {
         tbody.innerHTML = `
             <tr>
@@ -583,8 +537,6 @@ function renderTable(callback = null) {
         if (callback) requestAnimationFrame(() => setTimeout(callback, 100));
         return;
     }
-
-    // GENERAR FILAS PRINCIPALES
     const html = cargas.map(c => `
         <tr data-id="${c.id}" class="${selectedCargaIds.has(c.id) ? 'row-selected' : ''}">
             <td class="checkbox-cell">
@@ -634,10 +586,7 @@ function renderTable(callback = null) {
             </td>
         </tr>
     `).join('');
-
     tbody.innerHTML = html;
-
-    // === AQUÍ VAN LOS EVENTOS DE CHECKBOX Y BOTONES ===
     document.querySelectorAll('.row-checkbox').forEach(cb => {
         cb.addEventListener('change', e => {
             const id = e.target.dataset.id;
@@ -648,7 +597,6 @@ function renderTable(callback = null) {
             e.target.closest('tr').classList.toggle('row-selected', e.target.checked);
         });
     });
-
     const selectAll = document.getElementById('selectAll');
     if (selectAll) {
         selectAll.addEventListener('change', e => {
@@ -664,8 +612,6 @@ function renderTable(callback = null) {
             updateNCLFButton();
         });
     }
-
-    // === AQUÍ VAN LOS BOTONES DE SUBFILAS ===
     document.querySelectorAll('.cargar-btn-toggle-subrows').forEach(btn => {
         btn.addEventListener('click', e => {
             e.stopPropagation();
@@ -673,17 +619,14 @@ function renderTable(callback = null) {
             const row = btn.closest('tr');
             const icon = btn.querySelector('i');
             const existingSubrows = document.querySelectorAll(`tr.subrow-item[data-parent="${id}"]`);
-
             if (existingSubrows.length > 0) {
                 existingSubrows.forEach(sub => sub.remove());
                 icon.classList.replace('fa-chevron-up', 'fa-chevron-down');
                 return;
             }
-
             icon.classList.replace('fa-chevron-down', 'fa-chevron-up');
             const carga = allCargasDelMes.find(c => c.id === id);
             const guia = carga.guiaRelacionada;
-
             if (!guia || !guia.fullData?.Documento?.Detalle) {
                 row.insertAdjacentHTML('afterend', `
                     <tr class="subrow-item" data-parent="${id}">
@@ -694,13 +637,10 @@ function renderTable(callback = null) {
                 `);
                 return;
             }
-
             const detalles = Array.isArray(guia.fullData.Documento.Detalle)
                 ? guia.fullData.Documento.Detalle
                 : [guia.fullData.Documento.Detalle];
-
             const itemsDesdeSegundo = detalles.slice(1);
-
             if (itemsDesdeSegundo.length === 0) {
                 row.insertAdjacentHTML('afterend', `
                     <tr class="subrow-item" data-parent="${id}">
@@ -711,7 +651,6 @@ function renderTable(callback = null) {
                 `);
                 return;
             }
-
             const idRegistro = escapeHtml(carga.idRegistro || '');
             const prevision = escapeHtml(carga.prevision || '');
             const convenio = escapeHtml(carga.convenio || '');
@@ -722,54 +661,48 @@ function renderTable(callback = null) {
             const proveedor = escapeHtml(carga.proveedor || '');
             const atributo = escapeHtml(carga.atributo || '');
             const docDelivery = escapeHtml(carga.docDelivery || '');
-
             const subrowsHtml = itemsDesdeSegundo.map(detalle => {
-            const folio = escapeHtml(guia.folio || '');
-            const codigo = detalle.CdgItem?.VlrCodigo?.split(' ')[0] || '';
-            const cantidad = detalle.QtyItem ? Math.round(parseFloat(detalle.QtyItem)) : '';
-            const descripcion = escapeHtml(detalle.DscItem || detalle.NmbItem || '');
-            const fechaVenc = detalle.FchVencim ? formatDate(detalle.FchVencim) : '';
-
-            // 30 columnas EXACTAS, en ORDEN CORRECTO
-            return `
-                <tr class="subrow-item" data-parent="${id}" style="background:#fafafa; font-size:12px;">
-                    <td></td> <!-- 1: checkbox -->
-                    <td></td> <!-- 2: estado -->
-                    <td></td> <!-- 3: fecha carga -->
-                    <td style="background:#e3f2fd; font-weight:600;">${folio}</td> <!-- 4: Folio -->
-                    <td></td> <!-- 5: total cot -->
-                    <td></td> <!-- 6: total pac -->
-                    <td></td> <!-- 7: verificación -->
-                    <td style="background:#fff3e0;">${descripcion}</td> <!-- 8: Descripción -->
-                    <td style="color:#d32f2f; text-align:center;">${fechaVenc}</td> <!-- 9: Vencimiento -->
-                    <td style="background:#f3e5f5; font-family:monospace;">${escapeHtml(codigo)}</td> <!-- 10: Código -->
-                    <td>${idRegistro}</td> <!-- 11: idRegistro -->
-                    <td></td> <!-- 12: código carga -->
-                    <td style="text-align:center;">${cantidad}</td> <!-- 13: Cantidad -->
-                    <td></td> <!-- 14: venta -->
-                    <td>${prevision}</td> <!-- 15: Previsión -->
-                    <td>${convenio}</td> <!-- 16: Convenio -->
-                    <td>${admision}</td> <!-- 17: Admisión -->
-                    <td>${paciente}</td> <!-- 18: Paciente -->
-                    <td>${medico}</td> <!-- 19: Médico -->
-                    <td>${fechaCX}</td> <!-- 20: Fecha CX -->
-                    <td>${proveedor}</td> <!-- 21: Proveedor -->
-                    <td></td> <!-- 22: código prod -->
-                    <td></td> <!-- 23: descripción carga -->
-                    <td></td> <!-- 24: cant prod -->
-                    <td></td> <!-- 25: precio -->
-                    <td>${atributo}</td> <!-- 26: Atributo -->
-                    <td></td> <!-- 27: total item -->
-                    <td></td> <!-- 28: margen -->
-                    <td>${docDelivery}</td> <!-- 29: Doc. Delivery -->
-                    <td></td> <!-- 30: acciones -->
-                </tr>
-            `;
-        }).join('');
-
+                const folio = escapeHtml(guia.folio || '');
+                const codigo = detalle.CdgItem?.VlrCodigo?.split(' ')[0] || '';
+                const cantidad = detalle.QtyItem ? Math.round(parseFloat(detalle.QtyItem)) : '';
+                const descripcion = escapeHtml(detalle.DscItem || detalle.NmbItem || '');
+                const fechaVenc = detalle.FchVencim ? formatDate(detalle.FchVencim) : '';
+                return `
+                    <tr class="subrow-item" data-parent="${id}" style="background:#fafafa; font-size:12px;">
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td style="background:#e3f2fd; font-weight:600;">${folio}</td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td style="background:#fff3e0;">${descripcion}</td>
+                        <td style="color:#d32f2f; text-align:center;">${fechaVenc}</td>
+                        <td style="background:#f3e5f5; font-family:monospace;">${escapeHtml(codigo)}</td>
+                        <td>${idRegistro}</td>
+                        <td></td>
+                        <td style="text-align:center;">${cantidad}</td>
+                        <td></td>
+                        <td>${prevision}</td>
+                        <td>${convenio}</td>
+                        <td>${admision}</td>
+                        <td>${paciente}</td>
+                        <td>${medico}</td>
+                        <td>${fechaCX}</td>
+                        <td>${proveedor}</td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td>${atributo}</td>
+                        <td></td>
+                        <td></td>
+                        <td>${docDelivery}</td>
+                        <td></td>
+                    </tr>
+                `;
+            }).join('');
             row.insertAdjacentHTML('afterend', subrowsHtml);
-
-            // === AQUÍ SÍ: AGREGAR HOVER DESPUÉS DE INSERTAR ===
             document.querySelectorAll(`tr.subrow-item[data-parent="${id}"]`).forEach(subrow => {
                 subrow.addEventListener('mouseenter', () => {
                     const mainRow = document.querySelector(`tr[data-id="${id}"]`);
@@ -788,7 +721,6 @@ function renderTable(callback = null) {
             });
         });
     });
-
     if (callback) {
         requestAnimationFrame(() => setTimeout(callback, 100));
     }
@@ -812,12 +744,9 @@ function setupColumnResize() {
             cell.style.width = `${initialWidths[index]}px`;
             cell.style.minWidth = `${initialWidths[index]}px`;
         });
-
         const handle = header.querySelector('.resize-handle');
         if (!handle) return;
-
         let isResizing = false, startX, startWidth;
-
         const start = e => {
             isResizing = true;
             startX = e.clientX || e.touches?.[0]?.clientX;
@@ -826,7 +755,6 @@ function setupColumnResize() {
             handle.classList.add('active');
             e.preventDefault();
         };
-
         const move = e => {
             if (!isResizing) return;
             const delta = (e.clientX || e.touches?.[0]?.clientX) - startX;
@@ -838,7 +766,6 @@ function setupColumnResize() {
                 cell.style.minWidth = `${newWidth}px`;
             });
         };
-
         const stop = () => {
             if (isResizing) {
                 isResizing = false;
@@ -846,7 +773,6 @@ function setupColumnResize() {
                 handle.classList.remove('active');
             }
         };
-
         handle.addEventListener('mousedown', start);
         document.addEventListener('mousemove', move);
         document.addEventListener('mouseup', stop);
@@ -862,14 +788,19 @@ function actualizarSelectEstados() {
         if (select) select.innerHTML = '<option value="">Todos</option>';
         return;
     }
-
     const estadosUnicos = new Set();
     allCargasDelMes.forEach(c => {
-        if (c.estado) estadosUnicos.add(c.estado.trim());
+        if (c.estado && c.estado !== 'CARGADO') {
+            estadosUnicos.add(c.estado.trim());
+        }
     });
-
     const valorActual = select.value;
     select.innerHTML = '<option value="">Todos</option>';
+    const optPendientes = document.createElement('option');
+    optPendientes.value = '__PENDIENTES__';
+    optPendientes.textContent = 'Pendientes';
+    if (isFirstLoad) optPendientes.selected = true;
+    select.appendChild(optPendientes);
     Array.from(estadosUnicos).sort().forEach(estado => {
         const opt = document.createElement('option');
         opt.value = normalizeText(estado);
@@ -877,6 +808,9 @@ function actualizarSelectEstados() {
         if (normalizeText(estado) === valorActual) opt.selected = true;
         select.appendChild(opt);
     });
+    if (isFirstLoad) {
+        select.value = '__PENDIENTES__';
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -885,17 +819,16 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 'buscarAdmision', filter: 'admision', event: 'input' },
         { id: 'buscarPaciente', filter: 'paciente', event: 'input' }
     ];
-
     inputs.forEach(({ id, filter, event }) => {
         const el = document.getElementById(id);
         if (el) {
             el.addEventListener(event, e => {
-                searchFilters[filter] = normalizeText(e.target.value);
+                const val = e.target.value;
+                searchFilters[filter] = (val === '__PENDIENTES__') ? val : normalizeText(val);
                 debouncedLoad();
             });
         }
     });
-
     const anioSelect = document.getElementById('anioSelect');
     if (anioSelect) {
         anioSelect.addEventListener('change', async e => {
@@ -923,7 +856,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-
     const modalEstado = document.getElementById('cambiarEstadoModal');
     const btnCambiar = document.getElementById('btnCambiarEstado');
     if (btnCambiar && modalEstado) {
@@ -939,7 +871,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-
     const editModal = document.getElementById('editModal');
     if (editModal) {
         editModal.addEventListener('click', e => { if (e.target === editModal) editModal.classList.remove('show'); });
@@ -947,7 +878,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('cancelEdit')?.addEventListener('click', () => editModal.classList.remove('show'));
         document.getElementById('saveEdit')?.addEventListener('click', saveEdit);
     }
-
     const deleteModal = document.getElementById('deleteModal');
     if (deleteModal) {
         deleteModal.addEventListener('click', e => { if (e.target === deleteModal) deleteModal.classList.remove('show'); });
@@ -955,7 +885,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('cancelDelete')?.addEventListener('click', () => deleteModal.classList.remove('show'));
         document.getElementById('confirmDelete')?.addEventListener('click', confirmDelete);
     }
-
     const tbody = document.querySelector('#cargarTable tbody');
     if (tbody) {
         tbody.addEventListener('click', e => {
@@ -965,11 +894,9 @@ document.addEventListener('DOMContentLoaded', () => {
             else if (deleteBtn) openDeleteModal(deleteBtn.dataset.id);
         });
     }
-
     const nclfContainer = document.getElementById('ingresarNCLFContainer');
-    const btnIngresarNCLF = document.getElementById('btnIngresarNCLF');  // CORREGIDO
+    const btnIngresarNCLF = document.getElementById('btnIngresarNCLF');
     const nclfModal = document.getElementById('nclfModal');
-
     if (btnIngresarNCLF) {
         btnIngresarNCLF.addEventListener('click', () => {
             document.getElementById('nclfNumero').value = '';
@@ -978,7 +905,6 @@ document.addEventListener('DOMContentLoaded', () => {
             nclfModal.classList.add('show');
         });
     }
-
     nclfModal?.addEventListener('click', e => {
         if (e.target === nclfModal) nclfModal.classList.remove('show');
     });
@@ -988,17 +914,14 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('cancelarNCLF')?.addEventListener('click', () => {
         nclfModal.classList.remove('show');
     });
-
     document.getElementById('guardarNCLF')?.addEventListener('click', async () => {
         const numero = document.getElementById('nclfNumero').value.trim();
         const lote = document.getElementById('nclfLote').value.trim();
         const vencimientoStr = document.getElementById('nclfVencimiento').value;
-
         if (!numero && !lote && !vencimientoStr) {
             showToast('Debe ingresar al menos un campo', 'error');
             return;
         }
-
         let vencimiento = null;
         if (vencimientoStr) {
             vencimiento = new Date(vencimientoStr);
@@ -1007,24 +930,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
         }
-
         window.showLoading();
         try {
             const updates = Array.from(selectedCargaIds).map(id => {
                 const carga = allCargasDelMes.find(c => c.id === id);
                 if (!carga) return null;
-
                 const updateData = {};
                 if (numero) updateData.numeroCotizacion = numero;
                 if (lote) updateData.lote = lote;
                 if (vencimiento) updateData.vencimiento = vencimiento;
-
                 Object.assign(carga, updateData);
-
                 const ref = doc(db, "cargas_consignaciones", id);
                 return updateDoc(ref, updateData);
             }).filter(Boolean);
-
             await Promise.all(updates);
             nclfModal.classList.remove('show');
             showToast(`NCLF ingresado en ${updates.length} carga(s)`, 'success');
@@ -1036,7 +954,6 @@ document.addEventListener('DOMContentLoaded', () => {
             window.hideLoading();
         }
     });
-
     setupColumnResize();
     onAuthStateChanged(auth, user => {
         loadAniosYMeses();
