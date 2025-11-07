@@ -69,7 +69,20 @@ function formatNumberWithThousandsSeparator(number) {
 
 function formatDate(isoDate) {
     if (!isoDate) return '';
-    const [year, month, day] = isoDate.split('-');
+
+    let dateStr = '';
+
+    if (isoDate.toDate) {
+        dateStr = isoDate.toDate().toISOString().split('T')[0];
+    } else if (typeof isoDate === 'string') {
+        dateStr = isoDate;
+    } else if (isoDate instanceof Date) {
+        dateStr = isoDate.toISOString().split('T')[0];
+    } else {
+        return '';
+    }
+
+    const [year, month, day] = dateStr.split('-');
     return `${day}-${month}-${year}`;
 }
 
