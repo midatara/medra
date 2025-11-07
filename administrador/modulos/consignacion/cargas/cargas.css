@@ -916,3 +916,20 @@ body {
 .subrow-item td:empty {
     background: transparent !important;
 }
+
+.subrow-item {
+    border-left: 4px solid #2196F3 !important;
+    background: #f8fbff !important;
+}
+.subrow-item td {
+    font-size: 11.8px !important;
+    color: #2c3e50 !important;
+}
+.subrow-item td:nth-child(4),
+.subrow-item td:nth-child(8),
+.subrow-item td:nth-child(9),
+.subrow-item td:nth-child(10),
+.subrow-item td:nth-child(13) {
+    font-weight: 600;
+    background-color: #e3f2fd !important;
+}

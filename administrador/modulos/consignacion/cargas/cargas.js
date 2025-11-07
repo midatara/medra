@@ -663,7 +663,7 @@ function renderTable(callback = null) {
                 ? guia.fullData.Documento.Detalle
                 : [guia.fullData.Documento.Detalle];
 
-            // OCULTAR EL PRIMER ÍTEM (índice 0)
+            // OCULTAR EL PRIMER ÍTEM
             const itemsDesdeSegundo = detalles.slice(1);
 
             if (itemsDesdeSegundo.length === 0) {
@@ -678,7 +678,19 @@ function renderTable(callback = null) {
                 return;
             }
 
-            // GENERAR SUBFILAS DESDE EL SEGUNDO ÍTEM
+            // DATOS DE LA CARGA PRINCIPAL (para rellenar)
+            const idRegistro = escapeHtml(carga.idRegistro || '');
+            const prevision = escapeHtml(carga.prevision || '');
+            const convenio = escapeHtml(carga.convenio || '');
+            const admision = escapeHtml(carga.admision || '');
+            const paciente = escapeHtml(carga.paciente || '');
+            const medico = escapeHtml(carga.medico || '');
+            const fechaCX = carga.fechaCX ? formatDate(carga.fechaCX.toDate ? carga.fechaCX.toDate().toISOString().split('T')[0] : carga.fechaCX) : '';
+            const proveedor = escapeHtml(carga.proveedor || '');
+            const atributo = escapeHtml(carga.atributo || '');
+            const docDelivery = escapeHtml(carga.docDelivery || '');
+
+            // GENERAR SUBFILAS
             const subrowsHtml = itemsDesdeSegundo.map(detalle => {
                 const folio = escapeHtml(guia.folio || '');
                 const codigo = detalle.CdgItem?.VlrCodigo?.split(' ')[0] || '';
@@ -688,36 +700,36 @@ function renderTable(callback = null) {
 
                 return `
                     <tr class="subrow-item" data-parent="${id}" style="background:#fafafa; font-size:12px;">
-                        <td></td> <!-- 1 -->
-                        <td></td> <!-- 2 -->
-                        <td></td> <!-- 3 -->
+                        <td></td> <!-- 1: checkbox -->
+                        <td></td> <!-- 2: estado -->
+                        <td></td> <!-- 3: fecha carga -->
                         <td style="background:#e3f2fd; font-weight:600;">${folio}</td> <!-- 4: Folio -->
-                        <td></td> <!-- 5 -->
-                        <td></td> <!-- 6 -->
-                        <td></td> <!-- 7 -->
+                        <td></td> <!-- 5: total cot -->
+                        <td></td> <!-- 6: total pac -->
+                        <td></td> <!-- 7: verificación -->
                         <td style="background:#fff3e0;">${descripcion}</td> <!-- 8: Descripción -->
                         <td style="color:#d32f2f; text-align:center;">${fechaVenc}</td> <!-- 9: Vencimiento -->
                         <td style="background:#f3e5f5; font-family:monospace;">${escapeHtml(codigo)}</td> <!-- 10: Código -->
-                        <td></td> <!-- 11 -->
-                        <td></td> <!-- 12 -->
+                        <td>${idRegistro}</td> <!-- 11: idRegistro -->
+                        <td></td> <!-- 12: código carga -->
                         <td style="text-align:center;">${cantidad}</td> <!-- 13: Cantidad -->
-                        <td></td> <!-- 14 -->
-                        <td></td> <!-- 15 -->
-                        <td></td> <!-- 16 -->
-                        <td></td> <!-- 17 -->
-                        <td></td> <!-- 18 -->
-                        <td></td> <!-- 19 -->
-                        <td></td> <!-- 20 -->
-                        <td></td> <!-- 21 -->
-                        <td></td> <!-- 22 -->
-                        <td></td> <!-- 23 -->
-                        <td></td> <!-- 24 -->
-                        <td></td> <!-- 25 -->
-                        <td></td> <!-- 26 -->
-                        <td></td> <!-- 27 -->
-                        <td></td> <!-- 28 -->
-                        <td></td> <!-- 29 -->
-                        <td></td> <!-- 30 -->
+                        <td></td> <!-- 14: venta -->
+                        <td>${prevision}</td> <!-- 15: Previsión -->
+                        <td>${convenio}</td> <!-- 16: Convenio -->
+                        <td>${admision}</td> <!-- 17: Admisión -->
+                        <td>${paciente}</td> <!-- 18: Paciente -->
+                        <td>${medico}</td> <!-- 19: Médico -->
+                        <td>${fechaCX}</td> <!-- 20: Fecha CX -->
+                        <td>${proveedor}</td> <!-- 21: Proveedor -->
+                        <td></td> <!-- 22: código prod -->
+                        <td></td> <!-- 23: descripción carga -->
+                        <td></td> <!-- 24: cant prod -->
+                        <td></td> <!-- 25: precio -->
+                        <td>${atributo}</td> <!-- 26: Atributo -->
+                        <td></td> <!-- 27: total item -->
+                        <td></td> <!-- 28: margen -->
+                        <td>${docDelivery}</td> <!-- 29: Doc. Delivery -->
+                        <td></td> <!-- 30: acciones -->
                     </tr>
                 `;
             }).join('');
