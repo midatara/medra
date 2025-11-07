@@ -126,7 +126,7 @@ async function cambiarEstadoMasivo(nuevoEstado) {
             if (selectedCargaIds.has(c.id)) {
                 c.estado = nuevoEstado;
                 c._estado = normalizeText(nuevoEstado);
-                if (nuevoEstado === 'CARGADO' && !c.fechaCarga) {
+                if (nuevoEstado === 'CARGADO' && !carga.fechaCarga) {
                     c.fechaCarga = new Date();
                 }
             }
@@ -532,7 +532,6 @@ function renderTable(callback = null) {
         return;
     }
 
-    // LIMPIAR SUBFILAS ANTERIORES
     document.querySelectorAll('tr.subrow, tr.subrow-item').forEach(row => row.remove());
 
     if (cargas.length === 0) {
@@ -628,7 +627,6 @@ function renderTable(callback = null) {
         });
     }
 
-    // SUBFILAS: SIN ENCABEZADOS, SIN DUPLICACIÓN
     document.querySelectorAll('.cargar-btn-toggle-subrows').forEach(btn => {
         btn.addEventListener('click', e => {
             e.stopPropagation();
@@ -888,7 +886,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const nclfContainer = document.getElementById('ingresarNCLFContainer');
-    const btnIngresar Qur = document.getElementById('btnIngresarNCLF');
+    const btnIngresarNCLF = document.getElementById('btnIngresarNCLF');  // CORREGIDO
     const nclfModal = document.getElementById('nclfModal');
 
     if (btnIngresarNCLF) {
