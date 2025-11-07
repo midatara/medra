@@ -700,31 +700,48 @@ function renderTable(callback = null) {
             const docDelivery = escapeHtml(carga.docDelivery || '');
 
             const subrowsHtml = itemsDesdeSegundo.map(detalle => {
-                const folio = escapeHtml(guia.folio || '');
-                const codigo = detalle.CdgItem?.VlrCodigo?.split(' ')[0] || '';
-                const cantidad = detalle.QtyItem ? Math.round(parseFloat(detalle.QtyItem)) : '';
-                const descripcion = escapeHtml(detalle.DscItem || detalle.NmbItem || '');
-                const fechaVenc = detalle.FchVencim ? formatDate(detalle.FchVencim) : '';
+            const folio = escapeHtml(guia.folio || '');
+            const codigo = detalle.CdgItem?.VlrCodigo?.split(' ')[0] || '';
+            const cantidad = detalle.QtyItem ? Math.round(parseFloat(detalle.QtyItem)) : '';
+            const descripcion = escapeHtml(detalle.DscItem || detalle.NmbItem || '');
+            const fechaVenc = detalle.FchVencim ? formatDate(detalle.FchVencim) : '';
 
-                return `
-                    <tr class="subrow-item" data-parent="${id}" style="background:#fafafa; font-size:12px;">
-                        <td></td><td></td><td></td>
-                        <td style="background:#e3f2fd; font-weight:600;">${folio}</td>
-                        <td></td><td></td><td></td>
-                        <td style="background:#fff3e0;">${descripcion}</td>
-                        <td style="color:#d32f2f; text-align:center;">${fechaVenc}</td>
-                        <td style="background:#f3e5f5; font-family:monospace;">${escapeHtml(codigo)}</td>
-                        <td>${idRegistro}</td><td></td>
-                        <td style="text-align:center;">${cantidad}</td>
-                        <td></td>
-                        <td>${prevision}</td><td>${convenio}</td><td>${admision}</td><td>${paciente}</td><td>${medico}</td>
-                        <td>${fechaCX}</td><td>${proveedor}</td>
-                        <td></td><td></td><td></td><td></td><td></td>
-                        <td>${atributo}</td><td></td><td></td>
-                        <td>${docDelivery}</td><td></td>
-                    </tr>
-                `;
-            }).join('');
+            // 30 columnas EXACTAS, en ORDEN CORRECTO
+            return `
+                <tr class="subrow-item" data-parent="${id}" style="background:#fafafa; font-size:12px;">
+                    <td></td> <!-- 1: checkbox -->
+                    <td></td> <!-- 2: estado -->
+                    <td></td> <!-- 3: fecha carga -->
+                    <td style="background:#e3f2fd; font-weight:600;">${folio}</td> <!-- 4: Folio -->
+                    <td></td> <!-- 5: total cot -->
+                    <td></td> <!-- 6: total pac -->
+                    <td></td> <!-- 7: verificación -->
+                    <td style="background:#fff3e0;">${descripcion}</td> <!-- 8: Descripción -->
+                    <td style="color:#d32f2f; text-align:center;">${fechaVenc}</td> <!-- 9: Vencimiento -->
+                    <td style="background:#f3e5f5; font-family:monospace;">${escapeHtml(codigo)}</td> <!-- 10: Código -->
+                    <td>${idRegistro}</td> <!-- 11: idRegistro -->
+                    <td></td> <!-- 12: código carga -->
+                    <td style="text-align:center;">${cantidad}</td> <!-- 13: Cantidad -->
+                    <td></td> <!-- 14: venta -->
+                    <td>${prevision}</td> <!-- 15: Previsión -->
+                    <td>${convenio}</td> <!-- 16: Convenio -->
+                    <td>${admision}</td> <!-- 17: Admisión -->
+                    <td>${paciente}</td> <!-- 18: Paciente -->
+                    <td>${medico}</td> <!-- 19: Médico -->
+                    <td>${fechaCX}</td> <!-- 20: Fecha CX -->
+                    <td>${proveedor}</td> <!-- 21: Proveedor -->
+                    <td></td> <!-- 22: código prod -->
+                    <td></td> <!-- 23: descripción carga -->
+                    <td></td> <!-- 24: cant prod -->
+                    <td></td> <!-- 25: precio -->
+                    <td>${atributo}</td> <!-- 26: Atributo -->
+                    <td></td> <!-- 27: total item -->
+                    <td></td> <!-- 28: margen -->
+                    <td>${docDelivery}</td> <!-- 29: Doc. Delivery -->
+                    <td></td> <!-- 30: acciones -->
+                </tr>
+            `;
+        }).join('');
 
             row.insertAdjacentHTML('afterend', subrowsHtml);
 
