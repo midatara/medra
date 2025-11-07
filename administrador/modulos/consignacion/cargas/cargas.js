@@ -547,11 +547,11 @@ function renderTable(callback = null) {
         <tr data-id="${c.id}" class="${selectedCargaIds.has(c.id) ? 'row-selected' : ''}">
             <td class="checkbox-cell">
                 <input type="checkbox" class="row-checkbox" data-id="${c.id}" ${selectedCargaIds.has(c.id) ? 'checked' : ''}>
-                ${c.guiaRelacionada ? `
-                    <button class="cargar-btn-toggle-subrows" data-id="${c.id}" title="Ver guía relacionada" style="margin-left:4px;">
-                        <i class="fas fa-chevron-down"></i>
-                    </button>
-                ` : ''}
+                ${c.guiaRelacionada && c.guiaRelacionada.folio ? `
+                <button class="cargar-btn-toggle-subrows" data-id="${c.id}" title="Ver guía relacionada" style="margin-left:4px; color:#007bff;">
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+            ` : ''}
             </td>
             <td>${escapeHtml(c.estado)}</td>
             <td>${c.fechaCarga && c.estado === 'CARGADO' ? c.fechaCarga.toLocaleDateString('es-CL') : ''}</td>
