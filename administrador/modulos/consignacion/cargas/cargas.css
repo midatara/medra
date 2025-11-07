@@ -880,3 +880,30 @@ body {
 .cargar-table th:nth-child(28) {
     text-align: right !important;
 }
+
+/* Asegura que el botón de flecha sea visible */
+.checkbox-cell .cargar-btn-toggle-subrows {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    color: #007bff;
+    padding: 2px;
+    margin-left: 4px;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 3px;
+    transition: background 0.2s;
+}
+
+.checkbox-cell .cargar-btn-toggle-subrows:hover {
+    background: #e3f2fd;
+}
+
+.checkbox-cell .cargar-btn-toggle-subrows i {
+    font-size: 12px;
+    pointer-events: none;
+}

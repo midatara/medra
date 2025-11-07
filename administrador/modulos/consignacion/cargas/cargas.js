@@ -548,7 +548,7 @@ function renderTable(callback = null) {
             <td class="checkbox-cell">
                 <input type="checkbox" class="row-checkbox" data-id="${c.id}" ${selectedCargaIds.has(c.id) ? 'checked' : ''}>
                 ${c.guiaRelacionada && c.guiaRelacionada.folio ? `
-                <button class="cargar-btn-toggle-subrows" data-id="${c.id}" title="Ver guía relacionada" style="margin-left:4px; color:#007bff;">
+                <button class="cargar-btn-toggle-subrows" data-id="${c.id}" title="Guía: ${escapeHtml(c.guiaRelacionada.folio)}" aria-label="Ver guía">
                     <i class="fas fa-chevron-down"></i>
                 </button>
             ` : ''}
@@ -593,6 +593,12 @@ function renderTable(callback = null) {
         </tr>
     `).join('');
 
+    console.log("Cargas con guía:", cargas.filter(c => c.guiaRelacionada?.folio).map(c => ({
+        id: c.id,
+        docDelivery: c.docDelivery,
+        guiaFolio: c.guiaRelacionada.folio
+    })));
+    
     tbody.innerHTML = html;
 
     // Checkboxes
