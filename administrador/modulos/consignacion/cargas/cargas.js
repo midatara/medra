@@ -635,12 +635,14 @@ function renderTable(callback = null) {
             const icon = btn.querySelector('i');
             const existingSubrows = document.querySelectorAll(`tr.subrow-item[data-parent="${id}"]`);
 
+            // CERRAR SI YA ESTÁN ABIERTAS
             if (existingSubrows.length > 0) {
                 existingSubrows.forEach(sub => sub.remove());
                 icon.classList.replace('fa-chevron-up', 'fa-chevron-down');
                 return;
             }
 
+            // ABRIR
             icon.classList.replace('fa-chevron-down', 'fa-chevron-up');
             const carga = allCargasDelMes.find(c => c.id === id);
             const guia = carga.guiaRelacionada;
@@ -661,7 +663,23 @@ function renderTable(callback = null) {
                 ? guia.fullData.Documento.Detalle
                 : [guia.fullData.Documento.Detalle];
 
-            const subrowsHtml = detalles.map(detalle => {
+            // OCULTAR EL PRIMER ÍTEM (índice 0)
+            const itemsDesdeSegundo = detalles.slice(1);
+
+            if (itemsDesdeSegundo.length === 0) {
+                const subrowHtml = `
+                    <tr class="subrow-item" data-parent="${id}">
+                        <td colspan="30" style="padding:12px; background:#f9f9f9; text-align:center; color:#999; font-style:italic;">
+                            No hay ítems adicionales (solo 1 ítem en la guía).
+                        </td>
+                    </tr>
+                `;
+                row.insertAdjacentHTML('afterend', subrowHtml);
+                return;
+            }
+
+            // GENERAR SUBFILAS DESDE EL SEGUNDO ÍTEM
+            const subrowsHtml = itemsDesdeSegundo.map(detalle => {
                 const folio = escapeHtml(guia.folio || '');
                 const codigo = detalle.CdgItem?.VlrCodigo?.split(' ')[0] || '';
                 const cantidad = detalle.QtyItem ? Math.round(parseFloat(detalle.QtyItem)) : '';
@@ -669,37 +687,37 @@ function renderTable(callback = null) {
                 const fechaVenc = detalle.FchVencim ? formatDate(detalle.FchVencim) : '';
 
                 return `
-                    <tr class="subrow-item" data-parent="${id}">
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td style="background:#e3f2fd; font-weight:600;">${folio}</td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td style="background:#fff3e0;">${descripcion}</td>
-                        <td style="color:#d32f2f; text-align:center;">${fechaVenc}</td>
-                        <td style="background:#f3e5f5; font-family:monospace;">${escapeHtml(codigo)}</td>
-                        <td></td>
-                        <td></td>
-                        <td style="text-align:center;">${cantidad}</td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
+                    <tr class="subrow-item" data-parent="${id}" style="background:#fafafa; font-size:12px;">
+                        <td></td> <!-- 1 -->
+                        <td></td> <!-- 2 -->
+                        <td></td> <!-- 3 -->
+                        <td style="background:#e3f2fd; font-weight:600;">${folio}</td> <!-- 4: Folio -->
+                        <td></td> <!-- 5 -->
+                        <td></td> <!-- 6 -->
+                        <td></td> <!-- 7 -->
+                        <td style="background:#fff3e0;">${descripcion}</td> <!-- 8: Descripción -->
+                        <td style="color:#d32f2f; text-align:center;">${fechaVenc}</td> <!-- 9: Vencimiento -->
+                        <td style="background:#f3e5f5; font-family:monospace;">${escapeHtml(codigo)}</td> <!-- 10: Código -->
+                        <td></td> <!-- 11 -->
+                        <td></td> <!-- 12 -->
+                        <td style="text-align:center;">${cantidad}</td> <!-- 13: Cantidad -->
+                        <td></td> <!-- 14 -->
+                        <td></td> <!-- 15 -->
+                        <td></td> <!-- 16 -->
+                        <td></td> <!-- 17 -->
+                        <td></td> <!-- 18 -->
+                        <td></td> <!-- 19 -->
+                        <td></td> <!-- 20 -->
+                        <td></td> <!-- 21 -->
+                        <td></td> <!-- 22 -->
+                        <td></td> <!-- 23 -->
+                        <td></td> <!-- 24 -->
+                        <td></td> <!-- 25 -->
+                        <td></td> <!-- 26 -->
+                        <td></td> <!-- 27 -->
+                        <td></td> <!-- 28 -->
+                        <td></td> <!-- 29 -->
+                        <td></td> <!-- 30 -->
                     </tr>
                 `;
             }).join('');
