@@ -532,7 +532,8 @@ function renderTable(callback = null) {
         return;
     }
 
-    document.querySelectorAll('tr.subrow').forEach(row => row.remove());
+    // LIMPIAR SUBFILAS ANTERIORES
+    document.querySelectorAll('tr.subrow, tr.subrow-item').forEach(row => row.remove());
 
     if (cargas.length === 0) {
         tbody.innerHTML = `
@@ -627,6 +628,7 @@ function renderTable(callback = null) {
         });
     }
 
+    // SUBFILAS: SIN ENCABEZADOS, SIN DUPLICACIÓN
     document.querySelectorAll('.cargar-btn-toggle-subrows').forEach(btn => {
         btn.addEventListener('click', e => {
             e.stopPropagation();
@@ -635,14 +637,12 @@ function renderTable(callback = null) {
             const icon = btn.querySelector('i');
             const existingSubrows = document.querySelectorAll(`tr.subrow-item[data-parent="${id}"]`);
 
-            // SI YA ESTÁN ABIERTAS → CERRAR (eliminar todas)
             if (existingSubrows.length > 0) {
                 existingSubrows.forEach(sub => sub.remove());
                 icon.classList.replace('fa-chevron-up', 'fa-chevron-down');
                 return;
             }
 
-            // SI NO → ABRIR
             icon.classList.replace('fa-chevron-down', 'fa-chevron-up');
             const carga = allCargasDelMes.find(c => c.id === id);
             const guia = carga.guiaRelacionada;
@@ -888,7 +888,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const nclfContainer = document.getElementById('ingresarNCLFContainer');
-    const btnIngresarNCLF = document.getElementById('btnIngresarNCLF');
+    const btnIngresar Qur = document.getElementById('btnIngresarNCLF');
     const nclfModal = document.getElementById('nclfModal');
 
     if (btnIngresarNCLF) {
