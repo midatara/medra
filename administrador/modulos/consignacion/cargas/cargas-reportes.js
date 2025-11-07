@@ -6,17 +6,21 @@ export function initReportesDb(database) {
     db = database;
 }
 
+/**
+ * Completa datos faltantes de prevision, convenio y cirugías desde reportes
+ */
 export async function completarDatosCargas(cargas) {
     if (!cargas || cargas.length === 0 || !db) return cargas;
 
     const promesas = cargas.map(async (c) => {
+        // Si ya tiene todos los datos, saltar
         if (
             c.prevision &&
             c.convenio &&
             Array.isArray(c.cirugias) && c.cirugias.length > 0 &&
             c.cirugiaSeleccionada
         ) {
-            return c; 
+            return c;
         }
 
         if (!c.admision) return c;
@@ -29,7 +33,7 @@ export async function completarDatosCargas(cargas) {
             );
             const snapshot = await getDocs(q);
 
-            if (snapshot.empty) return c; 
+            if (snapshot.empty) return c;
 
             const cirugias = [];
             let isapre = c.prevision || '';
@@ -86,29 +90,37 @@ export async function completarDatosCargas(cargas) {
 
 /**
  * Vincula guías de despacho con cargas si docDelivery === folioRef
+ * Normaliza: trim, toUpperCase, String() → para evitar errores de formato
  */
 export async function vincularGuias(cargas) {
     if (!cargas || cargas.length === 0 || !db) return cargas;
 
+    // Extraer y normalizar docDelivery
     const docDeliveries = cargas
-        .filter(c => c.docDelivery && c.docDelivery.trim() !== '')
-        .map(c => c.docDelivery.trim());
+        .filter(c => c.docDelivery != null && String(c.docDelivery).trim() !== '')
+        .map(c => String(c.docDelivery).trim().toUpperCase());
+
+    // DEBUG: ver qué se está buscando
+    console.log("DocDeliveries normalizados para buscar en guías:", docDeliveries);
 
     if (docDeliveries.length === 0) {
         return cargas.map(c => ({ ...c, guiaRelacionada: null }));
     }
 
     try {
+        // Buscar en Firestore
         const q = query(
             collection(db, "guias_medtronic"),
             where("folioRef", "in", docDeliveries)
         );
         const snapshot = await getDocs(q);
 
+        console.log(`Guías encontradas en Firestore: ${snapshot.size}`);
+
         const guiasMap = new Map();
         snapshot.docs.forEach(doc => {
             const data = doc.data();
-            const folioRef = data.folioRef?.trim();
+            const folioRef = String(data.folioRef || '').trim().toUpperCase();
             if (folioRef) {
                 guiasMap.set(folioRef, {
                     id: doc.id,
@@ -121,9 +133,16 @@ export async function vincularGuias(cargas) {
             }
         });
 
+        // Asignar guía relacionada a cada carga
         return cargas.map(c => {
-            const docDelivery = c.docDelivery?.trim();
-            const guia = docDelivery ? guiasMap.get(docDelivery) : null;
+            const key = String(c.docDelivery || '').trim().toUpperCase();
+            const guia = key ? guiasMap.get(key) : null;
+
+            // DEBUG: mostrar coincidencia
+            if (guia) {
+                console.log(`Coincidencia: docDelivery "${c.docDelivery}" → Guía folio ${guia.folio}`);
+            }
+
             return {
                 ...c,
                 guiaRelacionada: guia || null
@@ -131,7 +150,7 @@ export async function vincularGuias(cargas) {
         });
 
     } catch (err) {
-        console.warn('Error al vincular guías:', err);
+        console.error('Error al vincular guías:', err);
         return cargas.map(c => ({ ...c, guiaRelacionada: null }));
     }
 }
