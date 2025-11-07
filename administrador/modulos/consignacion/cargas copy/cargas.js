@@ -67,6 +67,25 @@ function formatNumberWithThousandsSeparator(number) {
     }).replace(/,/g, '.');
 }
 
+function formatDate(isoDate) {
+    if (!isoDate) return '';
+
+    let dateStr = '';
+
+    if (isoDate.toDate) {
+        dateStr = isoDate.toDate().toISOString().split('T')[0];
+    } else if (typeof isoDate === 'string') {
+        dateStr = isoDate;
+    } else if (isoDate instanceof Date) {
+        dateStr = isoDate.toISOString().split('T')[0];
+    } else {
+        return '';
+    }
+
+    const [year, month, day] = dateStr.split('-');
+    return `${day}-${month}-${year}`;
+}
+
 function debounce(func, wait) {
     let timeout;
     return (...args) => {
@@ -120,7 +139,7 @@ async function cambiarEstadoMasivo(nuevoEstado) {
             if (selectedCargaIds.has(c.id)) {
                 c.estado = nuevoEstado;
                 c._estado = normalizeText(nuevoEstado);
-                if (nuevoEstado === 'CARGADO' && !c.fechaCarga) {
+                if (nuevoEstado === 'CARGADO' && !carga.fechaCarga) {
                     c.fechaCarga = new Date();
                 }
             }
@@ -349,6 +368,7 @@ async function loadAniosYMeses() {
         anioSelect.innerHTML = '';
         const currentYear = new Date().getFullYear();
         let defaultYear = currentYear;
+
         const years = Array.from(mesesPorAnio.keys()).sort((a, b) => b - a);
 
         if (years.length === 0) {
@@ -358,13 +378,17 @@ async function loadAniosYMeses() {
             return;
         }
 
+        // Priorizar año actual si tiene datos
+        if (!mesesPorAnio.has(currentYear)) {
+            defaultYear = years[0]; // el más reciente
+        }
+
         years.forEach(y => {
             const opt = document.createElement('option');
             opt.value = y;
             opt.textContent = y;
-            if (y === currentYear && mesesPorAnio.has(currentYear)) {
+            if (y === defaultYear) {
                 opt.selected = true;
-                defaultYear = y;
             }
             anioSelect.appendChild(opt);
         });
@@ -392,7 +416,26 @@ async function renderMesesButtons(mesesSet) {
     }
 
     const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-    Array.from(mesesSet).sort((a, b) => a - b).forEach(m => {
+    const hoy = new Date();
+    const mesActual = hoy.getMonth(); // 0-11
+    const anioActual = hoy.getFullYear();
+
+    // Convertir Set a array y ordenar ascendente
+    const mesesOrdenados = Array.from(mesesSet).sort((a, b) => a - b);
+
+    // Determinar el mes a seleccionar por prioridad
+    let mesSeleccionado = null;
+
+    // 1. Si estamos en el año seleccionado y el mes actual tiene datos → usarlo
+    if (selectedYear === anioActual && mesesSet.has(mesActual)) {
+        mesSeleccionado = mesActual;
+    } else {
+        // 2. Si no, tomar el mes más reciente (el último del array ordenado)
+        mesSeleccionado = mesesOrdenados[mesesOrdenados.length - 1];
+    }
+
+    // Generar botones
+    mesesOrdenados.forEach(m => {
         const btn = document.createElement('button');
         btn.className = 'mes-btn';
         btn.textContent = meses[m];
@@ -408,15 +451,15 @@ async function renderMesesButtons(mesesSet) {
             await loadCargas();
         };
         container.appendChild(btn);
+
+        // Activar el botón del mes seleccionado
+        if (m === mesSeleccionado) {
+            btn.classList.add('active');
+            selectedMonth = mesSeleccionado;
+        }
     });
 
-    const firstBtn = container.querySelector('.mes-btn');
-    if (firstBtn) {
-        firstBtn.classList.add('active');
-        selectedMonth = parseInt(firstBtn.dataset.month);
-    } else {
-        selectedMonth = null;
-    }
+    // Cargar datos del mes seleccionado
     await loadCargas();
 }
 
@@ -450,11 +493,13 @@ async function loadCargas() {
         });
 
         let cargasProcesadas = cargasBase;
+
         try {
-            const { completarDatosCargas } = await import('./cargas-reportes.js');
-            cargasProcesadas = await completarDatosCargas(cargasBase);
+            const reportesModule = await import('./cargas-reportes.js');
+            cargasProcesadas = await reportesModule.completarDatosCargas(cargasBase);
+            cargasProcesadas = await reportesModule.vincularGuias(cargasProcesadas);
         } catch (err) {
-            console.error('Error al completar datos de reportes:', err);
+            console.error('Error al procesar reportes o vincular guías:', err);
         }
 
         try {
@@ -524,27 +569,31 @@ function renderTable(callback = null) {
         return;
     }
 
+    // LIMPIAR SUBFILAS ANTERIORES
+    document.querySelectorAll('tr.subrow, tr.subrow-item').forEach(row => row.remove());
+
     if (cargas.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="28" style="text-align:center;padding:20px;color:#666;">
+                <td colspan="30" style="text-align:center;padding:20px;color:#666;">
                     <i class="fas fa-inbox" style="font-size:48px;display:block;margin-bottom:10px;"></i>
                     No hay cargas
                 </td>
             </tr>`;
-        if (callback) {
-            requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(callback, 100)));
-        }
+        if (callback) requestAnimationFrame(() => setTimeout(callback, 100));
         return;
     }
 
+    // GENERAR FILAS PRINCIPALES
     const html = cargas.map(c => `
         <tr data-id="${c.id}" class="${selectedCargaIds.has(c.id) ? 'row-selected' : ''}">
             <td class="checkbox-cell">
                 <input type="checkbox" class="row-checkbox" data-id="${c.id}" ${selectedCargaIds.has(c.id) ? 'checked' : ''}>
-                <button class="cargar-btn-history" data-id="${c.id}" title="Ver historial" style="margin-left:4px;">
-                    <i class="fas fa-history"></i>
+                ${c.guiaRelacionada && c.guiaRelacionada.folio ? `
+                <button class="cargar-btn-toggle-subrows" data-id="${c.id}" title="Guía: ${escapeHtml(c.guiaRelacionada.folio)}">
+                    <i class="fas fa-chevron-down"></i>
                 </button>
+            ` : ''}
             </td>
             <td>${escapeHtml(c.estado)}</td>
             <td>${c.fechaCarga && c.estado === 'CARGADO' ? c.fechaCarga.toLocaleDateString('es-CL') : ''}</td>
@@ -581,13 +630,14 @@ function renderTable(callback = null) {
             <td>${escapeHtml(c.docDelivery || '')}</td>
             <td class="actions-cell">
                 <button class="btn-edit" data-id="${c.id}" title="Editar"><i class="fas fa-edit"></i></button>
-                <button class="btn-delete" data-id="${c.id}" title="Eliminar"><i class="fas fa-trash"></i></button>
+                <button class="btn-delete" data-id="${c.id}" title="Hacer clic para eliminar"><i class="fas fa-trash"></i></button>
             </td>
         </tr>
     `).join('');
 
     tbody.innerHTML = html;
 
+    // === AQUÍ VAN LOS EVENTOS DE CHECKBOX Y BOTONES ===
     document.querySelectorAll('.row-checkbox').forEach(cb => {
         cb.addEventListener('change', e => {
             const id = e.target.dataset.id;
@@ -615,8 +665,132 @@ function renderTable(callback = null) {
         });
     }
 
+    // === AQUÍ VAN LOS BOTONES DE SUBFILAS ===
+    document.querySelectorAll('.cargar-btn-toggle-subrows').forEach(btn => {
+        btn.addEventListener('click', e => {
+            e.stopPropagation();
+            const id = btn.dataset.id;
+            const row = btn.closest('tr');
+            const icon = btn.querySelector('i');
+            const existingSubrows = document.querySelectorAll(`tr.subrow-item[data-parent="${id}"]`);
+
+            if (existingSubrows.length > 0) {
+                existingSubrows.forEach(sub => sub.remove());
+                icon.classList.replace('fa-chevron-up', 'fa-chevron-down');
+                return;
+            }
+
+            icon.classList.replace('fa-chevron-down', 'fa-chevron-up');
+            const carga = allCargasDelMes.find(c => c.id === id);
+            const guia = carga.guiaRelacionada;
+
+            if (!guia || !guia.fullData?.Documento?.Detalle) {
+                row.insertAdjacentHTML('afterend', `
+                    <tr class="subrow-item" data-parent="${id}">
+                        <td colspan="30" style="padding:12px; background:#f9f9f9; text-align:center; color:#999; font-style:italic;">
+                            No hay ítems en la guía vinculada.
+                        </td>
+                    </tr>
+                `);
+                return;
+            }
+
+            const detalles = Array.isArray(guia.fullData.Documento.Detalle)
+                ? guia.fullData.Documento.Detalle
+                : [guia.fullData.Documento.Detalle];
+
+            const itemsDesdeSegundo = detalles.slice(1);
+
+            if (itemsDesdeSegundo.length === 0) {
+                row.insertAdjacentHTML('afterend', `
+                    <tr class="subrow-item" data-parent="${id}">
+                        <td colspan="30" style="padding:12px; background:#f9f9f9; text-align:center; color:#999; font-style:italic;">
+                            No hay ítems adicionales (solo 1 ítem en la guía).
+                        </td>
+                    </tr>
+                `);
+                return;
+            }
+
+            const idRegistro = escapeHtml(carga.idRegistro || '');
+            const prevision = escapeHtml(carga.prevision || '');
+            const convenio = escapeHtml(carga.convenio || '');
+            const admision = escapeHtml(carga.admision || '');
+            const paciente = escapeHtml(carga.paciente || '');
+            const medico = escapeHtml(carga.medico || '');
+            const fechaCX = carga.fechaCX ? formatDate(carga.fechaCX) : '';
+            const proveedor = escapeHtml(carga.proveedor || '');
+            const atributo = escapeHtml(carga.atributo || '');
+            const docDelivery = escapeHtml(carga.docDelivery || '');
+
+            const subrowsHtml = itemsDesdeSegundo.map(detalle => {
+            const folio = escapeHtml(guia.folio || '');
+            const codigo = detalle.CdgItem?.VlrCodigo?.split(' ')[0] || '';
+            const cantidad = detalle.QtyItem ? Math.round(parseFloat(detalle.QtyItem)) : '';
+            const descripcion = escapeHtml(detalle.DscItem || detalle.NmbItem || '');
+            const fechaVenc = detalle.FchVencim ? formatDate(detalle.FchVencim) : '';
+
+            // 30 columnas EXACTAS, en ORDEN CORRECTO
+            return `
+                <tr class="subrow-item" data-parent="${id}" style="background:#fafafa; font-size:12px;">
+                    <td></td> <!-- 1: checkbox -->
+                    <td></td> <!-- 2: estado -->
+                    <td></td> <!-- 3: fecha carga -->
+                    <td style="background:#e3f2fd; font-weight:600;">${folio}</td> <!-- 4: Folio -->
+                    <td></td> <!-- 5: total cot -->
+                    <td></td> <!-- 6: total pac -->
+                    <td></td> <!-- 7: verificación -->
+                    <td style="background:#fff3e0;">${descripcion}</td> <!-- 8: Descripción -->
+                    <td style="color:#d32f2f; text-align:center;">${fechaVenc}</td> <!-- 9: Vencimiento -->
+                    <td style="background:#f3e5f5; font-family:monospace;">${escapeHtml(codigo)}</td> <!-- 10: Código -->
+                    <td>${idRegistro}</td> <!-- 11: idRegistro -->
+                    <td></td> <!-- 12: código carga -->
+                    <td style="text-align:center;">${cantidad}</td> <!-- 13: Cantidad -->
+                    <td></td> <!-- 14: venta -->
+                    <td>${prevision}</td> <!-- 15: Previsión -->
+                    <td>${convenio}</td> <!-- 16: Convenio -->
+                    <td>${admision}</td> <!-- 17: Admisión -->
+                    <td>${paciente}</td> <!-- 18: Paciente -->
+                    <td>${medico}</td> <!-- 19: Médico -->
+                    <td>${fechaCX}</td> <!-- 20: Fecha CX -->
+                    <td>${proveedor}</td> <!-- 21: Proveedor -->
+                    <td></td> <!-- 22: código prod -->
+                    <td></td> <!-- 23: descripción carga -->
+                    <td></td> <!-- 24: cant prod -->
+                    <td></td> <!-- 25: precio -->
+                    <td>${atributo}</td> <!-- 26: Atributo -->
+                    <td></td> <!-- 27: total item -->
+                    <td></td> <!-- 28: margen -->
+                    <td>${docDelivery}</td> <!-- 29: Doc. Delivery -->
+                    <td></td> <!-- 30: acciones -->
+                </tr>
+            `;
+        }).join('');
+
+            row.insertAdjacentHTML('afterend', subrowsHtml);
+
+            // === AQUÍ SÍ: AGREGAR HOVER DESPUÉS DE INSERTAR ===
+            document.querySelectorAll(`tr.subrow-item[data-parent="${id}"]`).forEach(subrow => {
+                subrow.addEventListener('mouseenter', () => {
+                    const mainRow = document.querySelector(`tr[data-id="${id}"]`);
+                    if (mainRow) {
+                        mainRow.style.backgroundColor = '#e8f5e9';
+                        mainRow.style.borderLeft = '4px solid #4caf50';
+                    }
+                });
+                subrow.addEventListener('mouseleave', () => {
+                    const mainRow = document.querySelector(`tr[data-id="${id}"]`);
+                    if (mainRow) {
+                        mainRow.style.backgroundColor = '';
+                        mainRow.style.borderLeft = '';
+                    }
+                });
+            });
+        });
+    });
+
     if (callback) {
-        requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(callback, 100)));
+        requestAnimationFrame(() => setTimeout(callback, 100));
     }
 }
 
@@ -793,7 +967,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const nclfContainer = document.getElementById('ingresarNCLFContainer');
-    const btnIngresarNCLF = document.getElementById('btnIngresarNCLF');
+    const btnIngresarNCLF = document.getElementById('btnIngresarNCLF');  // CORREGIDO
     const nclfModal = document.getElementById('nclfModal');
 
     if (btnIngresarNCLF) {

@@ -880,3 +880,88 @@ body {
 .cargar-table th:nth-child(28) {
     text-align: right !important;
 }
+
+/* Asegura que el botón de flecha sea visible */
+.checkbox-cell .cargar-btn-toggle-subrows {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    color: #007bff;
+    padding: 2px;
+    margin-left: 4px;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 3px;
+    transition: background 0.2s;
+}
+
+.checkbox-cell .cargar-btn-toggle-subrows:hover {
+    background: #e3f2fd;
+}
+
+.checkbox-cell .cargar-btn-toggle-subrows i {
+    font-size: 12px;
+    pointer-events: none;
+}
+
+.subrow-item td {
+    background: #fafafa !important;
+    font-size: 12px;
+    border-bottom: 1px solid #eee;
+}
+.subrow-item td:empty {
+    background: transparent !important;
+}
+
+.subrow-item {
+    border-left: 4px solid #2196F3 !important;
+    background: #f8fbff !important;
+}
+.subrow-item td {
+    font-size: 11.8px !important;
+    color: #2c3e50 !important;
+}
+.subrow-item td:nth-child(4),
+.subrow-item td:nth-child(8),
+.subrow-item td:nth-child(9),
+.subrow-item td:nth-child(10),
+.subrow-item td:nth-child(13) {
+    font-weight: 600;
+    background-color: #e3f2fd !important;
+}
+
+/* HOVER EN SUBFILAS */
+.subrow-item {
+    transition: all 0.2s ease;
+    cursor: pointer;
+    border-left: 4px solid #2196F3 !important;
+    background: #f8fbff !important;
+}
+
+.subrow-item:hover {
+    background: #e3f2fd !important;
+    box-shadow: 0 2px 8px rgba(33, 150, 243, 0.15);
+    transform: translateX(2px);
+    border-left: 4px solid #1976D2 !important;
+}
+
+/* Asegurar que las celdas también respondan */
+.subrow-item td {
+    transition: background 0.2s ease;
+    font-size: 11.8px !important;
+    color: #2c3e50 !important;
+}
+
+/* Resaltar columnas clave en hover */
+.subrow-item:hover td:nth-child(4),   /* Folio */
+.subrow-item:hover td:nth-child(8),   /* Descripción */
+.subrow-item:hover td:nth-child(9),   /* Vencimiento */
+.subrow-item:hover td:nth-child(10),  /* Código */
+.subrow-item:hover td:nth-child(13) {  /* Cantidad */
+    background-color: #bbdefb !important;
+    font-weight: 600;
+}
