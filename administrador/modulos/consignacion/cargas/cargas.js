@@ -368,6 +368,7 @@ async function loadAniosYMeses() {
         anioSelect.innerHTML = '';
         const currentYear = new Date().getFullYear();
         let defaultYear = currentYear;
+
         const years = Array.from(mesesPorAnio.keys()).sort((a, b) => b - a);
 
         if (years.length === 0) {
@@ -377,13 +378,17 @@ async function loadAniosYMeses() {
             return;
         }
 
+        // Priorizar año actual si tiene datos
+        if (!mesesPorAnio.has(currentYear)) {
+            defaultYear = years[0]; // el más reciente
+        }
+
         years.forEach(y => {
             const opt = document.createElement('option');
             opt.value = y;
             opt.textContent = y;
-            if (y === currentYear && mesesPorAnio.has(currentYear)) {
+            if (y === defaultYear) {
                 opt.selected = true;
-                defaultYear = y;
             }
             anioSelect.appendChild(opt);
         });
@@ -411,7 +416,26 @@ async function renderMesesButtons(mesesSet) {
     }
 
     const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-    Array.from(mesesSet).sort((a, b) => a - b).forEach(m => {
+    const hoy = new Date();
+    const mesActual = hoy.getMonth(); // 0-11
+    const anioActual = hoy.getFullYear();
+
+    // Convertir Set a array y ordenar ascendente
+    const mesesOrdenados = Array.from(mesesSet).sort((a, b) => a - b);
+
+    // Determinar el mes a seleccionar por prioridad
+    let mesSeleccionado = null;
+
+    // 1. Si estamos en el año seleccionado y el mes actual tiene datos → usarlo
+    if (selectedYear === anioActual && mesesSet.has(mesActual)) {
+        mesSeleccionado = mesActual;
+    } else {
+        // 2. Si no, tomar el mes más reciente (el último del array ordenado)
+        mesSeleccionado = mesesOrdenados[mesesOrdenados.length - 1];
+    }
+
+    // Generar botones
+    mesesOrdenados.forEach(m => {
         const btn = document.createElement('button');
         btn.className = 'mes-btn';
         btn.textContent = meses[m];
@@ -427,15 +451,15 @@ async function renderMesesButtons(mesesSet) {
             await loadCargas();
         };
         container.appendChild(btn);
+
+        // Activar el botón del mes seleccionado
+        if (m === mesSeleccionado) {
+            btn.classList.add('active');
+            selectedMonth = mesSeleccionado;
+        }
     });
 
-    const firstBtn = container.querySelector('.mes-btn');
-    if (firstBtn) {
-        firstBtn.classList.add('active');
-        selectedMonth = parseInt(firstBtn.dataset.month);
-    } else {
-        selectedMonth = null;
-    }
+    // Cargar datos del mes seleccionado
     await loadCargas();
 }
 
