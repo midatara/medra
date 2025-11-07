@@ -545,6 +545,7 @@ function renderTable(callback = null) {
         return;
     }
 
+    // LIMPIAR SUBFILAS ANTERIORES
     document.querySelectorAll('tr.subrow, tr.subrow-item').forEach(row => row.remove());
 
     if (cargas.length === 0) {
@@ -555,18 +556,17 @@ function renderTable(callback = null) {
                     No hay cargas
                 </td>
             </tr>`;
-        if (callback) {
-            requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(callback, 100)));
-        }
+        if (callback) requestAnimationFrame(() => setTimeout(callback, 100));
         return;
     }
 
+    // GENERAR FILAS PRINCIPALES
     const html = cargas.map(c => `
         <tr data-id="${c.id}" class="${selectedCargaIds.has(c.id) ? 'row-selected' : ''}">
             <td class="checkbox-cell">
                 <input type="checkbox" class="row-checkbox" data-id="${c.id}" ${selectedCargaIds.has(c.id) ? 'checked' : ''}>
                 ${c.guiaRelacionada && c.guiaRelacionada.folio ? `
-                <button class="cargar-btn-toggle-subrows" data-id="${c.id}" title="Guía: ${escapeHtml(c.guiaRelacionada.folio)}" aria-label="Ver guía">
+                <button class="cargar-btn-toggle-subrows" data-id="${c.id}" title="Guía: ${escapeHtml(c.guiaRelacionada.folio)}">
                     <i class="fas fa-chevron-down"></i>
                 </button>
             ` : ''}
@@ -613,6 +613,7 @@ function renderTable(callback = null) {
 
     tbody.innerHTML = html;
 
+    // === AQUÍ VAN LOS EVENTOS DE CHECKBOX Y BOTONES ===
     document.querySelectorAll('.row-checkbox').forEach(cb => {
         cb.addEventListener('change', e => {
             const id = e.target.dataset.id;
@@ -640,6 +641,7 @@ function renderTable(callback = null) {
         });
     }
 
+    // === AQUÍ VAN LOS BOTONES DE SUBFILAS ===
     document.querySelectorAll('.cargar-btn-toggle-subrows').forEach(btn => {
         btn.addEventListener('click', e => {
             e.stopPropagation();
@@ -648,27 +650,24 @@ function renderTable(callback = null) {
             const icon = btn.querySelector('i');
             const existingSubrows = document.querySelectorAll(`tr.subrow-item[data-parent="${id}"]`);
 
-            // CERRAR SI YA ESTÁN ABIERTAS
             if (existingSubrows.length > 0) {
                 existingSubrows.forEach(sub => sub.remove());
                 icon.classList.replace('fa-chevron-up', 'fa-chevron-down');
                 return;
             }
 
-            // ABRIR
             icon.classList.replace('fa-chevron-down', 'fa-chevron-up');
             const carga = allCargasDelMes.find(c => c.id === id);
             const guia = carga.guiaRelacionada;
 
             if (!guia || !guia.fullData?.Documento?.Detalle) {
-                const subrowHtml = `
+                row.insertAdjacentHTML('afterend', `
                     <tr class="subrow-item" data-parent="${id}">
                         <td colspan="30" style="padding:12px; background:#f9f9f9; text-align:center; color:#999; font-style:italic;">
                             No hay ítems en la guía vinculada.
                         </td>
                     </tr>
-                `;
-                row.insertAdjacentHTML('afterend', subrowHtml);
+                `);
                 return;
             }
 
@@ -676,34 +675,30 @@ function renderTable(callback = null) {
                 ? guia.fullData.Documento.Detalle
                 : [guia.fullData.Documento.Detalle];
 
-            // OCULTAR EL PRIMER ÍTEM
             const itemsDesdeSegundo = detalles.slice(1);
 
             if (itemsDesdeSegundo.length === 0) {
-                const subrowHtml = `
+                row.insertAdjacentHTML('afterend', `
                     <tr class="subrow-item" data-parent="${id}">
                         <td colspan="30" style="padding:12px; background:#f9f9f9; text-align:center; color:#999; font-style:italic;">
                             No hay ítems adicionales (solo 1 ítem en la guía).
                         </td>
                     </tr>
-                `;
-                row.insertAdjacentHTML('afterend', subrowHtml);
+                `);
                 return;
             }
 
-            // DATOS DE LA CARGA PRINCIPAL (para rellenar)
             const idRegistro = escapeHtml(carga.idRegistro || '');
             const prevision = escapeHtml(carga.prevision || '');
             const convenio = escapeHtml(carga.convenio || '');
             const admision = escapeHtml(carga.admision || '');
             const paciente = escapeHtml(carga.paciente || '');
             const medico = escapeHtml(carga.medico || '');
-            const fechaCX = carga.fechaCX ? formatDate(carga.fechaCX.toDate ? carga.fechaCX.toDate().toISOString().split('T')[0] : carga.fechaCX) : '';
+            const fechaCX = carga.fechaCX ? formatDate(carga.fechaCX) : '';
             const proveedor = escapeHtml(carga.proveedor || '');
             const atributo = escapeHtml(carga.atributo || '');
             const docDelivery = escapeHtml(carga.docDelivery || '');
 
-            // GENERAR SUBFILAS
             const subrowsHtml = itemsDesdeSegundo.map(detalle => {
                 const folio = escapeHtml(guia.folio || '');
                 const codigo = detalle.CdgItem?.VlrCodigo?.split(' ')[0] || '';
@@ -713,46 +708,48 @@ function renderTable(callback = null) {
 
                 return `
                     <tr class="subrow-item" data-parent="${id}" style="background:#fafafa; font-size:12px;">
-                        <td></td> <!-- 1: checkbox -->
-                        <td></td> <!-- 2: estado -->
-                        <td></td> <!-- 3: fecha carga -->
-                        <td style="background:#e3f2fd; font-weight:600;">${folio}</td> <!-- 4: Folio -->
-                        <td></td> <!-- 5: total cot -->
-                        <td></td> <!-- 6: total pac -->
-                        <td></td> <!-- 7: verificación -->
-                        <td style="background:#fff3e0;">${descripcion}</td> <!-- 8: Descripción -->
-                        <td style="color:#d32f2f; text-align:center;">${fechaVenc}</td> <!-- 9: Vencimiento -->
-                        <td style="background:#f3e5f5; font-family:monospace;">${escapeHtml(codigo)}</td> <!-- 10: Código -->
-                        <td>${idRegistro}</td> <!-- 11: idRegistro -->
-                        <td></td> <!-- 12: código carga -->
-                        <td style="text-align:center;">${cantidad}</td> <!-- 13: Cantidad -->
-                        <td></td> <!-- 14: venta -->
-                        <td>${prevision}</td> <!-- 15: Previsión -->
-                        <td>${convenio}</td> <!-- 16: Convenio -->
-                        <td>${admision}</td> <!-- 17: Admisión -->
-                        <td>${paciente}</td> <!-- 18: Paciente -->
-                        <td>${medico}</td> <!-- 19: Médico -->
-                        <td>${fechaCX}</td> <!-- 20: Fecha CX -->
-                        <td>${proveedor}</td> <!-- 21: Proveedor -->
-                        <td></td> <!-- 22: código prod -->
-                        <td></td> <!-- 23: descripción carga -->
-                        <td></td> <!-- 24: cant prod -->
-                        <td></td> <!-- 25: precio -->
-                        <td>${atributo}</td> <!-- 26: Atributo -->
-                        <td></td> <!-- 27: total item -->
-                        <td></td> <!-- 28: margen -->
-                        <td>${docDelivery}</td> <!-- 29: Doc. Delivery -->
-                        <td></td> <!-- 30: acciones -->
+                        <td></td><td></td><td></td>
+                        <td style="background:#e3f2fd; font-weight:600;">${folio}</td>
+                        <td></td><td></td><td></td>
+                        <td style="background:#fff3e0;">${descripcion}</td>
+                        <td style="color:#d32f2f; text-align:center;">${fechaVenc}</td>
+                        <td style="background:#f3e5f5; font-family:monospace;">${escapeHtml(codigo)}</td>
+                        <td>${idRegistro}</td><td></td>
+                        <td style="text-align:center;">${cantidad}</td>
+                        <td></td>
+                        <td>${prevision}</td><td>${convenio}</td><td>${admision}</td><td>${paciente}</td><td>${medico}</td>
+                        <td>${fechaCX}</td><td>${proveedor}</td>
+                        <td></td><td></td><td></td><td></td><td></td>
+                        <td>${atributo}</td><td></td><td></td>
+                        <td>${docDelivery}</td><td></td>
                     </tr>
                 `;
             }).join('');
 
             row.insertAdjacentHTML('afterend', subrowsHtml);
+
+            // === AQUÍ SÍ: AGREGAR HOVER DESPUÉS DE INSERTAR ===
+            document.querySelectorAll(`tr.subrow-item[data-parent="${id}"]`).forEach(subrow => {
+                subrow.addEventListener('mouseenter', () => {
+                    const mainRow = document.querySelector(`tr[data-id="${id}"]`);
+                    if (mainRow) {
+                        mainRow.style.backgroundColor = '#e8f5e9';
+                        mainRow.style.borderLeft = '4px solid #4caf50';
+                    }
+                });
+                subrow.addEventListener('mouseleave', () => {
+                    const mainRow = document.querySelector(`tr[data-id="${id}"]`);
+                    if (mainRow) {
+                        mainRow.style.backgroundColor = '';
+                        mainRow.style.borderLeft = '';
+                    }
+                });
+            });
         });
     });
 
     if (callback) {
-        requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(callback, 100)));
+        requestAnimationFrame(() => setTimeout(callback, 100));
     }
 }
 
