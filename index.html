@@ -21,9 +21,8 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            transform: translateY(-100px); 
+            transform: translateY(-100px);
         }
-
         .header {
             background-color: #3A5795;
             color: white;
@@ -33,13 +32,12 @@
         }
         .login-panel {
             width: 500px;
-            margin: 30px auto; 
+            margin: 30px auto;
             padding: 30px;
             border: 1px solid #ccc;
             border-radius: 5px;
             background-color: white;
         }
-
         .login-panel h2 {
             margin-bottom: 20px;
             font-size: 24px;
@@ -140,8 +138,6 @@
             color: #0c5460;
             border: 1px solid #bee5eb;
         }
-
-        /* Footer */
         .footer {
             background-color: #f8f9fa;
             color: #6c757d;
@@ -179,7 +175,11 @@
                         <i class="fas fa-lock input-icon"></i>
                         <input type="password" id="password" name="password" placeholder="Clave" autocomplete="off" required>
                     </div>
+                    <div id="capsWarning" style="display:none; color:#b60000; font-size:12px; margin-top:5px;">⚠️ La tecla MAYÚS está activada</div>
                 </div>
+
+                <div id="attemptsInfo" style="color:#b60000; font-size:12px; margin-bottom:10px; display:none;"></div>
+
                 <div class="form-group">
                     <input type="submit" value="Ingresar" class="btn-conectar" id="loginBtn">
                 </div>
@@ -219,6 +219,40 @@
         const form = document.getElementById('loginForm');
         const message = document.getElementById('message');
         const loginBtn = document.getElementById('loginBtn');
+        const usernameInput = document.getElementById("username");
+        const passwordInput = document.getElementById("password");
+        const capsWarning = document.getElementById("capsWarning");
+        const attemptsInfo = document.getElementById("attemptsInfo");
+
+        let attempts = Number(localStorage.getItem("loginAttempts") || 0);
+        const maxAttempts = 5;
+
+        function updateAttemptsMessage() {
+            if (attempts > 0 && attempts < maxAttempts) {
+                attemptsInfo.style.display = "block";
+                attemptsInfo.textContent = `Te quedan ${maxAttempts - attempts} intentos antes de bloquearse.`;
+            } else if (attempts >= maxAttempts) {
+                attemptsInfo.style.display = "block";
+                attemptsInfo.textContent = "❌ Has superado el máximo de intentos.";
+                loginBtn.disabled = true;
+            }
+        }
+
+        updateAttemptsMessage();
+
+        usernameInput.addEventListener("input", (e) => {
+            const val = e.target.value;
+            const regex = /^[a-zA-Z0-9._-]+$/;
+            e.target.style.borderColor = regex.test(val) ? "#ccc" : "red";
+        });
+
+        passwordInput.addEventListener("paste", (e) => e.preventDefault());
+        passwordInput.addEventListener("copy", (e) => e.preventDefault());
+        passwordInput.addEventListener("cut", (e) => e.preventDefault());
+
+        passwordInput.addEventListener("keyup", (e) => {
+            capsWarning.style.display = e.getModifierState("CapsLock") ? "block" : "none";
+        });
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
@@ -228,10 +262,15 @@
         });
 
         form.addEventListener('submit', async (e) => {
-            e.preventDefault();
+            if (attempts >= maxAttempts) {
+                e.preventDefault();
+                showMessage("Has sido bloqueado temporalmente.", "error");
+                return;
+            }
 
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value;
+            e.preventDefault();
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value;
 
             if (!username || !password) {
                 showMessage('Por favor, complete todos los campos.', 'error');
@@ -247,13 +286,15 @@
                 const querySnapshot = await getDocs(q);
 
                 if (querySnapshot.empty) {
+                    attempts++;
+                    localStorage.setItem("loginAttempts", attempts);
+                    updateAttemptsMessage();
                     showMessage('Usuario no encontrado.', 'error');
                     resetLoginState();
                     return;
                 }
 
-                const userDoc = querySnapshot.docs[0];
-                const userData = userDoc.data();
+                const userData = querySnapshot.docs[0].data();
                 const email = userData.email;
                 const category = userData.category;
 
@@ -261,15 +302,24 @@
                 const user = userCredential.user;
 
                 if (user) {
+                    localStorage.setItem("loginAttempts", 0);
                     form.reset();
                     showMessage('Credenciales correctas. Redirigiendo...', 'success');
                     setTimeout(() => {
-                        const redirectPath = `${category.toLowerCase()}/menu.html`;
-                        window.location.href = redirectPath;
+                        window.location.href = `${category.toLowerCase()}/menu.html`;
                     }, 1500);
                 }
             } catch (error) {
-                console.error('Error:', error);
+                attempts++;
+                localStorage.setItem("loginAttempts", attempts);
+                updateAttemptsMessage();
+
+                if (attempts >= maxAttempts) {
+                    loginBtn.disabled = true;
+                    showMessage("Has sido bloqueado por demasiados intentos.", "error");
+                    return;
+                }
+
                 if (error.code === 'auth/wrong-password') {
                     showMessage('Contraseña incorrecta.', 'error');
                 } else if (error.code === 'auth/user-not-found') {
@@ -277,6 +327,7 @@
                 } else {
                     showMessage('Error al iniciar sesión: ' + error.message, 'error');
                 }
+
                 resetLoginState();
             }
         });
