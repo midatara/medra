@@ -110,20 +110,20 @@ export async function enriquecerSubfilasConReferencias(cargas) {
     if (!cargas || cargas.length === 0 || !db) return cargas;
 
     const cache = new Map();
-    const refsUnicas = new Set();
+    const refsSet = new Set();
 
-    // Recolectar referencias de items (excluyendo la primera, que es la carga principal)
+    // Recolectar referencias desde items (solo subfilas, no la principal)
     cargas.forEach(carga => {
         const items = Array.isArray(carga.items) ? carga.items : [];
-        items.slice(1).forEach(item => {  // slice(1) = desde el segundo ítem
+        items.slice(1).forEach(item => {  // Desde el segundo ítem
             const ref = item.referencia?.toString().trim();
-            if (ref) refsUnicas.add(ref);
+            if (ref) refsSet.add(ref);
         });
     });
 
-    if (refsUnicas.size === 0) return cargas;
+    if (refsSet.size === 0) return cargas;
 
-    const refsArray = Array.from(refsUnicas);
+    const refsArray = Array.from(refsSet);
     const chunks = [];
     for (let i = 0; i < refsArray.length; i += 30) {
         chunks.push(refsArray.slice(i, i + 30));
@@ -135,6 +135,7 @@ export async function enriquecerSubfilasConReferencias(cargas) {
         );
         const snapshots = await Promise.all(queries);
 
+        // Llenar caché
         snapshots.forEach(snap => {
             snap.docs.forEach(doc => {
                 const d = doc.data();
@@ -148,11 +149,11 @@ export async function enriquecerSubfilasConReferencias(cargas) {
             });
         });
 
-        // Aplicar enriquecimiento
+        // Aplicar a cada carga
         return cargas.map(carga => {
             const items = Array.isArray(carga.items) ? carga.items : [];
             const itemsActualizados = items.map((item, idx) => {
-                if (idx === 0) return item; // primer ítem = carga principal
+                if (idx === 0) return item; // Principal
 
                 const ref = item.referencia?.toString().trim();
                 if (!ref) {
@@ -176,7 +177,7 @@ export async function enriquecerSubfilasConReferencias(cargas) {
         });
 
     } catch (err) {
-        console.error('Error enriqueciendo:', err);
+        console.error('Error enriqueciendo referencias:', err);
         return cargas;
     }
 }
