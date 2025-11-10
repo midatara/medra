@@ -965,3 +965,12 @@ body {
     background-color: #bbdefb !important;
     font-weight: 600;
 }
+
+.subrow-no-match {
+    background-color: #ffebee !important;
+    color: #c62828 !important;
+    font-weight: 600;
+}
+.subrow-no-match td {
+    border-left: 3px solid #e53935;
+}
