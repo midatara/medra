@@ -666,16 +666,19 @@ function renderTable(callback = null) {
             const docDelivery = escapeHtml(carga.docDelivery || '');
             const subrowsHtml = itemsDesdeSegundo.map((detalle, index) => {
                 const folio = escapeHtml(guia.folio || '');
-                const subfila = (carga.items || carga.cirugias || [])[index + 1] || {};
+                // Aseguramos que items exista y tenga el mismo orden
+                const itemsArray = Array.isArray(carga.items) ? carga.items : [];
+                const subfila = itemsArray[index + 1] || {}; // +1 porque el primer ítem es la carga principal
                 const noCoincide = subfila._referenciaSinCoincidir === true;
                 const filaClase = noCoincide ? 'subrow-no-match' : '';
+
                 const codigo = subfila.codigo || (detalle.CdgItem?.VlrCodigo?.split(' ')[0] || '');
                 const descripcion = subfila.descripcion || escapeHtml(detalle.DscItem || detalle.NmbItem || '');
                 const cantidad = detalle.QtyItem ? Math.round(parseFloat(detalle.QtyItem)) : '';
                 const fechaVenc = detalle.FchVencim ? formatDate(detalle.FchVencim) : '';
 
                 return `
-                    <tr class="subrow-item ${filaClase}" data-parent="${id}" style="background:#fafafa; font-size:12px;">
+                    <tr class="subrow-item $$ {filaClase}" data-parent=" $${id}" style="background:#fafafa; font-size:12px;">
                         <td></td>
                         <td></td>
                         <td></td>
