@@ -311,37 +311,57 @@
                 <h2>Medra</h2>
             </div>
             <div class="main-menu">
-                <a href="#" data-submenu="implantes"><i class="fas fa-tooth"></i> <span class="menu-text">Implantes</span></a>
-                <a href="#" data-submenu="consignacion"><i class="fas fa-box"></i> <span class="menu-text">Consignación</span></a>
-                <a href="#" data-submenu="historico"><i class="fas fa-history"></i> <span class="menu-text">Histórico</span></a>
-                <a href="#" data-submenu="laboratorio"><i class="fas fa-flask"></i> <span class="menu-text">Laboratorio</span></a>
-                <a href="#" data-submenu="visualizador"><i class="fas fa-chart-line"></i> <span class="menu-text">Visualizador</span></a>
-                <a href="#" data-submenu="prestacion"><i class="fas fa-briefcase-medical"></i> <span class="menu-text">Prestación</span></a>
-                <a href="#" data-submenu="herramientas"><i class="fas fa-tools"></i> <span class="menu-text">Herramientas</span></a>
-                <a href="#" data-submenu="importacion"><i class="fas fa-file-import"></i> <span class="menu-text">Importación</span></a>
-                <a href="#" data-submenu="apuntes"><i class="fas fa-note-sticky"></i> <span class="menu-text">Apuntes</span></a>
-                <a href="#" data-submenu="migracion"><i class="fas fa-exchange-alt"></i> <span class="menu-text">Migración</span></a>
-                <a href="#" data-submenu="dashboard"><i class="fas fa-tachometer-alt"></i> <span class="menu-text">Dashboard</span></a>
-                <a href="#" data-submenu="archivos"><i class="fas fa-folder"></i> <span class="menu-text">Archivos</span></a>
-                <a href="#" data-submenu="usuarios"><i class="fas fa-users"></i> <span class="menu-text">Usuarios</span></a>
-                <a href="#" data-submenu="configuracion"><i class="fas fa-cog"></i> <span class="menu-text">Configuración</span></a>
-                <a href="#" data-submenu="cerrar-sesion"><i class="fas fa-sign-out-alt"></i> <span class="menu-text">Cerrar Sesión</span></a>
+                <a href="#" data-submenu="implantes"><i class="fas fa-tooth"></i> <span
+                        class="menu-text">Implantes</span></a>
+                <a href="#" data-submenu="consignacion"><i class="fas fa-box"></i> <span
+                        class="menu-text">Consignación</span></a>
+                <a href="#" data-submenu="historico"><i class="fas fa-history"></i> <span
+                        class="menu-text">Histórico</span></a>
+                <a href="#" data-submenu="laboratorio"><i class="fas fa-flask"></i> <span
+                        class="menu-text">Laboratorio</span></a>
+                <a href="#" data-submenu="visualizador"><i class="fas fa-chart-line"></i> <span
+                        class="menu-text">Visualizador</span></a>
+                <a href="#" data-submenu="prestacion"><i class="fas fa-briefcase-medical"></i> <span
+                        class="menu-text">Prestación</span></a>
+                <a href="#" data-submenu="herramientas"><i class="fas fa-tools"></i> <span
+                        class="menu-text">Herramientas</span></a>
+                <a href="#" data-submenu="importacion"><i class="fas fa-file-import"></i> <span
+                        class="menu-text">Importación</span></a>
+                <a href="#" data-submenu="apuntes"><i class="fas fa-note-sticky"></i> <span
+                        class="menu-text">Apuntes</span></a>
+                <a href="#" data-submenu="migracion"><i class="fas fa-exchange-alt"></i> <span
+                        class="menu-text">Migración</span></a>
+                <a href="#" data-submenu="dashboard"><i class="fas fa-tachometer-alt"></i> <span
+                        class="menu-text">Dashboard</span></a>
+                <a href="#" data-submenu="archivos"><i class="fas fa-folder"></i> <span
+                        class="menu-text">Archivos</span></a>
+                <a href="#" data-submenu="usuarios"><i class="fas fa-users"></i> <span
+                        class="menu-text">Usuarios</span></a>
+                <a href="#" data-submenu="configuracion"><i class="fas fa-cog"></i> <span
+                        class="menu-text">Configuración</span></a>
+                <a href="#" data-submenu="cerrar-sesion"><i class="fas fa-sign-out-alt"></i> <span
+                        class="menu-text">Cerrar Sesión</span></a>
             </div>
             <div class="submenu" style="display: none;">
-                <a href="#" class="back-link" data-tooltip="Volver"><i class="fas fa-arrow-left"></i> <span class="menu-text">Volver</span></a>
+                <a href="#" class="back-link" data-tooltip="Volver"><i class="fas fa-arrow-left"></i> <span
+                        class="menu-text">Volver</span></a>
                 <div class="submenu-content"></div>
             </div>
         </div>
 
         <div class="main">
-            <div class="content" id="mainContent">
+            <div class="content">
                 <div class="card">
-                    <h3>Estadísticas del Mes</h3>
-                    <p id="statsText">Cargando pacientes del mes...</p>
+                    <h3>Estadísticas</h3>
+                    <p>CPU: 15% | Memoria: 3.2GB | Almacenamiento: 120GB</p>
                 </div>
                 <div class="card">
-                    <h3>Pacientes Pendientes</h3>
-                    <p id="pendingText">Cargando pendientes...</p>
+                    <h3>Actividad Reciente</h3>
+                    <ul>
+                        <li>Archivo subido: Informe.pdf</li>
+                        <li>Usuario creado: juan@example.com</li>
+                        <li>Actualización del sistema realizada</li>
+                    </ul>
                 </div>
             </div>
         </div>
@@ -376,7 +396,7 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        window.db = getFirestore(app);
+        const db = getFirestore(app);
 
         setPersistence(auth, browserSessionPersistence);
 
@@ -386,7 +406,7 @@
                 return;
             }
 
-            const userDoc = await getDoc(doc(window.db, 'users', user.uid));
+            const userDoc = await getDoc(doc(db, 'users', user.uid));
             if (userDoc.exists()) {
                 const userData = userDoc.data();
                 const fullName = userData.fullName || userData.username || 'Usuario';
@@ -485,7 +505,7 @@
             'importacion': [
                 { text: 'Reportes', path: 'modulos/importacion/reportes/reportes.html', icon: 'fas fa-notes-medical' },
                 { text: 'Órdenes de compra', path: 'modulos/importacion/ordenes/ordenes.html', icon: 'fas fa-file-medical' },
-                { text: 'Guías Medtronic', path: 'modulos/importacion/medtronic/medtronic.html', icon: 'fas fa-clipbook-list' }
+                { text: 'Guías Medtronic', path: 'modulos/importacion/medtronic/medtronic.html', icon: 'fas fa-clipboard-list' }
             ],
             'apuntes': [
                 { text: 'Notas', path: 'modulos/apuntes/notas/notas.html', icon: 'fas fa-sticky-note' },
@@ -610,62 +630,23 @@
 
             content.innerHTML = `
             <div class="card">
-                <h3>Estadísticas del Mes</h3>
-                <p id="statsText">Cargando pacientes del mes...</p>
+                <h3>Estadísticas</h3>
+                <p>CPU: 15% | Memoria: 3.2GB | Almacenamiento: 120GB</p>
             </div>
             <div class="card">
-                <h3>Pacientes Pendientes</h3>
-                <p id="pendingText">Cargando pendientes...</p>
+                <h3>Actividad Reciente</h3>
+                <ul>
+                    <li>Archivo subido: Informe.pdf</li>
+                    <li>Usuario creado: juan@example.com</li>
+                    <li>Actualización del sistema realizada</li>
+                </ul>
             </div>
         `;
 
             mainMenu.style.display = 'block';
             submenu.style.display = 'none';
-            setTimeout(actualizarEstadisticasConsignacion, 100);
         });
     </script>
-
-    <script type="module">
-        import { collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
-
-        async function actualizarEstadisticasConsignacion() {
-            const statsText = document.getElementById('statsText');
-            const pendingText = document.getElementById('pendingText');
-
-            try {
-                const now = new Date();
-                const year = now.getFullYear();
-                const month = now.getMonth();
-
-                const startOfMonth = new Date(year, month, 1);
-                const endOfMonth = new Date(year, month + 1, 0, 23, 59, 59, 999);
-
-                const q = query(
-                    collection(window.db, "pacientes_consignaciones"),
-                    where("fechaCX", ">=", startOfMonth),
-                    where("fechaCX", "<=", endOfMonth)
-                );
-
-                const snapshot = await getDocs(q);
-                const totalPacientes = snapshot.size;
-
-                const pendientes = snapshot.docs.filter(doc => {
-                    const data = doc.data();
-                    return data.estado && data.estado.trim().toUpperCase() !== 'CARGADO';
-                }).length;
-
-                statsText.innerHTML = `<strong>${totalPacientes}</strong> pacientes registrados en <strong>${now.toLocaleDateString('es-CL', { month: 'long', year: 'numeric' })}</strong>`;
-                pendingText.innerHTML = `<strong>${pendientes}</strong> pacientes pendientes (no cargados)`;
-
-            } catch (error) {
-                console.error("Error al cargar estadísticas:", error);
-                statsText.textContent = "Error al cargar datos";
-                pendingText.textContent = "Error al cargar datos";
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', actualizarEstadisticasConsignacion);
-        setInterval(actualizarEstadisticasConsignacion, 30000);
-    </script>
 </body>
+
 </html>
