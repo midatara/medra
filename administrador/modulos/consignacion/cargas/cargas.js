@@ -784,7 +784,7 @@ function setupColumnResize() {
             startWidth = header.getBoundingClientRect().width;
             document.body.style.userSelect = 'none';
             handle.classList.add('active');
-            e.prevent onDefault();
+            e.preventDefault();
         };
         const move = e => {
             if (!isResizing) return;
