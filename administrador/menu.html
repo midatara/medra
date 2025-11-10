@@ -679,7 +679,6 @@
                     };
                 });
 
-                // Contar por mes (solo meses con datos)
                 const conteoPorMes = {};
                 const pendientesPorMes = {};
 
@@ -692,17 +691,14 @@
                     }
                 });
 
-                // Actualizar título
                 statsTitle.textContent = `Estadísticas del Año ${year}`;
 
-                // Renderizar estadísticas
                 statsList.innerHTML = Object.keys(conteoPorMes).length > 0
                     ? Object.entries(conteoPorMes)
                         .map(([mes, count]) => `<li><span>${mes}:</span> <strong>${count} paciente${count !== 1 ? 's' : ''}</strong></li>`)
                         .join('')
                     : '<li style="color:#999;">Sin registros este año</li>';
 
-                // Renderizar pendientes
                 pendingList.innerHTML = Object.keys(pendientesPorMes).length > 0
                     ? Object.entries(pendientesPorMes)
                         .map(([mes, count]) => `<li><span>${mes}:</span> <strong>${count} pendiente${count !== 1 ? 's' : ''}</strong></li>`)
