@@ -402,15 +402,6 @@ async function renderMesesButtons(mesesSet) {
         }
     });
     await loadCargas();
-    if (isFirstLoad) {
-        setTimeout(() => {
-            const select = document.getElementById('buscarEstado');
-            if (select) {
-                select.value = '__PENDIENTES__';
-                showToast('Mostrando cargas pendientes (excluye "CARGADO")', 'info');
-            }
-        }, 800);
-    }
 }
 
 async function loadCargas() {
@@ -459,6 +450,17 @@ async function loadCargas() {
         updateCambiarEstadoButton();
         updateNCLFButton();
         currentPage = 1;
+
+        if (isFirstLoad) {
+            const select = document.getElementById('buscarEstado');
+            if (select) {
+                searchFilters.estado = '__PENDIENTES__';
+                select.value = '__PENDIENTES__';
+                showToast('Mostrando cargas pendientes (excluye "CARGADO")', 'info');
+            }
+            isFirstLoad = false;
+        }
+
         await applyFiltersAndPaginateAsync();
         actualizarSelectEstados();
     } catch (e) {
@@ -475,10 +477,7 @@ async function applyFiltersAndPaginateAsync() {
 
 function applyFiltersAndPaginate(callback = null) {
     let filtered = [...allCargasDelMes];
-    if (isFirstLoad) {
-        filtered = filtered.filter(c => c.estado !== 'CARGADO');
-        isFirstLoad = false;
-    }
+
     if (searchFilters.estado) {
         if (searchFilters.estado === '__PENDIENTES__') {
             filtered = filtered.filter(c => c.estado !== 'CARGADO');
@@ -486,21 +485,24 @@ function applyFiltersAndPaginate(callback = null) {
             filtered = filtered.filter(c => c._estado.includes(searchFilters.estado));
         }
     }
+
     if (searchFilters.admision) {
         filtered = filtered.filter(c => c._admision.includes(searchFilters.admision));
     }
     if (searchFilters.paciente) {
         filtered = filtered.filter(c => c._paciente.includes(searchFilters.paciente));
     }
+
     const startIdx = (currentPage - 1) * PAGE_SIZE;
     const endIdx = startIdx + PAGE_SIZE;
     cargas = filtered.slice(startIdx, endIdx);
+
     renderTable(() => {
         actualizarSelectEstados();
         const loadMore = document.getElementById('loadMoreContainer');
         if (loadMore) loadMore.remove();
         if (endIdx < filtered.length) {
-            const div = document.createElement('div');
+            const div = document.createElement('divdiv');
             div.id = 'loadMoreContainer';
             div.style = 'text-align:center;margin:15px 0;';
             div.innerHTML = `<button id="loadMoreBtn" class="modal-btn modal-btn-secondary">Cargar más</button>`;
@@ -581,7 +583,7 @@ function renderTable(callback = null) {
             <td>${c.margen === '' || c.margen == null ? '-' : c.margen}</td>
             <td>${escapeHtml(c.docDelivery || '')}</td>
             <td class="actions-cell">
-                <button class="btn-edit" data-id="${c.id}" title="Editar"><i class="fas fa-edit"></i></button>
+                <button class="btn-edit" data-id="${c.id}" title="Editar"><i class="fas"></i></button>
                 <button class="btn-delete" data-id="${c.id}" title="Hacer clic para eliminar"><i class="fas fa-trash"></i></button>
             </td>
         </tr>
@@ -611,7 +613,7 @@ function renderTable(callback = null) {
             updateCambiarEstadoButton();
             updateNCLFButton();
         });
-    }
+    };
     document.querySelectorAll('.cargar-btn-toggle-subrows').forEach(btn => {
         btn.addEventListener('click', e => {
             e.stopPropagation();
@@ -788,28 +790,31 @@ function actualizarSelectEstados() {
         if (select) select.innerHTML = '<option value="">Todos</option>';
         return;
     }
+
     const estadosUnicos = new Set();
     allCargasDelMes.forEach(c => {
-        if (c.estado && c.estado !== 'CARGADO') {
-            estadosUnicos.add(c.estado.trim());
-        }
+        if (c.estado) estadosUnicos.add(c.estado.trim());
     });
+
     const valorActual = select.value;
     select.innerHTML = '<option value="">Todos</option>';
+
     const optPendientes = document.createElement('option');
     optPendientes.value = '__PENDIENTES__';
-    optPendientes.textContent = 'Pendientes';
-    if (isFirstLoad) optPendientes.selected = true;
+    optPendientes.textContent = 'Pendientes (sin CARGADO)';
     select.appendChild(optPendientes);
+
     Array.from(estadosUnicos).sort().forEach(estado => {
         const opt = document.createElement('option');
         opt.value = normalizeText(estado);
         opt.textContent = estado;
-        if (normalizeText(estado) === valorActual) opt.selected = true;
         select.appendChild(opt);
     });
-    if (isFirstLoad) {
-        select.value = '__PENDIENTES__';
+
+    if (valorActual === '__PENDIENTES__' || estadosUnicos.has(valorActual)) {
+        select.value = valorActual;
+    } else if (searchFilters.estado) {
+        select.value = searchFilters.estado;
     }
 }
 
@@ -824,7 +829,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (el) {
             el.addEventListener(event, e => {
                 const val = e.target.value;
-                searchFilters[filter] = (val === '__PENDIENTES__') ? val : normalizeText(val);
+                searchFilters[filter] = val;
                 debouncedLoad();
             });
         }
