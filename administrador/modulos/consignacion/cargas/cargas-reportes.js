@@ -110,20 +110,20 @@ export async function enriquecerSubfilasConReferencias(cargas) {
     if (!cargas || cargas.length === 0 || !db) return cargas;
 
     const cache = new Map();
-    const refsSet = new Set();
+    const refsUnicas = new Set();
 
-    // Recolectar referencias de items
+    // Recolectar referencias de items (excluyendo la primera, que es la carga principal)
     cargas.forEach(carga => {
         const items = Array.isArray(carga.items) ? carga.items : [];
-        items.forEach(item => {
+        items.slice(1).forEach(item => {  // slice(1) = desde el segundo ítem
             const ref = item.referencia?.toString().trim();
-            if (ref) refsSet.add(ref);
+            if (ref) refsUnicas.add(ref);
         });
     });
 
-    if (refsSet.size === 0) return cargas;
+    if (refsUnicas.size === 0) return cargas;
 
-    const refsArray = Array.from(refsSet);
+    const refsArray = Array.from(refsUnicas);
     const chunks = [];
     for (let i = 0; i < refsArray.length; i += 30) {
         chunks.push(refsArray.slice(i, i + 30));
@@ -148,11 +148,12 @@ export async function enriquecerSubfilasConReferencias(cargas) {
             });
         });
 
-        // Aplicar a cada carga
+        // Aplicar enriquecimiento
         return cargas.map(carga => {
-            if (!Array.isArray(carga.items)) return carga;
+            const items = Array.isArray(carga.items) ? carga.items : [];
+            const itemsActualizados = items.map((item, idx) => {
+                if (idx === 0) return item; // primer ítem = carga principal
 
-            const itemsActualizados = carga.items.map(item => {
                 const ref = item.referencia?.toString().trim();
                 if (!ref) {
                     return { ...item, codigo: '—', descripcion: '—', _referenciaSinCoincidir: false };
@@ -175,7 +176,7 @@ export async function enriquecerSubfilasConReferencias(cargas) {
         });
 
     } catch (err) {
-        console.error('Error enriqueciendo referencias:', err);
+        console.error('Error enriqueciendo:', err);
         return cargas;
     }
 }
