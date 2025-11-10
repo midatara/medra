@@ -521,6 +521,22 @@ const debouncedLoad = debounce(() => {
     applyFiltersAndPaginate();
 }, 300);
 
+async function buscarReferenciaEnImplantes(texto) {
+    if (!texto || !db) return null;
+    const normalized = texto.trim().toUpperCase();
+    try {
+        const q = query(collection(db, "referencias_implantes"), where("referencia", "==", normalized));
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
+        const q2 = query(collection(db, "referencias_implantes"), where("descripcion", "==", normalized));
+        const snapshot2 = await getDocs(q2);
+        if (!snapshot2.empty) return { id: snapshot2.docs[0].id, ...snapshot2.docs[0].data() };
+    } catch (err) {
+        console.warn("Error buscando referencia:", err);
+    }
+    return null;
+}
+
 function renderTable(callback = null) {
     const tbody = document.querySelector('#cargarTable tbody');
     if (!tbody) {
@@ -615,7 +631,7 @@ function renderTable(callback = null) {
         });
     };
     document.querySelectorAll('.cargar-btn-toggle-subrows').forEach(btn => {
-        btn.addEventListener('click', e => {
+        btn.addEventListener('click', async e => {
             e.stopPropagation();
             const id = btn.dataset.id;
             const row = btn.closest('tr');
@@ -663,12 +679,25 @@ function renderTable(callback = null) {
             const proveedor = escapeHtml(carga.proveedor || '');
             const atributo = escapeHtml(carga.atributo || '');
             const docDelivery = escapeHtml(carga.docDelivery || '');
-            const subrowsHtml = itemsDesdeSegundo.map(detalle => {
+            const subrowsHtml = await Promise.all(itemsDesdeSegundo.map(async detalle => {
                 const folio = escapeHtml(guia.folio || '');
                 const codigo = detalle.CdgItem?.VlrCodigo?.split(' ')[0] || '';
                 const cantidad = detalle.QtyItem ? Math.round(parseFloat(detalle.QtyItem)) : '';
                 const descripcion = escapeHtml(detalle.DscItem || detalle.NmbItem || '');
                 const fechaVenc = detalle.FchVencim ? formatDate(detalle.FchVencim) : '';
+                const posibleReferencia = detalle.DscItem || detalle.NmbItem || '';
+                const match = await buscarReferenciaEnImplantes(posibleReferencia);
+                if (match) {
+                    console.log('%cREFERENCIA COINCIDE EN SUBFILA', 'color: #4CAF50; font-weight: bold; font-size: 12px;', {
+                        guiaFolio: guia.folio,
+                        itemDescripcion: posibleReferencia,
+                        referenciaDB: match.referencia,
+                        codigoDB: match.codigo,
+                        proveedorDB: match.proveedor,
+                        cargaId: carga.id,
+                        admision: carga.admision
+                    });
+                }
                 return `
                     <tr class="subrow-item" data-parent="${id}" style="background:#fafafa; font-size:12px;">
                         <td></td>
@@ -678,7 +707,7 @@ function renderTable(callback = null) {
                         <td></td>
                         <td></td>
                         <td></td>
-                        <td style="background:#fff3e0;">${descripcion}</td>
+                        <td style="background:#fff3e0;">${descripcion}${match ? ' <i class="fas fa-check" style="color:green;font-size:10px;" title="Referencia encontrada en DB"></i>' : ''}</td>
                         <td style="color:#d32f2f; text-align:center;">${fechaVenc}</td>
                         <td style="background:#f3e5f5; font-family:monospace;">${escapeHtml(codigo)}</td>
                         <td>${idRegistro}</td>
@@ -703,8 +732,8 @@ function renderTable(callback = null) {
                         <td></td>
                     </tr>
                 `;
-            }).join('');
-            row.insertAdjacentHTML('afterend', subrowsHtml);
+            }));
+            row.insertAdjacentHTML('afterend', subrowsHtml.join(''));
             document.querySelectorAll(`tr.subrow-item[data-parent="${id}"]`).forEach(subrow => {
                 subrow.addEventListener('mouseenter', () => {
                     const mainRow = document.querySelector(`tr[data-id="${id}"]`);
@@ -755,7 +784,7 @@ function setupColumnResize() {
             startWidth = header.getBoundingClientRect().width;
             document.body.style.userSelect = 'none';
             handle.classList.add('active');
-            e.preventDefault();
+            e.prevent onDefault();
         };
         const move = e => {
             if (!isResizing) return;
