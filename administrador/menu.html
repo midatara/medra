@@ -336,8 +336,8 @@
         <div class="main">
             <div class="content" id="mainContent">
                 <div class="card">
-                    <h3>Estadísticas del Mes</h3>
-                    <p id="statsText">Cargando pacientes del mes...</p>
+                    <h3>Estadísticas del Año</h3>
+                    <p id="statsText">Cargando pacientes del año...</p>
                 </div>
                 <div class="card">
                     <h3>Pacientes Pendientes</h3>
@@ -349,7 +349,7 @@
 
     <div id="logoutModal" class="modal">
         <div class="modal-content">
-            <span class="close" id="closeLogoutModal">&times;</span>
+            <span class="close" id="closeLogoutModal">×</span>
             <h2>Confirmar Cierre de Sesión</h2>
             <p>¿Estás seguro de que deseas cerrar sesión?</p>
             <div class="modal-buttons">
@@ -485,7 +485,7 @@
             'importacion': [
                 { text: 'Reportes', path: 'modulos/importacion/reportes/reportes.html', icon: 'fas fa-notes-medical' },
                 { text: 'Órdenes de compra', path: 'modulos/importacion/ordenes/ordenes.html', icon: 'fas fa-file-medical' },
-                { text: 'Guías Medtronic', path: 'modulos/importacion/medtronic/medtronic.html', icon: 'fas fa-clipbook-list' }
+                { text: 'Guías Medtronic', path: 'modulos/importacion/medtronic/medtronic.html', icon: 'fas fa-clipboard-list' }
             ],
             'apuntes': [
                 { text: 'Notas', path: 'modulos/apuntes/notas/notas.html', icon: 'fas fa-sticky-note' },
@@ -610,8 +610,8 @@
 
             content.innerHTML = `
             <div class="card">
-                <h3>Estadísticas del Mes</h3>
-                <p id="statsText">Cargando pacientes del mes...</p>
+                <h3>Estadísticas del Año</h3>
+                <p id="statsText">Cargando pacientes del año...</p>
             </div>
             <div class="card">
                 <h3>Pacientes Pendientes</h3>
@@ -635,15 +635,14 @@
             try {
                 const now = new Date();
                 const year = now.getFullYear();
-                const month = now.getMonth();
 
-                const startOfMonth = new Date(year, month, 1);
-                const endOfMonth = new Date(year, month + 1, 0, 23, 59, 59, 999);
+                const startOfYear = new Date(year, 0, 1);
+                const endOfYear = new Date(year, 11, 31, 23, 59, 59, 999);
 
                 const q = query(
                     collection(window.db, "pacientes_consignaciones"),
-                    where("fechaCX", ">=", startOfMonth),
-                    where("fechaCX", "<=", endOfMonth)
+                    where("fechaCX", ">=", startOfYear),
+                    where("fechaCX", "<=", endOfYear)
                 );
 
                 const snapshot = await getDocs(q);
@@ -654,7 +653,7 @@
                     return data.estado && data.estado.trim().toUpperCase() !== 'CARGADO';
                 }).length;
 
-                statsText.innerHTML = `<strong>${totalPacientes}</strong> pacientes registrados en <strong>${now.toLocaleDateString('es-CL', { month: 'long', year: 'numeric' })}</strong>`;
+                statsText.innerHTML = `<strong>${totalPacientes}</strong> pacientes registrados en <strong>${year}</strong>`;
                 pendingText.innerHTML = `<strong>${pendientes}</strong> pacientes pendientes (no cargados)`;
 
             } catch (error) {
