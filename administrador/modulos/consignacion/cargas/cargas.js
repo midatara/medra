@@ -542,7 +542,6 @@ async function buscarReferenciaEnImplantes(texto) {
             return match;
         }
 
-        // 2. Búsqueda parcial por palabras clave
         const palabras = normalized.split(/\s+/).filter(p => p.length > 2);
         if (palabras.length === 0) return null;
 
