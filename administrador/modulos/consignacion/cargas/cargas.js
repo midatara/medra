@@ -502,7 +502,7 @@ function applyFiltersAndPaginate(callback = null) {
         const loadMore = document.getElementById('loadMoreContainer');
         if (loadMore) loadMore.remove();
         if (endIdx < filtered.length) {
-            const div = document.createElement('divdiv');
+            const div = document.createElement('div');
             div.id = 'loadMoreContainer';
             div.style = 'text-align:center;margin:15px 0;';
             div.innerHTML = `<button id="loadMoreBtn" class="modal-btn modal-btn-secondary">Cargar más</button>`;
@@ -521,6 +521,7 @@ const debouncedLoad = debounce(() => {
     applyFiltersAndPaginate();
 }, 300);
 
+// === NUEVA FUNCIÓN: BÚSQUEDA EN referencias_implantes ===
 async function buscarReferenciaEnImplantes(texto) {
     if (!texto || !db) return null;
     const normalized = texto.trim().toUpperCase();
@@ -537,13 +538,17 @@ async function buscarReferenciaEnImplantes(texto) {
     return null;
 }
 
+// === RENDER TABLE CON DELEGACIÓN DE EVENTOS (SIN DUPLICADOS) ===
 function renderTable(callback = null) {
     const tbody = document.querySelector('#cargarTable tbody');
     if (!tbody) {
         if (callback) callback();
         return;
     }
-    document.querySelectorAll('tr.subrow, tr.subrow-item').forEach(row => row.remove());
+
+    // Eliminar subfilas anteriores
+    document.querySelectorAll('tr.subrow-item').forEach(row => row.remove());
+
     if (cargas.length === 0) {
         tbody.innerHTML = `
             <tr>
@@ -555,6 +560,7 @@ function renderTable(callback = null) {
         if (callback) requestAnimationFrame(() => setTimeout(callback, 100));
         return;
     }
+
     const html = cargas.map(c => `
         <tr data-id="${c.id}" class="${selectedCargaIds.has(c.id) ? 'row-selected' : ''}">
             <td class="checkbox-cell">
@@ -605,6 +611,8 @@ function renderTable(callback = null) {
         </tr>
     `).join('');
     tbody.innerHTML = html;
+
+    // Checkboxes
     document.querySelectorAll('.row-checkbox').forEach(cb => {
         cb.addEventListener('change', e => {
             const id = e.target.dataset.id;
@@ -615,6 +623,7 @@ function renderTable(callback = null) {
             e.target.closest('tr').classList.toggle('row-selected', e.target.checked);
         });
     });
+
     const selectAll = document.getElementById('selectAll');
     if (selectAll) {
         selectAll.addEventListener('change', e => {
@@ -629,134 +638,156 @@ function renderTable(callback = null) {
             updateCambiarEstadoButton();
             updateNCLFButton();
         });
-    };
-    document.querySelectorAll('.cargar-btn-toggle-subrows').forEach(btn => {
-        btn.addEventListener('click', async e => {
-            e.stopPropagation();
-            const id = btn.dataset.id;
-            const row = btn.closest('tr');
-            const icon = btn.querySelector('i');
-            const existingSubrows = document.querySelectorAll(`tr.subrow-item[data-parent="${id}"]`);
-            if (existingSubrows.length > 0) {
-                existingSubrows.forEach(sub => sub.remove());
-                icon.classList.replace('fa-chevron-up', 'fa-chevron-down');
-                return;
-            }
-            icon.classList.replace('fa-chevron-down', 'fa-chevron-up');
-            const carga = allCargasDelMes.find(c => c.id === id);
-            const guia = carga.guiaRelacionada;
-            if (!guia || !guia.fullData?.Documento?.Detalle) {
-                row.insertAdjacentHTML('afterend', `
-                    <tr class="subrow-item" data-parent="${id}">
-                        <td colspan="30" style="padding:12px; background:#f9f9f9; text-align:center; color:#999; font-style:italic;">
-                            No hay ítems en la guía vinculada.
-                        </td>
-                    </tr>
-                `);
-                return;
-            }
-            const detalles = Array.isArray(guia.fullData.Documento.Detalle)
-                ? guia.fullData.Documento.Detalle
-                : [guia.fullData.Documento.Detalle];
-            const itemsDesdeSegundo = detalles.slice(1);
-            if (itemsDesdeSegundo.length === 0) {
-                row.insertAdjacentHTML('afterend', `
-                    <tr class="subrow-item" data-parent="${id}">
-                        <td colspan="30" style="padding:12px; background:#f9f9f9; text-align:center; color:#999; font-style:italic;">
-                            No hay ítems adicionales (solo 1 ítem en la guía).
-                        </td>
-                    </tr>
-                `);
-                return;
-            }
-            const idRegistro = escapeHtml(carga.idRegistro || '');
-            const prevision = escapeHtml(carga.prevision || '');
-            const convenio = escapeHtml(carga.convenio || '');
-            const admision = escapeHtml(carga.admision || '');
-            const paciente = escapeHtml(carga.paciente || '');
-            const medico = escapeHtml(carga.medico || '');
-            const fechaCX = carga.fechaCX ? formatDate(carga.fechaCX) : '';
-            const proveedor = escapeHtml(carga.proveedor || '');
-            const atributo = escapeHtml(carga.atributo || '');
-            const docDelivery = escapeHtml(carga.docDelivery || '');
-            const subrowsHtml = await Promise.all(itemsDesdeSegundo.map(async detalle => {
-                const folio = escapeHtml(guia.folio || '');
-                const codigo = detalle.CdgItem?.VlrCodigo?.split(' ')[0] || '';
-                const cantidad = detalle.QtyItem ? Math.round(parseFloat(detalle.QtyItem)) : '';
-                const descripcion = escapeHtml(detalle.DscItem || detalle.NmbItem || '');
-                const fechaVenc = detalle.FchVencim ? formatDate(detalle.FchVencim) : '';
-                const posibleReferencia = detalle.DscItem || detalle.NmbItem || '';
-                const match = await buscarReferenciaEnImplantes(posibleReferencia);
+    }
+
+    // === DELEGACIÓN DE EVENTOS PARA SUBFILAS ===
+    tbody.addEventListener('click', async e => {
+        const btn = e.target.closest('.cargar-btn-toggle-subrows');
+        if (!btn) return;
+
+        e.stopPropagation();
+        const id = btn.dataset.id;
+        const row = btn.closest('tr');
+        const icon = btn.querySelector('i');
+        const existing = document.querySelectorAll(`tr.subrow-item[data-parent="${id}"]`);
+
+        if (existing.length > 0) {
+            existing.forEach(sub => sub.remove());
+            icon.classList.replace('fa-chevron-up', 'fa-chevron-down');
+            row.dataset.expanded = 'false';
+            return;
+        }
+
+        icon.classList.replace('fa-chevron-down', 'fa-chevron-up');
+        row.dataset.expanded = 'true';
+
+        const carga = allCargasDelMes.find(c => c.id === id);
+        const guia = carga.guiaRelacionada;
+        if (!guia || !guia.fullData?.Documento?.Detalle) {
+            row.insertAdjacentHTML('afterend', `
+                <tr class="subrow-item" data-parent="${id}">
+                    <td colspan="30" style="padding:12px; background:#f9f9f9; text-align:center; color:#999; font-style:italic;">
+                        No hay ítems en la guía vinculada.
+                    </td>
+                </tr>
+            `);
+            return;
+        }
+
+        const detalles = Array.isArray(guia.fullData.Documento.Detalle)
+            ? guia.fullData.Documento.Detalle
+            : [guia.fullData.Documento.Detalle];
+        const itemsDesdeSegundo = detalles.slice(1);
+
+        if (itemsDesdeSegundo.length === 0) {
+            row.insertAdjacentHTML('afterend', `
+                <tr class="subrow-item" data-parent="${id}">
+                    <td colspan="30" style="padding:12px; background:#f9f9f9; text-align:center; color:#999; font-style:italic;">
+                        No hay ítems adicionales (solo 1 ítem en la guía).
+                    </td>
+                </tr>
+            `);
+            return;
+        }
+
+        const idRegistro = escapeHtml(carga.idRegistro || '');
+        const prevision = escapeHtml(carga.prevision || '');
+        const convenio = escapeHtml(carga.convenio || '');
+        const admision = escapeHtml(carga.admision || '');
+        const paciente = escapeHtml(carga.paciente || '');
+        const medico = escapeHtml(carga.medico || '');
+        const fechaCX = carga.fechaCX ? formatDate(carga.fechaCX) : '';
+        const proveedor = escapeHtml(carga.proveedor || '');
+        const atributo = escapeHtml(carga.atributo || '');
+        const docDelivery = escapeHtml(carga.docDelivery || '');
+
+        const subrowsHtml = await Promise.all(itemsDesdeSegundo.map(async detalle => {
+            const folio = escapeHtml(guia.folio || '');
+            const codigo = detalle.CdgItem?.VlrCodigo?.split(' ')[0] || '';
+            const cantidad = detalle.QtyItem ? Math.round(parseFloat(detalle.QtyItem)) : '';
+            const descripcion = escapeHtml(detalle.DscItem || detalle.NmbItem || '');
+            const fechaVenc = detalle.FchVencim ? formatDate(detalle.FchVencim) : '';
+            const textoBuscar = detalle.DscItem || detalle.NmbItem || '';
+
+            let match = null;
+            if (textoBuscar) {
+                match = await buscarReferenciaEnImplantes(textoBuscar);
                 if (match) {
-                    console.log('%cREFERENCIA COINCIDE EN SUBFILA', 'color: #4CAF50; font-weight: bold; font-size: 12px;', {
-                        guiaFolio: guia.folio,
-                        itemDescripcion: posibleReferencia,
-                        referenciaDB: match.referencia,
-                        codigoDB: match.codigo,
-                        proveedorDB: match.proveedor,
+                    console.log('%cREFERENCIA ENCONTRADA EN SUBFILA', 'color: #4CAF50; font-weight: bold; background: #e8f5e9; padding: 2px 6px; border-radius: 4px;', {
+                        guia: guia.folio,
+                        item: textoBuscar,
+                        referencia: match.referencia,
+                        codigo: match.codigo || 'N/A',
+                        proveedor: match.proveedor || 'N/A',
                         cargaId: carga.id,
                         admision: carga.admision
                     });
                 }
-                return `
-                    <tr class="subrow-item" data-parent="${id}" style="background:#fafafa; font-size:12px;">
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td style="background:#e3f2fd; font-weight:600;">${folio}</td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td style="background:#fff3e0;">${descripcion}${match ? ' <i class="fas fa-check" style="color:green;font-size:10px;" title="Referencia encontrada en DB"></i>' : ''}</td>
-                        <td style="color:#d32f2f; text-align:center;">${fechaVenc}</td>
-                        <td style="background:#f3e5f5; font-family:monospace;">${escapeHtml(codigo)}</td>
-                        <td>${idRegistro}</td>
-                        <td></td>
-                        <td style="text-align:center;">${cantidad}</td>
-                        <td></td>
-                        <td>${prevision}</td>
-                        <td>${convenio}</td>
-                        <td>${admision}</td>
-                        <td>${paciente}</td>
-                        <td>${medico}</td>
-                        <td>${fechaCX}</td>
-                        <td>${proveedor}</td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td>${atributo}</td>
-                        <td></td>
-                        <td></td>
-                        <td>${docDelivery}</td>
-                        <td></td>
-                    </tr>
-                `;
-            }));
-            row.insertAdjacentHTML('afterend', subrowsHtml.join(''));
-            document.querySelectorAll(`tr.subrow-item[data-parent="${id}"]`).forEach(subrow => {
-                subrow.addEventListener('mouseenter', () => {
-                    const mainRow = document.querySelector(`tr[data-id="${id}"]`);
-                    if (mainRow) {
-                        mainRow.style.backgroundColor = '#e8f5e9';
-                        mainRow.style.borderLeft = '4px solid #4caf50';
-                    }
-                });
-                subrow.addEventListener('mouseleave', () => {
-                    const mainRow = document.querySelector(`tr[data-id="${id}"]`);
-                    if (mainRow) {
-                        mainRow.style.backgroundColor = '';
-                        mainRow.style.borderLeft = '';
-                    }
-                });
+            }
+
+            return `
+                <tr class="subrow-item" data-parent="${id}" style="background:#fafafa; font-size:12px;">
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td style="background:#e3f2fd; font-weight:600;">${folio}</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td style="background:#fff3e0;">${descripcion}${match ? ' <i class="fas fa-check-circle" style="color:green;font-size:11px;" title="Encontrado en referencias_implantes"></i>' : ''}</td>
+                    <td style="color:#d32f2f; text-align:center;">${fechaVenc}</td>
+                    <td style="background:#f3e5f5; font-family:monospace;">${escapeHtml(codigo)}</td>
+                    <td>${idRegistro}</td>
+                    <td></td>
+                    <td style="text-align:center;">${cantidad}</td>
+                    <td></td>
+                    <td>${prevision}</td>
+                    <td>${convenio}</td>
+                    <td>${admision}</td>
+                    <td>${paciente}</td>
+                    <td>${medico}</td>
+                    <td>${fechaCX}</td>
+                    <td>${proveedor}</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td>${atributo}</td>
+                    <td></td>
+                    <td></td>
+                    <td>${docDelivery}</td>
+                    <td></td>
+                </tr>
+            `;
+        }));
+
+        row.insertAdjacentHTML('afterend', subrowsHtml.join(''));
+
+        // Hover en subfilas
+        document.querySelectorAll(`tr.subrow-item[data-parent="${id}"]`).forEach(subrow => {
+            subrow.addEventListener('mouseenter', () => {
+                const mainRow = document.querySelector(`tr[data-id="${id}"]`);
+                if (mainRow) {
+                    mainRow.style.backgroundColor = '#e8f5e9';
+                    mainRow.style.borderLeft = '4px solid #4caf50';
+                }
+            });
+            subrow.addEventListener('mouseleave', () => {
+                const mainRow = document.querySelector(`tr[data-id="${id}"]`);
+                if (mainRow) {
+                    mainRow.style.backgroundColor = '';
+                    mainRow.style.borderLeft = '';
+                }
             });
         });
     });
+
     if (callback) {
         requestAnimationFrame(() => setTimeout(callback, 100));
     }
 }
 
+// === REDIMENSIONAMIENTO DE COLUMNAS (CORREGIDO) ===
 function setupColumnResize() {
     const headers = document.querySelectorAll('.cargar-table th');
     const initialWidths = [
