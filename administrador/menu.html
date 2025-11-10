@@ -8,300 +8,51 @@
     <link rel="icon" href="../img/logo-administrador/favicon.ico">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif; }
+        body { display: flex; flex-direction: column; min-height: 100vh; background: #f5f5f5; color: #333; }
+        .header { background: #3A5795; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.05); color: white; font-size: 14px; }
+        .header h1 { font-size: 18px; }
+        .header .info { display: flex; gap: 15px; align-items: center; }
+        .header .logout-btn { background: none; border: none; color: white; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 16px; }
+        .header .logout-btn:hover { opacity: 0.8; }
 
-        body {
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-            background: #f5f5f5;
-            color: #333;
-        }
+        .layout { display: flex; flex: 1; }
+        .sidebar { width: 180px; background: #fff; border-right: 1px solid #ddd; padding: 15px 10px; overflow-y: auto; }
+        .sidebar h2 { color: #3A5795; font-weight: bold; font-size: 16px; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-bottom: 10px; }
+        .sidebar a { color: #333; text-decoration: none; padding: 8px 12px; border-radius: 6px; font-size: 13px; display: flex; align-items: center; gap: 8px; transition: 0.3s; }
+        .sidebar a i { color: #3A5795; font-size: 12px; }
+        .sidebar a:hover { background: #eee; }
 
-        .header {
-            background: #3A5795;
-            padding: 10px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #ddd;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            font-size: 14px;
-            color: white;
-        }
+        .submenu { display: none; width: 100%; }
+        .back-link { color: #3A5795 !important; font-weight: bold; }
+        .submenu-content a { padding-left: 20px; }
 
-        .header h1 {
-            font-size: 18px;
-            color: white;
-        }
+        .main { flex: 1; background: #f0f2f5; display: flex; flex-direction: column; }
+        .content { padding: 15px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
 
-        .header .info {
-            font-size: 14px;
-            color: white;
-            display: flex;
-            gap: 15px;
-            align-items: center;
-        }
+        .card { background: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 3px 8px rgba(0,0,0,0.05); }
+        .card h3 { color: #3A5795; font-size: 14px; margin-bottom: 8px; font-weight: 600; }
+        .stats-list { list-style: none; padding: 0; margin: 0; }
+        .stats-list li { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; color: #444; border-bottom: 1px solid #eee; }
+        .stats-list li:last-child { border-bottom: none; }
+        .stats-list strong { color: #3A5795; }
+        .loading { text-align: center; padding: 20px; color: #666; font-size: 13px; }
 
-        .header .user {
-            font-weight: bold;
-        }
+        .modal { display: none; position: fixed; z-index: 1300; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
+        .modal-content { background: white; margin: 15% auto; padding: 20px; border-radius: 8px; width: 90%; max-width: 400px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+        .modal-content h2 { margin: 0 0 10px; font-size: 16px; color: #3A5795; }
+        .modal-content p { font-size: 14px; color: #333; margin-bottom: 20px; }
+        .modal-buttons { display: flex; justify-content: flex-end; gap: 10px; }
+        .modal-btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; }
+        .modal-btn-primary { background: #3A5795; color: white; }
+        .modal-btn-primary:hover { background: #2a4373; }
+        .modal-btn-secondary { background: #6c757d; color: white; }
+        .modal-btn-secondary:hover { background: #5a6268; }
+        .close { color: #aaa; float: right; font-size: 24px; font-weight: bold; cursor: pointer; }
+        .close:hover { color: #000; }
 
-        .header .date {
-            font-size: 12px;
-        }
-
-        .header .logout-btn {
-            background: none;
-            border: none;
-            color: white;
-            cursor: pointer;
-            font-size: 16px;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .header .logout-btn:hover {
-            opacity: 0.8;
-        }
-
-        .layout {
-            display: flex;
-            flex: 1;
-            min-height: 0;
-        }
-
-        .sidebar {
-            width: 180px;
-            background: #ffffff;
-            border-right: 1px solid #ddd;
-            display: flex;
-            flex-direction: column;
-            padding: 15px 10px;
-            align-items: flex-start;
-            overflow-y: auto;
-            position: relative;
-            z-index: 1200;
-        }
-
-        .sidebar h2 {
-            margin: 0;
-            color: #3A5795;
-            font-weight: bold;
-            font-size: 16px;
-            border-bottom: 1px solid #ddd;
-            padding-bottom: 5px;
-        }
-
-        .sidebar a {
-            color: #333;
-            text-decoration: none;
-            margin-bottom: 3px;
-            display: flex;
-            align-items: center;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 13px;
-            transition: 0.3s;
-            width: 100%;
-            text-align: left;
-        }
-
-        .sidebar a i {
-            margin-right: 8px;
-            color: #3A5795;
-            font-size: 12px;
-        }
-
-        .sidebar a:hover {
-            background: #ddd;
-            color: #333;
-        }
-
-        .submenu {
-            display: none;
-            width: 100%;
-        }
-
-        .back-link {
-            color: #3A5795 !important;
-            font-weight: bold;
-        }
-
-        .submenu-content a {
-            padding-left: 20px;
-        }
-
-        .main {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            background: #f0f2f5;
-            transition: margin-left 0.3s ease;
-            z-index: 1000;
-        }
-
-        .content {
-            padding: 15px;
-            flex: 1;
-            max-height: calc(100vh - 60px);
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .card {
-            background: #ffffff;
-            padding: 15px;
-            border-radius: 10px;
-            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
-        }
-
-        .card h3 {
-            color: #3A5795;
-            font-size: 14px;
-            margin-bottom: 8px;
-            font-weight: 600;
-        }
-
-        .stats-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .stats-list li {
-            display: flex;
-            justify-content: space-between;
-            padding: 4px 0;
-            font-size: 13px;
-            color: #444;
-            border-bottom: 1px solid #eee;
-        }
-
-        .stats-list li:last-child {
-            border-bottom: none;
-        }
-
-        .stats-list strong {
-            color: #3A5795;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 20px;
-            color: #666;
-        }
-
-        iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-            min-height: 600px;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1300;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            overflow: auto;
-        }
-
-        .modal-content {
-            background-color: white;
-            margin: 15% auto;
-            padding: 20px;
-            border-radius: 8px;
-            width: 90%;
-            max-width: 400px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-        }
-
-        .modal-content h2 {
-            margin-top: 0;
-            font-size: 16px;
-            color: #3A5795;
-        }
-
-        .modal-content p {
-            font-size: 14px;
-            color: #333;
-            margin-bottom: 20px;
-        }
-
-        .modal-buttons {
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-        }
-
-        .modal-btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 13px;
-        }
-
-        .modal-btn-primary {
-            background-color: #3A5795;
-            color: white;
-        }
-
-        .modal-btn-primary:hover {
-            background-color: #2a4373;
-        }
-
-        .modal-btn-secondary {
-            background-color: #6c757d;
-            color: white;
-        }
-
-        .modal-btn-secondary:hover {
-            background-color: #5a6268;
-        }
-
-        .close {
-            color: #aaa;
-            float: right;
-            font-size: 24px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .close:hover,
-        .close:focus {
-            color: #000;
-            text-decoration: none;
-        }
-
-        .logo-title {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin: 0 auto 10px auto;
-            width: 100%;
-            text-align: center;
-            cursor: pointer;
-        }
-
-        .logo {
-            width: 30px;
-            height: 30px;
-            object-fit: contain;
-        }
+        .logo-title { display: flex; align-items: center; gap: 10px; cursor: pointer; margin-bottom: 10px; }
+        .logo { width: 30px; height: 30px; object-fit: contain; }
     </style>
 </head>
 
@@ -319,29 +70,29 @@
 
     <div class="layout">
         <div class="sidebar">
-            <div class="logo-title">
-                <img src="../img/logo-administrador/android-chrome-192x192.png" alt="Datara Salud Logo" class="logo">
+            <div class="logo-title" onclick="volverInicio()">
+                <img src="../img/logo-administrador/android-chrome-192x192.png" alt="Logo" class="logo">
                 <h2>Medra</h2>
             </div>
             <div class="main-menu">
-                <a href="#" data-submenu="implantes"><i class="fas fa-tooth"></i> <span class="menu-text">Implantes</span></a>
-                <a href="#" data-submenu="consignacion"><i class="fas fa-box"></i> <span class="menu-text">Consignación</span></a>
-                <a href="#" data-submenu="historico"><i class="fas fa-history"></i> <span class="menu-text">Histórico</span></a>
-                <a href="#" data-submenu="laboratorio"><i class="fas fa-flask"></i> <span class="menu-text">Laboratorio</span></a>
-                <a href="#" data-submenu="visualizador"><i class="fas fa-chart-line"></i> <span class="menu-text">Visualizador</span></a>
-                <a href="#" data-submenu="prestacion"><i class="fas fa-briefcase-medical"></i> <span class="menu-text">Prestación</span></a>
-                <a href="#" data-submenu="herramientas"><i class="fas fa-tools"></i> <span class="menu-text">Herramientas</span></a>
-                <a href="#" data-submenu="importacion"><i class="fas fa-file-import"></i> <span class="menu-text">Importación</span></a>
-                <a href="#" data-submenu="apuntes"><i class="fas fa-note-sticky"></i> <span class="menu-text">Apuntes</span></a>
-                <a href="#" data-submenu="migracion"><i class="fas fa-exchange-alt"></i> <span class="menu-text">Migración</span></a>
-                <a href="#" data-submenu="dashboard"><i class="fas fa-tachometer-alt"></i> <span class="menu-text">Dashboard</span></a>
-                <a href="#" data-submenu="archivos"><i class="fas fa-folder"></i> <span class="menu-text">Archivos</span></a>
-                <a href="#" data-submenu="usuarios"><i class="fas fa-users"></i> <span class="menu-text">Usuarios</span></a>
-                <a href="#" data-submenu="configuracion"><i class="fas fa-cog"></i> <span class="menu-text">Configuración</span></a>
-                <a href="#" data-submenu="cerrar-sesion"><i class="fas fa-sign-out-alt"></i> <span class="menu-text">Cerrar Sesión</span></a>
+                <a href="#" data-submenu="implantes"><i class="fas fa-tooth"></i> <span>Implantes</span></a>
+                <a href="#" data-submenu="consignacion"><i class="fas fa-box"></i> <span>Consignación</span></a>
+                <a href="#" data-submenu="historico"><i class="fas fa-history"></i> <span>Histórico</span></a>
+                <a href="#" data-submenu="laboratorio"><i class="fas fa-flask"></i> <span>Laboratorio</span></a>
+                <a href="#" data-submenu="visualizador"><i class="fas fa-chart-line"></i> <span>Visualizador</span></a>
+                <a href="#" data-submenu="prestacion"><i class="fas fa-briefcase-medical"></i> <span>Prestación</span></a>
+                <a href="#" data-submenu="herramientas"><i class="fas fa-tools"></i> <span>Herramientas</span></a>
+                <a href="#" data-submenu="importacion"><i class="fas fa-file-import"></i> <span>Importación</span></a>
+                <a href="#" data-submenu="apuntes"><i class="fas fa-note-sticky"></i> <span>Apuntes</span></a>
+                <a href="#" data-submenu="migracion"><i class="fas fa-exchange-alt"></i> <span>Migración</span></a>
+                <a href="#" data-submenu="dashboard"><i class="fas fa-tachometer-alt"></i> <span>Dashboard</span></a>
+                <a href="#" data-submenu="archivos"><i class="fas fa-folder"></i> <span>Archivos</span></a>
+                <a href="#" data-submenu="usuarios"><i class="fas fa-users"></i> <span>Usuarios</span></a>
+                <a href="#" data-submenu="configuracion"><i class="fas fa-cog"></i> <span>Configuración</span></a>
+                <a href="#" data-submenu="cerrar-sesion"><i class="fas fa-sign-out-alt"></i> <span>Cerrar Sesión</span></a>
             </div>
             <div class="submenu" style="display: none;">
-                <a href="#" class="back-link" data-tooltip="Volver"><i class="fas fa-arrow-left"></i> <span class="menu-text">Volver</span></a>
+                <a href="#" class="back-link"><i class="fas fa-arrow-left"></i> <span>Volver</span></a>
                 <div class="submenu-content"></div>
             </div>
         </div>
@@ -350,15 +101,11 @@
             <div class="content" id="mainContent">
                 <div class="card">
                     <h3 id="statsTitle">Estadísticas del Año</h3>
-                    <ul class="stats-list" id="statsList">
-                        <li>Cargando datos del año...</li>
-                    </ul>
+                    <ul class="stats-list" id="statsList"><li class="loading">Cargando...</li></ul>
                 </div>
                 <div class="card">
                     <h3>Pacientes Pendientes</h3>
-                    <ul class="stats-list" id="pendingList">
-                        <li>Cargando pacientes pendientes...</li>
-                    </ul>
+                    <ul class="stats-list" id="pendingList"><li class="loading">Cargando...</li></ul>
                 </div>
             </div>
         </div>
@@ -376,6 +123,7 @@
         </div>
     </div>
 
+    <!-- Firebase Auth & Firestore -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
@@ -394,58 +142,30 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         window.db = getFirestore(app);
-
         setPersistence(auth, browserSessionPersistence);
 
         onAuthStateChanged(auth, async (user) => {
-            if (!user) {
-                window.location.replace('../index.html');
-                return;
-            }
-
+            if (!user) { window.location.replace('../index.html'); return; }
             const userDoc = await getDoc(doc(window.db, 'users', user.uid));
             if (userDoc.exists()) {
-                const userData = userDoc.data();
-                const fullName = userData.fullName || userData.username || 'Usuario';
+                const fullName = userDoc.data().fullName || userDoc.data().username || 'Usuario';
                 document.getElementById('userName').textContent = fullName;
             }
         });
 
         window.logout = async () => {
-            try {
-                await signOut(auth);
-                window.location.replace('../index.html');
-            } catch (error) {
-                console.error('Error al cerrarista sesión:', error);
-            }
+            await signOut(auth);
+            window.location.replace('../index.html');
         };
 
-        window.openLogoutModal = () => {
-            const modal = document.getElementById('logoutModal');
-            modal.style.display = 'block';
-        };
-
-        document.getElementById('closeLogoutModal').addEventListener('click', () => {
-            document.getElementById('logoutModal').style.display = 'none';
-        });
-
-        document.getElementById('cancelLogout').addEventListener('click', () => {
-            document.getElementById('logoutModal').style.display = 'none';
-        });
-
-        document.getElementById('confirmLogout').addEventListener('click', () => {
-            document.getElementById('logoutModal').style.display = 'none';
-            logout();
-        });
-
-        window.addEventListener('click', (e) => {
-            const modal = document.getElementById('logoutModal');
-            if (e.target === modal) {
-                modal.style.display = 'none';
-            }
-        });
+        window.openLogoutModal = () => { document.getElementById('logoutModal').style.display = 'block'; };
+        document.getElementById('closeLogoutModal').onclick = () => { document.getElementById('logoutModal').style.display = 'none'; };
+        document.getElementById('cancelLogout').onclick = () => { document.getElementById('logoutModal').style.display = 'none'; };
+        document.getElementById('confirmLogout').onclick = () => { document.getElementById('logoutModal').style.display = 'none'; logout(); };
+        window.onclick = (e) => { if (e.target === document.getElementById('logoutModal')) document.getElementById('logoutModal').style.display = 'none'; };
     </script>
 
+    <!-- Submenús y Navegación -->
     <script>
         function updateDate() {
             const now = new Date();
@@ -471,7 +191,7 @@
                 { text: 'Pacientes', path: 'modulos/consignacion/pacientes/pacientes.html', icon: 'fas fa-user-injured' },
                 { text: 'Registrar', path: 'modulos/consignacion/registrar/registrar.html', icon: 'fas fa-edit' },
                 { text: 'Historial', path: 'modulos/consignacion/historial/historial.html', icon: 'fas fa-history' },
-                { text: 'Guías', path: 'modulos/consignacion/guias/guias.html', icon: 'fas fa-route' },
+                { text: 'Guías', path: 'modulos/consignacion/guias/guiias.html', icon: 'fas fa-route' },
                 { text: 'Reportes', path: 'modulos/consignacion/reportes/reportes.html', icon: 'fas fa-chart-line' },
                 { text: 'Actividad', path: 'modulos/consignacion/actividad/actividad.html', icon: 'fas fa-bolt' }
             ],
@@ -553,17 +273,12 @@
                 submenu.style.display = 'block';
 
                 submenuContent.innerHTML = '';
-                const items = submenus[submenuId] || [
-                    { text: 'Opción 1', path: '#', icon: 'fas fa-list' },
-                    { text: 'Opción 2', path: '#', icon: 'fas fa-edit' },
-                    { text: 'Opción 3', path: '#', icon: 'fas fa-trash' }
-                ];
+                const items = submenus[submenuId] || [];
                 items.forEach(item => {
                     const a = document.createElement('a');
                     a.href = '#';
-                    a.innerHTML = `<i class="${item.icon}"></i> <span class="menu-text submenu-text">${item.text}</span>`;
+                    a.innerHTML = `<i class="${item.icon}"></i> <span>${item.text}</span>`;
                     a.setAttribute('data-path', item.path);
-                    a.setAttribute('data-tooltip', item.text);
                     a.addEventListener('click', (e) => {
                         e.preventDefault();
                         loadContent(item.path);
@@ -582,142 +297,105 @@
         });
 
         async function loadContent(path) {
-            if (path === '#') {
+            if (!path || path === '#') {
                 document.querySelector('.content').innerHTML = '<div class="loading">Contenido no disponible.</div>';
                 return;
             }
-
             try {
                 const response = await fetch(path, { method: 'HEAD' });
-                if (response.ok) {
-                    const iframe = document.createElement('iframe');
-                    iframe.src = path;
-                    iframe.style.width = '100%';
-                    iframe.style.height = '100%';
-                    iframe.style.border = 'none';
-                    iframe.style.minHeight = '600px';
-                    document.querySelector('.content').innerHTML = '';
-                    document.querySelector('.content').appendChild(iframe);
-                } else {
-                    const iframe = document.createElement('iframe');
-                    iframe.src = '../src/404.html';
-                    iframe.style.width = '100%';
-                    iframe.style.height = '100%';
-                    iframe.style.border = 'none';
-                    iframe.style.minHeight = '600px';
-                    document.querySelector('.content').innerHTML = '';
-                    document.querySelector('.content').appendChild(iframe);
-                }
-            } catch (error) {
+                const iframe = document.createElement('iframe');
+                iframe.src = response.ok ? path : '../src/404.html';
+                iframe.style.width = '100%'; iframe.style.height = '100%'; iframe.style.border = 'none'; iframe.style.minHeight = '600px';
+                document.querySelector('.content').innerHTML = '';
+                document.querySelector('.content').appendChild(iframe);
+            } catch {
                 const iframe = document.createElement('iframe');
                 iframe.src = '../src/404.html';
-                iframe.style.width = '100%';
-                iframe.style.height = '100%';
-                iframe.style.border = 'none';
-                iframe.style.minHeight = '600px';
+                iframe.style.width = '100%'; iframe.style.height = '100%'; iframe.style.border = 'none'; iframe.style.minHeight = '600px';
                 document.querySelector('.content').innerHTML = '';
                 document.querySelector('.content').appendChild(iframe);
             }
         }
 
-        document.querySelector('.logo-title').addEventListener('click', function () {
-            const content = document.querySelector('.content');
-            const mainMenu = document.querySelector('.main-menu');
-            const submenu = document.querySelector('.submenu');
-
-            content.innerHTML = `
-            <div class="card">
-                <h3 id="statsTitle">Estadísticas del Año</h3>
-                <ul class="stats-list" id="statsList">
-                    <li>Cargando datos del año...</li>
-                </ul>
-            </div>
-            <div class="card">
-                <h3>Pacientes Pendientes</h3>
-                <ul class="stats-list" id="pendingList">
-                    <li>Cargando pacientes pendientes...</li>
-                </ul>
-            </div>
-        `;
-
-            mainMenu.style.display = 'block';
-            submenu.style.display = 'none';
-            setTimeout(actualizarEstadisticasConsignacion, 100);
-        });
+        function volverInicio() {
+            document.querySelector('.main-menu').style.display = 'block';
+            document.querySelector('.submenu').style.display = 'none';
+            document.querySelector('.content').innerHTML = `
+                <div class="card"><h3 id="statsTitle">Estadísticas del Año</h3><ul class="stats-list" id="statsList"><li class="loading">Cargando...</li></ul></div>
+                <div class="card"><h3>Pacientes Pendientes</h3><ul class="stats-list" id="pendingList"><li class="loading">Cargando...</li></ul></div>
+            `;
+            actualizarEstadisticasConsignacion();
+        }
     </script>
 
+    <!-- Estadísticas Optimizadas -->
     <script type="module">
         import { collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
 
-        const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+        const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+        let lastStatsUpdate = 0;
+        let cachedStats = null;
 
         async function actualizarEstadisticasConsignacion() {
-            const statsTitle = document.getElementById('statsTitle');
+            const now = Date.now();
+            if (cachedStats && now - lastStatsUpdate < 60000) {
+                renderStats(cachedStats);
+                return;
+            }
+
             const statsList = document.getElementById('statsList');
             const pendingList = document.getElementById('pendingList');
+            const statsTitle = document.getElementById('statsTitle');
 
             try {
-                const now = new Date();
-                const year = now.getFullYear();
-
-                const startOfYear = new Date(year, 0, 1);
-                const endOfYear = new Date(year, 11, 31, 23, 59, 59, 999);
+                const year = new Date().getFullYear();
+                const start = new Date(year, 0, 1);
+                const end = new Date(year, 11, 31, 23, 59, 59, 999);
 
                 const q = query(
                     collection(window.db, "pacientes_consignaciones"),
-                    where("fechaCX", ">=", startOfYear),
-                    where("fechaCX", "<=", endOfYear)
-                );
+                    where("fechaCX", ">=", start),
+                    where("fechaCX", "<=", end)
+                ).select("fechaCX", "estado");
 
                 const snapshot = await getDocs(q);
-                const pacientes = snapshot.docs.map(doc => {
+                const conteo = {};
+                const pendientes = {};
+
+                snapshot.forEach(doc => {
                     const data = doc.data();
                     const fecha = data.fechaCX?.toDate?.() || new Date(data.fechaCX);
-                    return {
-                        mes: fecha.getMonth(),
-                        estado: (data.estado || '').trim().toUpperCase()
-                    };
-                });
-
-                // Contar por mes (solo meses con datos)
-                const conteoPorMes = {};
-                const pendientesPorMes = {};
-
-                pacientes.forEach(p => {
-                    const nombreMes = meses[p.mes];
-                    conteoPorMes[nombreMes] = (conteoPorMes[nombreMes] || 0) + 1;
-
-                    if (p.estado !== 'CARGADO') {
-                        pendientesPorMes[nombreMes] = (pendientesPorMes[nombreMes] || 0) + 1;
+                    if (isNaN(fecha)) return;
+                    const mes = meses[fecha.getMonth()];
+                    conteo[mes] = (conteo[mes] || 0) + 1;
+                    if ((data.estado || '').trim().toUpperCase() !== 'CARGADO') {
+                        pendientes[mes] = (pendientes[mes] || 0) + 1;
                     }
                 });
 
-                // Actualizar título
-                statsTitle.textContent = `Estadísticas del Año ${year}`;
-
-                // Renderizar estadísticas
-                statsList.innerHTML = Object.keys(conteoPorMes).length > 0
-                    ? Object.entries(conteoPorMes)
-                        .map(([mes, count]) => `<li><span>${mes}:</span> <strong>${count} paciente${count !== 1 ? 's' : ''}</strong></li>`)
-                        .join('')
-                    : '<li style="color:#999;">Sin registros este año</li>';
-
-                // Renderizar pendientes
-                pendingList.innerHTML = Object.keys(pendientesPorMes).length > 0
-                    ? Object.entries(pendientesPorMes)
-                        .map(([mes, count]) => `<li><span>${mes}:</span> <strong>${count} pendiente${count !== 1 ? 's' : ''}</strong></li>`)
-                        .join('')
-                    : '<li style="color:#999;">No hay pacientes pendientes</li>';
+                cachedStats = { conteo, pendientes, year };
+                lastStatsUpdate = now;
+                renderStats(cachedStats);
 
             } catch (error) {
-                console.error("Error al cargar estadísticas:", error);
-                statsList.innerHTML = '<li>Error al cargar datos</li>';
-                pendingList.innerHTML = '<li>Error al cargar datos</li>';
+                console.error("Error:", error);
+                statsList.innerHTML = '<li style="color:#999;">Error de conexión</li>';
+                pendingList.innerHTML = '<li style="color:#999;">Error de conexión</li>';
             }
         }
 
+        function renderStats({ conteo, pendientes, year }) {
+            document.getElementById('statsTitle').textContent = `Estadísticas del Año ${year}`;
+            document.getElementById('statsList').innerHTML = Object.keys(conteo).length
+                ? Object.entries(conteo).map(([m, c]) => `<li><span>${m}:</span> <strong>${c} paciente${c>1?'s':''}</strong></li>`).join('')
+                : '<li style="color:#999;">Sin registros este año</li>';
+            document.getElementById('pendingList').innerHTML = Object.keys(pendientes).length
+                ? Object.entries(pendientes).map(([m, c]) => `<li><span>${m}:</span> <strong>${c} pendiente${c>1?'s':''}</strong></li>`).join('')
+                : '<li style="color:#999;">No hay pacientes pendientes</li>';
+        }
+
         document.addEventListener('DOMContentLoaded', actualizarEstadisticasConsignacion);
-        setInterval(actualizarEstadisticasConsignacion, 30000);
+        setInterval(actualizarEstadisticasConsignacion, 60000);
     </script>
 </body>
 </html>
