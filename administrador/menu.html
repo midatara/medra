@@ -168,17 +168,30 @@
             color: #3A5795;
             font-size: 14px;
             margin-bottom: 8px;
+            font-weight: 600;
         }
 
-        .card p,
-        .card li {
-            color: #555;
+        .stats-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .stats-list li {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
             font-size: 13px;
+            color: #444;
+            border-bottom: 1px solid #eee;
         }
 
-        .card ul {
-            list-style: disc;
-            padding-left: 18px;
+        .stats-list li:last-child {
+            border-bottom: none;
+        }
+
+        .stats-list strong {
+            color: #3A5795;
         }
 
         .loading {
@@ -336,12 +349,16 @@
         <div class="main">
             <div class="content" id="mainContent">
                 <div class="card">
-                    <h3>Estadísticas del Año</h3>
-                    <p id="statsText">Cargando pacientes del año...</p>
+                    <h3 id="statsTitle">Estadísticas del Año</h3>
+                    <ul class="stats-list" id="statsList">
+                        <li>Cargando datos del año...</li>
+                    </ul>
                 </div>
                 <div class="card">
                     <h3>Pacientes Pendientes</h3>
-                    <p id="pendingText">Cargando pendientes...</p>
+                    <ul class="stats-list" id="pendingList">
+                        <li>Cargando pacientes pendientes...</li>
+                    </ul>
                 </div>
             </div>
         </div>
@@ -399,7 +416,7 @@
                 await signOut(auth);
                 window.location.replace('../index.html');
             } catch (error) {
-                console.error('Error al cerrar sesión:', error);
+                console.error('Error al cerrarista sesión:', error);
             }
         };
 
@@ -610,12 +627,16 @@
 
             content.innerHTML = `
             <div class="card">
-                <h3>Estadísticas del Año</h3>
-                <p id="statsText">Cargando pacientes del año...</p>
+                <h3 id="statsTitle">Estadísticas del Año</h3>
+                <ul class="stats-list" id="statsList">
+                    <li>Cargando datos del año...</li>
+                </ul>
             </div>
             <div class="card">
                 <h3>Pacientes Pendientes</h3>
-                <p id="pendingText">Cargando pendientes...</p>
+                <ul class="stats-list" id="pendingList">
+                    <li>Cargando pacientes pendientes...</li>
+                </ul>
             </div>
         `;
 
@@ -628,9 +649,12 @@
     <script type="module">
         import { collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
 
+        const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
         async function actualizarEstadisticasConsignacion() {
-            const statsText = document.getElementById('statsText');
-            const pendingText = document.getElementById('pendingText');
+            const statsTitle = document.getElementById('statsTitle');
+            const statsList = document.getElementById('statsList');
+            const pendingList = document.getElementById('pendingList');
 
             try {
                 const now = new Date();
@@ -646,20 +670,49 @@
                 );
 
                 const snapshot = await getDocs(q);
-                const totalPacientes = snapshot.size;
-
-                const pendientes = snapshot.docs.filter(doc => {
+                const pacientes = snapshot.docs.map(doc => {
                     const data = doc.data();
-                    return data.estado && data.estado.trim().toUpperCase() !== 'CARGADO';
-                }).length;
+                    const fecha = data.fechaCX?.toDate?.() || new Date(data.fechaCX);
+                    return {
+                        mes: fecha.getMonth(),
+                        estado: (data.estado || '').trim().toUpperCase()
+                    };
+                });
 
-                statsText.innerHTML = `<strong>${totalPacientes}</strong> pacientes registrados en <strong>${year}</strong>`;
-                pendingText.innerHTML = `<strong>${pendientes}</strong> pacientes pendientes (no cargados)`;
+                // Contar por mes (solo meses con datos)
+                const conteoPorMes = {};
+                const pendientesPorMes = {};
+
+                pacientes.forEach(p => {
+                    const nombreMes = meses[p.mes];
+                    conteoPorMes[nombreMes] = (conteoPorMes[nombreMes] || 0) + 1;
+
+                    if (p.estado !== 'CARGADO') {
+                        pendientesPorMes[nombreMes] = (pendientesPorMes[nombreMes] || 0) + 1;
+                    }
+                });
+
+                // Actualizar título
+                statsTitle.textContent = `Estadísticas del Año ${year}`;
+
+                // Renderizar estadísticas
+                statsList.innerHTML = Object.keys(conteoPorMes).length > 0
+                    ? Object.entries(conteoPorMes)
+                        .map(([mes, count]) => `<li><span>${mes}:</span> <strong>${count} paciente${count !== 1 ? 's' : ''}</strong></li>`)
+                        .join('')
+                    : '<li style="color:#999;">Sin registros este año</li>';
+
+                // Renderizar pendientes
+                pendingList.innerHTML = Object.keys(pendientesPorMes).length > 0
+                    ? Object.entries(pendientesPorMes)
+                        .map(([mes, count]) => `<li><span>${mes}:</span> <strong>${count} pendiente${count !== 1 ? 's' : ''}</strong></li>`)
+                        .join('')
+                    : '<li style="color:#999;">No hay pacientes pendientes</li>';
 
             } catch (error) {
                 console.error("Error al cargar estadísticas:", error);
-                statsText.textContent = "Error al cargar datos";
-                pendingText.textContent = "Error al cargar datos";
+                statsList.innerHTML = '<li>Error al cargar datos</li>';
+                pendingList.innerHTML = '<li>Error al cargar datos</li>';
             }
         }
 
