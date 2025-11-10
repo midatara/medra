@@ -100,9 +100,6 @@ export async function vincularGuias(cargas) {
         .filter(c => c.docDelivery != null && String(c.docDelivery).trim() !== '')
         .map(c => String(c.docDelivery).trim().toUpperCase());
 
-    // DEBUG: ver qué se está buscando
-    console.log("DocDeliveries normalizados para buscar en guías:", docDeliveries);
-
     if (docDeliveries.length === 0) {
         return cargas.map(c => ({ ...c, guiaRelacionada: null }));
     }
@@ -114,8 +111,6 @@ export async function vincularGuias(cargas) {
             where("folioRef", "in", docDeliveries)
         );
         const snapshot = await getDocs(q);
-
-        console.log(`Guías encontradas en Firestore: ${snapshot.size}`);
 
         const guiasMap = new Map();
         snapshot.docs.forEach(doc => {
@@ -140,7 +135,6 @@ export async function vincularGuias(cargas) {
 
             // DEBUG: mostrar coincidencia
             if (guia) {
-                console.log(`Coincidencia: docDelivery "${c.docDelivery}" → Guía folio ${guia.folio}`);
             }
 
             return {
