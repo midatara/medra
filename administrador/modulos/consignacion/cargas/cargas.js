@@ -524,16 +524,47 @@ const debouncedLoad = debounce(() => {
 // === NUEVA FUNCIÓN: BÚSQUEDA EN referencias_implantes ===
 async function buscarReferenciaEnImplantes(texto) {
     if (!texto || !db) return null;
-    const normalized = texto.trim().toUpperCase();
+    const original = texto.trim();
+    const normalized = original.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
     try {
-        const q = query(collection(db, "referencias_implantes"), where("referencia", "==", normalized));
-        const snapshot = await getDocs(q);
-        if (!snapshot.empty) return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
-        const q2 = query(collection(db, "referencias_implantes"), where("descripcion", "==", normalized));
-        const snapshot2 = await getDocs(q2);
-        if (!snapshot2.empty) return { id: snapshot2.docs[0].id, ...snapshot2.docs[0].data() };
+        // 1. Coincidencia exacta por referencia
+        const qRef = query(collection(db, "referencias_implantes"), where("referencia", "==", normalized));
+        const snapRef = await getDocs(qRef);
+        if (!snapRef.empty) {
+            const match = { id: snapRef.docs[0].id, ...snapRef.docs[0].data() };
+            console.log('%cEXACTO: REFERENCIA', 'color: #1976D2; font-weight: bold; background: #bbdefb; padding: 4px 8px; border-radius: 4px;', {
+                item: original,
+                ref: match.referencia,
+                codigo: match.codigo || '-',
+                proveedor: match.proveedor || '-'
+            });
+            return match;
+        }
+
+        // 2. Búsqueda parcial por palabras clave
+        const palabras = normalized.split(/\s+/).filter(p => p.length > 2);
+        if (palabras.length === 0) return null;
+
+        let qDesc = query(collection(db, "referencias_implantes"));
+        for (const palabra of palabras) {
+            qDesc = query(qDesc, where("palabras_clave", "array-contains", palabra));
+        }
+        const snapDesc = await getDocs(qDesc);
+        if (!snapDesc.empty) {
+            const match = { id: snapDesc.docs[0].id, ...snapDesc.docs[0].data() };
+            console.log('%cPARCIAL: DESCRIPCIÓN', 'color: #388E3C; font-weight: bold; background: #c8e6c9; padding: 4px 8px; border-radius: 4px;', {
+                item: original,
+                ref: match.referencia,
+                codigo: match.codigo || '-',
+                proveedor: match.proveedor || '-',
+                palabras: palabras
+            });
+            return match;
+        }
+
     } catch (err) {
-        console.warn("Error buscando referencia:", err);
+        console.warn("Error buscando implante:", err);
     }
     return null;
 }
