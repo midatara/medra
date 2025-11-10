@@ -665,49 +665,50 @@ function renderTable(callback = null) {
             const atributo = escapeHtml(carga.atributo || '');
             const docDelivery = escapeHtml(carga.docDelivery || '');
             const subrowsHtml = itemsDesdeSegundo.map((detalle, index) => {
-            const subfila = (carga.items || carga.cirugias || [])[index + 1] || {};
-            const noCoincide = subfila._referenciaSinCoincidir === true;
-            const filaClase = noCoincide ? 'subrow-no-match' : '';
-            const codigo = subfila.codigo || detalle.CdgItem?.VlrCodigo?.split(' ')[0] || '';
-            const descripcion = subfila.descripcion || escapeHtml(detalle.DscItem || detalle.NmbItem || '');
-            const cantidad = detalle.QtyItem ? Math.round(parseFloat(detalle.QtyItem)) : '';
-            const fechaVenc = detalle.FchVencim ? formatDate(detalle.FchVencim) : '';
+                const folio = escapeHtml(guia.folio || '');
+                const subfila = (carga.items || carga.cirugias || [])[index + 1] || {};
+                const noCoincide = subfila._referenciaSinCoincidir === true;
+                const filaClase = noCoincide ? 'subrow-no-match' : '';
+                const codigo = subfila.codigo || (detalle.CdgItem?.VlrCodigo?.split(' ')[0] || '');
+                const descripcion = subfila.descripcion || escapeHtml(detalle.DscItem || detalle.NmbItem || '');
+                const cantidad = detalle.QtyItem ? Math.round(parseFloat(detalle.QtyItem)) : '';
+                const fechaVenc = detalle.FchVencim ? formatDate(detalle.FchVencim) : '';
 
-            return `
-                <tr class="subrow-item ${filaClase}" data-parent="${id}" style="background:#fafafa; font-size:12px;">
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td style="background:#e3f2fd; font-weight:600;">${folio}</td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td style="background:#fff3e0;">${descripcion}</td>
-                    <td style="color:#d32f2f; text-align:center;">${fechaVenc}</td>
-                    <td style="background:#f3e5f5; font-family:monospace;">${escapeHtml(codigo)}</td>
-                    <td>${idRegistro}</td>
-                    <td></td>
-                    <td style="text-align:center;">${cantidad}</td>
-                    <td></td>
-                    <td>${prevision}</td>
-                    <td>${convenio}</td>
-                    <td>${admision}</td>
-                    <td>${paciente}</td>
-                    <td>${medico}</td>
-                    <td>${fechaCX}</td>
-                    <td>${proveedor}</td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td>${atributo}</td>
-                    <td></td>
-                    <td></td>
-                    <td>${docDelivery}</td>
-                    <td></td>
-                </tr>
-            `;
-        }).join('');
+                return `
+                    <tr class="subrow-item ${filaClase}" data-parent="${id}" style="background:#fafafa; font-size:12px;">
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td style="background:#e3f2fd; font-weight:600;">${folio}</td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td style="background:#fff3e0;">${descripcion}</td>
+                        <td style="color:#d32f2f; text-align:center;">${fechaVenc}</td>
+                        <td style="background:#f3e5f5; font-family:monospace;">${escapeHtml(codigo)}</td>
+                        <td>${idRegistro}</td>
+                        <td></td>
+                        <td style="text-align:center;">${cantidad}</td>
+                        <td></td>
+                        <td>${prevision}</td>
+                        <td>${convenio}</td>
+                        <td>${admision}</td>
+                        <td>${paciente}</td>
+                        <td>${medico}</td>
+                        <td>${fechaCX}</td>
+                        <td>${proveedor}</td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td>${atributo}</td>
+                        <td></td>
+                        <td></td>
+                        <td>${docDelivery}</td>
+                        <td></td>
+                    </tr>
+                `;
+            }).join('');
             row.insertAdjacentHTML('afterend', subrowsHtml);
             document.querySelectorAll(`tr.subrow-item[data-parent="${id}"]`).forEach(subrow => {
                 subrow.addEventListener('mouseenter', () => {
