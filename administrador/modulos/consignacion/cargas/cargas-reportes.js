@@ -109,56 +109,59 @@ export async function vincularGuias(cargas) {
 export async function enriquecerSubfilasConReferencias(cargas) {
     if (!cargas || cargas.length === 0 || !db) return cargas;
 
-    const referenciasCache = new Map();
-    const todasLasReferencias = new Set();
+    const cache = new Map();
+    const refsUnicas = new Set();
 
-    // 1. Recopilar referencias de items (o cirugias) que tengan 'referencia'
+    // Recopilar todas las referencias de items
     cargas.forEach(c => {
-        const items = Array.isArray(c.items) ? c.items : (c.cirugias || []);
+        const items = Array.isArray(c.items) ? c.items : [];
         items.forEach(item => {
-            if (item.referencia && typeof item.referencia === 'string') {
-                const ref = item.referencia.trim().toUpperCase();
-                if (ref) todasLasReferencias.add(ref);
-            }
+            const ref = item.referencia?.toString().trim();
+            if (ref) refsUnicas.add(ref);
         });
     });
 
-    if (todasLasReferencias.size === 0) return cargas;
+    if (refsUnicas.size === 0) return cargas;
 
-    // 2. Consultar en lotes
-    const refsArray = Array.from(todasLasReferencias);
+    const refsArray = Array.from(refsUnicas);
     const chunks = [];
     for (let i = 0; i < refsArray.length; i += 30) {
         chunks.push(refsArray.slice(i, i + 30));
     }
 
-    const promesasChunks = chunks.map(chunk =>
-        getDocs(query(collection(db, "referencias_implantes"), where("referencia", "in", chunk)))
-    );
-
     try {
-        const snapshots = await Promise.all(promesasChunks);
-        snapshots.forEach(snapshot => {
-            snapshot.docs.forEach(doc => {
-                const data = doc.data();
-                referenciasCache.set(data.referencia.toUpperCase(), {
-                    codigo: data.codigo || 'PENDIENTE',
-                    descripcion: data.descripcion || ''
-                });
+        const promesas = chunks.map(chunk =>
+            getDocs(query(collection(db, "referencias_implantes"), where("referencia", "in", chunk)))
+        );
+        const snapshots = await Promise.all(promesas);
+
+        // Llenar caché
+        snapshots.forEach(snap => {
+            snap.docs.forEach(doc => {
+                const d = doc.data();
+                const key = d.referencia?.toString().trim();
+                if (key) {
+                    cache.set(key, {
+                        codigo: d.codigo || 'PENDIENTE',
+                        descripcion: d.descripcion || ''
+                    });
+                }
             });
         });
 
-        console.log(`Referencias cacheadas: ${referenciasCache.size}`);
+        console.log(`Referencias encontradas: ${cache.size}`);
 
-        // 3. Enriquecer cada carga
+        // Aplicar a cada carga
         return cargas.map(c => {
-            const itemsOriginales = Array.isArray(c.items) ? c.items : (c.cirugias || []);
-            const itemsEnriquecidos = itemsOriginales.map(item => {
-                const refKey = item.referencia?.trim().toUpperCase();
-                if (!refKey) {
+            if (!Array.isArray(c.items)) return c;
+
+            const itemsActualizados = c.items.map(item => {
+                const ref = item.referencia?.toString().trim();
+                if (!ref) {
                     return { ...item, _referenciaSinCoincidir: false };
                 }
-                const match = referenciasCache.get(refKey);
+
+                const match = cache.get(ref);
                 if (match) {
                     return {
                         ...item,
@@ -176,16 +179,11 @@ export async function enriquecerSubfilasConReferencias(cargas) {
                 }
             });
 
-            // Asegurar que items siempre exista y esté ordenado
-            return {
-                ...c,
-                items: itemsEnriquecidos.length > 0 ? itemsEnriquecidos : (c.items || []),
-                cirugias: c.cirugias || []
-            };
+            return { ...c, items: itemsActualizados };
         });
 
     } catch (err) {
-        console.error('Error al enriquecer subfilas:', err);
+        console.error('Error enriqueciendo referencias:', err);
         return cargas;
     }
 }
