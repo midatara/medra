@@ -6,18 +6,31 @@ export function initReportesDb(database) {
     db = database;
 }
 
+/**
+ * Completa datos faltantes de prevision, convenio y cirugías desde reportes
+ */
 export async function completarDatosCargas(cargas) {
     if (!cargas || cargas.length === 0 || !db) return cargas;
 
     const promesas = cargas.map(async (c) => {
-        if (c.prevision && c.convenio && Array.isArray(c.cirugias) && c.cirugias.length > 0 && c.cirugiaSeleccionada) {
+        // Si ya tiene todos los datos, saltar
+        if (
+            c.prevision &&
+            c.convenio &&
+            Array.isArray(c.cirugias) && c.cirugias.length > 0 &&
+            c.cirugiaSeleccionada
+        ) {
             return c;
         }
 
         if (!c.admision) return c;
 
         try {
-            const q = query(collection(db, "reportes"), where("admision", "==", c.admision.trim()), orderBy("fecha", "desc"));
+            const q = query(
+                collection(db, "reportes"),
+                where("admision", "==", c.admision.trim()),
+                orderBy("fecha", "desc")
+            );
             const snapshot = await getDocs(q);
 
             if (snapshot.empty) return c;
@@ -29,27 +42,43 @@ export async function completarDatosCargas(cargas) {
             snapshot.docs.forEach(d => {
                 const r = d.data();
                 if (r.descripcion && !cirugias.some(cr => cr.descripcion === r.descripcion)) {
-                    cirugias.push({ descripcion: r.descripcion.trim(), fecha: r.fecha || '' });
+                    cirugias.push({
+                        descripcion: r.descripcion.trim(),
+                        fecha: r.fecha || ''
+                    });
                 }
                 if (!isapre && r.isapre) isapre = r.isapre;
                 if (!convenio && r.convenio) convenio = r.convenio;
             });
 
             let cirugiaSeleccionada = c.cirugiaSeleccionada;
-            if (!cirugiaSeleccionada && cirugias.length > 0) cirugiaSeleccionada = cirugias[0].descripcion;
+            if (!cirugiaSeleccionada && cirugias.length > 0) {
+                cirugiaSeleccionada = cirugias[0].descripcion;
+            }
 
             const updates = {};
             if (!c.prevision && isapre) updates.prevision = isapre;
             if (!c.convenio && convenio) updates.convenio = convenio;
-            if ((!c.cirugias || c.cirugias.length === 0) && cirugias.length > 0) updates.cirugias = cirugias;
-            if (!c.cirugiaSeleccionada && cirugiaSeleccionada) updates.cirugiaSeleccionada = cirugiaSeleccionada;
+            if ((!c.cirugias || c.cirugias.length === 0) && cirugias.length > 0) {
+                updates.cirugias = cirugias;
+            }
+            if (!c.cirugiaSeleccionada && cirugiaSeleccionada) {
+                updates.cirugiaSeleccionada = cirugiaSeleccionada;
+            }
 
             if (Object.keys(updates).length > 0) {
                 const cargaRef = doc(db, "cargas_consignaciones", c.id);
                 await updateDoc(cargaRef, updates);
             }
 
-            return { ...c, prevision: isapre, convenio, cirugias, cirugiaSeleccionada };
+            return {
+                ...c,
+                prevision: isapre,
+                convenio: convenio,
+                cirugias: cirugias,
+                cirugiaSeleccionada: cirugiaSeleccionada
+            };
+
         } catch (err) {
             console.warn(`Error al procesar admisión ${c.admision}:`, err);
             return c;
@@ -59,13 +88,19 @@ export async function completarDatosCargas(cargas) {
     return Promise.all(promesas);
 }
 
+/**
+ * Vincula guías de despacho con cargas si docDelivery === folioRef
+ * Normaliza: trim, toUpperCase, String() → para evitar errores de formato
+ */
 export async function vincularGuias(cargas) {
     if (!cargas || cargas.length === 0 || !db) return cargas;
 
+    // Extraer y normalizar docDelivery
     const docDeliveries = cargas
         .filter(c => c.docDelivery != null && String(c.docDelivery).trim() !== '')
         .map(c => String(c.docDelivery).trim().toUpperCase());
 
+    // DEBUG: ver qué se está buscando
     console.log("DocDeliveries normalizados para buscar en guías:", docDeliveries);
 
     if (docDeliveries.length === 0) {
@@ -73,7 +108,11 @@ export async function vincularGuias(cargas) {
     }
 
     try {
-        const q = query(collection(db, "guias_medtronic"), where("folioRef", "in", docDeliveries));
+        // Buscar en Firestore
+        const q = query(
+            collection(db, "guias_medtronic"),
+            where("folioRef", "in", docDeliveries)
+        );
         const snapshot = await getDocs(q);
 
         console.log(`Guías encontradas en Firestore: ${snapshot.size}`);
@@ -94,90 +133,24 @@ export async function vincularGuias(cargas) {
             }
         });
 
+        // Asignar guía relacionada a cada carga
         return cargas.map(c => {
             const key = String(c.docDelivery || '').trim().toUpperCase();
             const guia = key ? guiasMap.get(key) : null;
-            if (guia) console.log(`Coincidencia: docDelivery "${c.docDelivery}" → Guía folio ${guia.folio}`);
-            return { ...c, guiaRelacionada: guia || null };
+
+            // DEBUG: mostrar coincidencia
+            if (guia) {
+                console.log(`Coincidencia: docDelivery "${c.docDelivery}" → Guía folio ${guia.folio}`);
+            }
+
+            return {
+                ...c,
+                guiaRelacionada: guia || null
+            };
         });
+
     } catch (err) {
         console.error('Error al vincular guías:', err);
         return cargas.map(c => ({ ...c, guiaRelacionada: null }));
-    }
-}
-
-export async function enriquecerSubfilasConReferencias(cargas) {
-    if (!cargas || cargas.length === 0 || !db) return cargas;
-
-    const cache = new Map();
-    const refsSet = new Set();
-
-    // Recolectar referencias desde items (solo subfilas, no la principal)
-    cargas.forEach(carga => {
-        const items = Array.isArray(carga.items) ? carga.items : [];
-        items.slice(1).forEach(item => {  // Desde el segundo ítem
-            const ref = item.referencia?.toString().trim();
-            if (ref) refsSet.add(ref);
-        });
-    });
-
-    if (refsSet.size === 0) return cargas;
-
-    const refsArray = Array.from(refsSet);
-    const chunks = [];
-    for (let i = 0; i < refsArray.length; i += 30) {
-        chunks.push(refsArray.slice(i, i + 30));
-    }
-
-    try {
-        const queries = chunks.map(chunk =>
-            getDocs(query(collection(db, "referencias_implantes"), where("referencia", "in", chunk)))
-        );
-        const snapshots = await Promise.all(queries);
-
-        // Llenar caché
-        snapshots.forEach(snap => {
-            snap.docs.forEach(doc => {
-                const d = doc.data();
-                const ref = d.referencia?.toString().trim();
-                if (ref) {
-                    cache.set(ref, {
-                        codigo: d.codigo || '—',
-                        descripcion: d.descripcion || '—'
-                    });
-                }
-            });
-        });
-
-        // Aplicar a cada carga
-        return cargas.map(carga => {
-            const items = Array.isArray(carga.items) ? carga.items : [];
-            const itemsActualizados = items.map((item, idx) => {
-                if (idx === 0) return item; // Principal
-
-                const ref = item.referencia?.toString().trim();
-                if (!ref) {
-                    return { ...item, codigo: '—', descripcion: '—', _referenciaSinCoincidir: false };
-                }
-
-                const match = cache.get(ref);
-                if (match) {
-                    return { ...item, ...match, _referenciaSinCoincidir: false };
-                } else {
-                    return {
-                        ...item,
-                        codigo: 'NO ENCONTRADO',
-                        descripcion: '',
-                        _referenciaSinCoincidir: true
-                    };
-                }
-            });
-
-            return { ...carga, items: itemsActualizados };
-        });
-
-    } catch (err) {
-        console.error('Error enriqueciendo referencias:', err);
-        return cargas;
     }
 }

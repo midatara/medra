@@ -436,7 +436,6 @@ async function loadCargas() {
             const reportesModule = await import('./cargas-reportes.js');
             cargasProcesadas = await reportesModule.completarDatosCargas(cargasBase);
             cargasProcesadas = await reportesModule.vincularGuias(cargasProcesadas);
-            cargasProcesadas = await reportesModule.enriquecerSubfilasConReferencias(cargasProcesadas);
         } catch (err) {
             console.error('Error al procesar reportes o vincular guías:', err);
         }
@@ -664,66 +663,47 @@ function renderTable(callback = null) {
             const proveedor = escapeHtml(carga.proveedor || '');
             const atributo = escapeHtml(carga.atributo || '');
             const docDelivery = escapeHtml(carga.docDelivery || '');
-
-
-
-
-
-            const subrowsHtml = itemsDesdeSegundo.map((detalle, index) => {
-    const folio = escapeHtml(guia.folio || '');
-    const itemsArray = Array.isArray(carga.items) ? carga.items : [];
-    const subfila = itemsArray[index + 1] || {}; // +1 = subfila real
-    const noCoincide = subfila._referenciaSinCoincidir === true;
-    const filaClase = noCoincide ? 'subrow-no-match' : '';
-
-    // LOTE: desde el detalle de la guía (NroLote o Lote)
-    const lote = (detalle.NroLote || detalle.Lote || '').toString().trim();
-
-    // CÓDIGO y DESCRIPCIÓN: desde subfila enriquecida
-    const codigo = subfila.codigo || '—';
-    const descripcion = subfila.descripcion || '—';
-
-    const cantidad = detalle.QtyItem ? Math.round(parseFloat(detalle.QtyItem)) : '';
-    const fechaVenc = detalle.FchVencim ? formatDate(detalle.FchVencim) : '';
-
-    return `
-        <tr class="subrow-item ${filaClase}" data-parent="${id}" style="background:#fafafa; font-size:12px;">
-            <td></td>
-            <td></td>
-            <td></td>
-            <td style="background:#e3f2fd; font-weight:600;">${folio}</td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td style="background:#fff3e0;">${descripcion}</td>
-            <td style="color:#d32f2f; text-align:center;">${fechaVenc}</td>
-            <td style="background:#f3e5f5; font-family:monospace;">${escapeHtml(codigo)}</td>
-            <td>${idRegistro}</td>
-            <td style="background:#e8f5e9; text-align:center;">${escapeHtml(lote)}</td>
-            <td style="text-align:center;">${cantidad}</td>
-            <td></td>
-            <td>${prevision}</td>
-            <td>${convenio}</td>
-            <td>${admision}</td>
-            <td>${paciente}</td>
-            <td>${medico}</td>
-            <td>${fechaCX}</td>
-            <td>${proveedor}</td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td>${atributo}</td>
-            <td></td>
-            <td></td>
-            <td>${docDelivery}</td>
-            <td></td>
-        </tr>
-    `;
-}).join('');
-
-
-
+            const subrowsHtml = itemsDesdeSegundo.map(detalle => {
+                const folio = escapeHtml(guia.folio || '');
+                const codigo = detalle.CdgItem?.VlrCodigo?.split(' ')[0] || '';
+                const cantidad = detalle.QtyItem ? Math.round(parseFloat(detalle.QtyItem)) : '';
+                const descripcion = escapeHtml(detalle.DscItem || detalle.NmbItem || '');
+                const fechaVenc = detalle.FchVencim ? formatDate(detalle.FchVencim) : '';
+                return `
+                    <tr class="subrow-item" data-parent="${id}" style="background:#fafafa; font-size:12px;">
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td style="background:#e3f2fd; font-weight:600;">${folio}</td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td style="background:#fff3e0;">${descripcion}</td>
+                        <td style="color:#d32f2f; text-align:center;">${fechaVenc}</td>
+                        <td style="background:#f3e5f5; font-family:monospace;">${escapeHtml(codigo)}</td>
+                        <td>${idRegistro}</td>
+                        <td></td>
+                        <td style="text-align:center;">${cantidad}</td>
+                        <td></td>
+                        <td>${prevision}</td>
+                        <td>${convenio}</td>
+                        <td>${admision}</td>
+                        <td>${paciente}</td>
+                        <td>${medico}</td>
+                        <td>${fechaCX}</td>
+                        <td>${proveedor}</td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td>${atributo}</td>
+                        <td></td>
+                        <td></td>
+                        <td>${docDelivery}</td>
+                        <td></td>
+                    </tr>
+                `;
+            }).join('');
             row.insertAdjacentHTML('afterend', subrowsHtml);
             document.querySelectorAll(`tr.subrow-item[data-parent="${id}"]`).forEach(subrow => {
                 subrow.addEventListener('mouseenter', () => {
