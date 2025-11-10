@@ -667,12 +667,17 @@ function renderTable(callback = null) {
             const subrowsHtml = itemsDesdeSegundo.map((detalle, index) => {
                 const folio = escapeHtml(guia.folio || '');
                 const itemsArray = Array.isArray(carga.items) ? carga.items : [];
-                const subfila = itemsArray[index + 1] || {}; // +1 porque el primero es la carga principal
+                const subfila = itemsArray[index + 1] || {}; // +1: el primero es la carga principal
                 const noCoincide = subfila._referenciaSinCoincidir === true;
                 const filaClase = noCoincide ? 'subrow-no-match' : '';
 
+                // Lote: desde el detalle de la guía
+                const lote = detalle.Lote?.toString() || '';
+
+                // Código y descripción: desde subfila (enriquecida)
                 const codigo = subfila.codigo || '—';
                 const descripcion = subfila.descripcion || '—';
+
                 const cantidad = detalle.QtyItem ? Math.round(parseFloat(detalle.QtyItem)) : '';
                 const fechaVenc = detalle.FchVencim ? formatDate(detalle.FchVencim) : '';
 
@@ -685,9 +690,9 @@ function renderTable(callback = null) {
                         <td></td>
                         <td></td>
                         <td></td>
-                        <td style="background:#fff3e0;${noCoincide ? 'color:#c62828;' : ''}">${descripcion}</td>
+                        <td style="background:#fff3e0;">${descripcion}</td>
                         <td style="color:#d32f2f; text-align:center;">${fechaVenc}</td>
-                        <td style="background:#f3e5f5; font-family:monospace;${noCoincide ? 'color:#c62828;' : ''}">${escapeHtml(codigo)}</td>
+                        <td style="background:#f3e5f5; font-family:monospace;">${escapeHtml(codigo)}</td>
                         <td>${idRegistro}</td>
                         <td></td>
                         <td style="text-align:center;">${cantidad}</td>

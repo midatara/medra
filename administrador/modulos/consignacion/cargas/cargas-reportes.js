@@ -110,65 +110,57 @@ export async function enriquecerSubfilasConReferencias(cargas) {
     if (!cargas || cargas.length === 0 || !db) return cargas;
 
     const cache = new Map();
-    const refsUnicas = new Set();
+    const refsSet = new Set();
 
-    // Recopilar todas las referencias de items
-    cargas.forEach(c => {
-        const items = Array.isArray(c.items) ? c.items : [];
+    // Recolectar referencias de items
+    cargas.forEach(carga => {
+        const items = Array.isArray(carga.items) ? carga.items : [];
         items.forEach(item => {
             const ref = item.referencia?.toString().trim();
-            if (ref) refsUnicas.add(ref);
+            if (ref) refsSet.add(ref);
         });
     });
 
-    if (refsUnicas.size === 0) return cargas;
+    if (refsSet.size === 0) return cargas;
 
-    const refsArray = Array.from(refsUnicas);
+    const refsArray = Array.from(refsSet);
     const chunks = [];
     for (let i = 0; i < refsArray.length; i += 30) {
         chunks.push(refsArray.slice(i, i + 30));
     }
 
     try {
-        const promesas = chunks.map(chunk =>
+        const queries = chunks.map(chunk =>
             getDocs(query(collection(db, "referencias_implantes"), where("referencia", "in", chunk)))
         );
-        const snapshots = await Promise.all(promesas);
+        const snapshots = await Promise.all(queries);
 
-        // Llenar caché
         snapshots.forEach(snap => {
             snap.docs.forEach(doc => {
                 const d = doc.data();
-                const key = d.referencia?.toString().trim();
-                if (key) {
-                    cache.set(key, {
-                        codigo: d.codigo || 'PENDIENTE',
-                        descripcion: d.descripcion || ''
+                const ref = d.referencia?.toString().trim();
+                if (ref) {
+                    cache.set(ref, {
+                        codigo: d.codigo || '—',
+                        descripcion: d.descripcion || '—'
                     });
                 }
             });
         });
 
-        console.log(`Referencias encontradas: ${cache.size}`);
-
         // Aplicar a cada carga
-        return cargas.map(c => {
-            if (!Array.isArray(c.items)) return c;
+        return cargas.map(carga => {
+            if (!Array.isArray(carga.items)) return carga;
 
-            const itemsActualizados = c.items.map(item => {
+            const itemsActualizados = carga.items.map(item => {
                 const ref = item.referencia?.toString().trim();
                 if (!ref) {
-                    return { ...item, _referenciaSinCoincidir: false };
+                    return { ...item, codigo: '—', descripcion: '—', _referenciaSinCoincidir: false };
                 }
 
                 const match = cache.get(ref);
                 if (match) {
-                    return {
-                        ...item,
-                        codigo: match.codigo,
-                        descripcion: match.descripcion,
-                        _referenciaSinCoincidir: false
-                    };
+                    return { ...item, ...match, _referenciaSinCoincidir: false };
                 } else {
                     return {
                         ...item,
@@ -179,7 +171,7 @@ export async function enriquecerSubfilasConReferencias(cargas) {
                 }
             });
 
-            return { ...c, items: itemsActualizados };
+            return { ...carga, items: itemsActualizados };
         });
 
     } catch (err) {
