@@ -42,14 +42,14 @@ excelInput.addEventListener('change', async e => {
 
         progressDetail.textContent = 'Preparando registros...';
 
-        // === NUEVA CLAVE ÚNICA: id_paciente + codigo_clinica ===
+        // === CLAVE ÚNICA: id_paciente + codigo_clinica ===
         const claveUnica = (r) => `${r.id_paciente}|${r.codigo_clinica}`;
         const duplicadosEncontrados = [];
         const vistos = new Map();
 
         const registros = datos
             .map((r, index) => {
-                const filaExcel = index + 2;
+                const filaExcel = index + 2; // Fila 1 = encabezados
                 const o = {};
                 columnasExcel.forEach(c => {
                     let v = r[encabezados.indexOf(c)] ?? null;
@@ -85,27 +85,32 @@ excelInput.addEventListener('change', async e => {
                 }
             });
 
-        // === MOSTRAR DUPLICADOS ===
+        // === MOSTRAR DUPLICADOS EN CONSOLA + UI ===
         if (duplicadosEncontrados.length > 0) {
             console.warn(`ELIMINADOS ${duplicadosEncontrados.length} DUPLICADOS (id_paciente + codigo_clinica):`);
             duplicadosEncontrados.forEach(d => {
-                console.group(`FILA ${d.fila}`);
+                console.group(`FILA ${d.fila} (duplicada)`);
                 console.log('Clave:', d.clave);
                 console.table({
                     ID_PACIENTE: d.datos.id_paciente,
                     CODIGO_CLINICA: d.datos.codigo_clinica,
                     CODIGO_PROVEEDOR: d.datos.codigo_proveedor,
                     PACIENTE: d.datos.paciente,
-                    CANTIDAD: d.datos.cantidad
+                    CANTIDAD: d.datos.cantidad,
+                    PRECIO: d.datos.precio_unitario
                 });
                 console.groupEnd();
             });
+            console.log(`Registros únicos: ${registros.length} de ${datos.length}`);
+
             importStatus.className = 'registrar-message-warning';
-            importStatus.textContent = `Advertencia: ${duplicadosEncontrados.length} duplicados (paciente + clínica). Revisa consola.`;
+            importStatus.textContent = `Advertencia: ${duplicadosEncontrados.length} duplicados eliminados (paciente + clínica). Revisa consola (F12).`;
             setTimeout(() => { importStatus.textContent = ''; }, 10000);
+        } else {
+            console.log(`Sin duplicados. ${registros.length} registros listos.`);
         }
 
-        // === UPSERT CON NUEVA CLAVE ===
+        // === UPSERT CON CLAVE CORRECTA ===
         progressDetail.textContent = 'Procesando con UPSERT...';
         const LOTE = 500;
         let procesados = 0;
@@ -116,7 +121,7 @@ excelInput.addEventListener('change', async e => {
             const { error } = await supabase
                 .from('historico_cargas')
                 .upsert(lote, { 
-                    onConflict: 'id_paciente,codigo_clinica',  // ← CLAVE CORRECTA
+                    onConflict: 'id_paciente,codigo_clinica',  // CLAVE CORRECTA
                     ignoreDuplicates: false
                 });
 
@@ -156,6 +161,7 @@ excelInput.addEventListener('change', async e => {
     }
 });
 
+// === RESTO DEL CÓDIGO (sin cambios) ===
 
 async function inicializarConUltimoMes(){
     try{
