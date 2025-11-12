@@ -6,11 +6,7 @@ const tablaBody = document.getElementById('tablaBody');
 const excelInput = document.getElementById('excelInput');
 const importStatus = document.getElementById('importStatus');
 const loading = document.getElementById('loading');
-const btnCargarMas = document.getElementById('btnCargarMas');
 
-let ultimaClave = null;
-const LIMITE = 50;
-let cargando = false;
 let datosCache = [];
 let debounceTimer = null;
 
@@ -31,21 +27,17 @@ excelInput.addEventListener('change',async e=>{
     const progressBar=document.getElementById('progressBar');
     const progressText=document.getElementById('progressText');
     const progressDetail=document.getElementById('progressDetail');
-    
     progressModal.classList.add('show');
     progressDetail.textContent='Leyendo archivo Excel...';
-    
     try{
         const data=await file.arrayBuffer();
         const workbook=XLSX.read(data,{type:'array'});
         const sheet=workbook.Sheets[workbook.SheetNames[0]];
         const rows=XLSX.utils.sheet_to_json(sheet,{header:1});
         if(rows.length<2)throw new Error('El archivo no tiene datos');
-        
         const encabezados=rows[0];const datos=rows.slice(1);
         const faltantes=columnasExcel.filter(c=>!encabezados.includes(c));
         if(faltantes.length>0)throw new Error(`Faltan columnas: ${faltantes.join(', ')}`);
-        
         progressDetail.textContent='Preparando registros...';
         const registros=datos.map(r=>{
             const o={};columnasExcel.forEach(c=>{
@@ -64,53 +56,25 @@ excelInput.addEventListener('change',async e=>{
             o.import_batch='import_'+Date.now();
             return o;
         });
-
-        // Cargar todos los datos existentes
         progressDetail.textContent='Cargando datos existentes...';
-        const {data:existentes,error:errorCarga}=await supabase
-            .from('historico_cargas')
-            .select('id,id_paciente,codigo_proveedor,fecha_cirugia,numero_factura');
+        const {data:existentes,error:errorCarga}=await supabase.from('historico_cargas').select('id,id_paciente,codigo_proveedor,fecha_cirugia,numero_factura');
         if(errorCarga)throw errorCarga;
-
-        // Crear índice de registros existentes
         const mapaExistentes=new Map();
-        existentes.forEach(reg=>{
-            const clave=`${reg.id_paciente||''}_${reg.codigo_proveedor||''}_${reg.fecha_cirugia||''}_${reg.numero_factura||''}`;
-            mapaExistentes.set(clave,reg.id);
-        });
-
-        // Separar actualizaciones e inserciones
-        const actualizaciones=[];
-        const inserciones=[];
-        
+        existentes.forEach(reg=>{const clave=`${reg.id_paciente||''}_${reg.codigo_proveedor||''}_${reg.fecha_cirugia||''}_${reg.numero_factura||''}`;mapaExistentes.set(clave,reg.id);});
+        const actualizaciones=[];const inserciones=[];
         progressDetail.textContent='Clasificando registros...';
         registros.forEach(reg=>{
             const clave=`${reg.id_paciente||''}_${reg.codigo_proveedor||''}_${reg.fecha_cirugia||''}_${reg.numero_factura||''}`;
-            if(mapaExistentes.has(clave)){
-                actualizaciones.push({...reg,id:mapaExistentes.get(clave)});
-            }else{
-                inserciones.push(reg);
-            }
+            if(mapaExistentes.has(clave)){actualizaciones.push({...reg,id:mapaExistentes.get(clave)});}else{inserciones.push(reg);}
         });
-
-        // Procesar en lotes
-        const LOTE=100;
-        let procesados=0;
-        let actualizados=0;
-        let insertados=0;
-        const total=registros.length;
-
-        // Actualizar registros existentes
+        const LOTE=100;let procesados=0;let actualizados=0;let insertados=0;const total=registros.length;
         if(actualizaciones.length>0){
             progressDetail.textContent='Actualizando registros existentes...';
             for(let i=0;i<actualizaciones.length;i+=LOTE){
                 const lote=actualizaciones.slice(i,i+LOTE);
                 for(const reg of lote){
                     const {id,...datos}=reg;
-                    const {error}=await supabase
-                        .from('historico_cargas')
-                        .update(datos)
-                        .eq('id',id);
+                    const {error}=await supabase.from('historico_cargas').update(datos).eq('id',id);
                     if(!error)actualizados++;
                 }
                 procesados+=lote.length;
@@ -122,8 +86,6 @@ excelInput.addEventListener('change',async e=>{
                 await new Promise(resolve=>setTimeout(resolve,10));
             }
         }
-
-        // Insertar nuevos registros
         if(inserciones.length>0){
             progressDetail.textContent='Insertando nuevos registros...';
             for(let i=0;i<inserciones.length;i+=LOTE){
@@ -139,56 +101,65 @@ excelInput.addEventListener('change',async e=>{
                 await new Promise(resolve=>setTimeout(resolve,10));
             }
         }
-
         progressDetail.textContent=`¡Completado! Actualizados: ${actualizados} | Insertados: ${insertados}`;
         importStatus.className='registrar-message-success';
         importStatus.textContent=`Importación completada: ${actualizados} actualizados, ${insertados} nuevos`;
-        setTimeout(()=>{
-            progressModal.classList.remove('show');
-            importStatus.textContent='';
-            progressBar.style.width='0%';
-            progressBar.textContent='';
-        },3000);
-        recargarTodo();
+        setTimeout(()=>{progressModal.classList.remove('show');importStatus.textContent='';progressBar.style.width='0%';progressBar.textContent='';},3000);
+        await inicializarConUltimoMes();
     }catch(err){
         progressModal.classList.remove('show');
         importStatus.className='registrar-message-error';
         importStatus.textContent=`Error: ${err.message}`;
         console.error(err);
-    }finally{
-        excelInput.value='';
-    }
+    }finally{excelInput.value='';}
 });
 
-async function recargarTodo(){
-    ultimaClave=null;datosCache=[];tablaBody.innerHTML='';await cargarDatos(true);
-}
-
-async function cargarDatos(reset=false){
-    if(cargando)return;cargando=true;loading.classList.add('show');
-    if(reset){ultimaClave=null;datosCache=[];tablaBody.innerHTML='';}
+async function inicializarConUltimoMes(){
     try{
-        let q=supabase.from('historico_cargas').select('*').order('id',{ascending:false}).limit(LIMITE);
-        if(ultimaClave)q=q.lt('id',ultimaClave.id);
-        const {data,error}=await q;
+        loading.classList.add('show');
+        importStatus.textContent='Buscando último mes con datos...';
+        const {data,error}=await supabase.from('historico_cargas').select('fecha_cirugia').not('fecha_cirugia','is',null).order('fecha_cirugia',{ascending:false}).limit(1);
         if(error)throw error;
-        if(reset)datosCache=[];
-        datosCache=datosCache.concat(data);
-        if(data.length>0){
-            ultimaClave=data[data.length-1];
-            btnCargarMas.style.display=data.length===LIMITE?'block':'none';
-        }else btnCargarMas.style.display='none';
-        filtrarLocalmente();
-        if(reset)await actualizarFiltros();
+        if(!data||data.length===0){
+            importStatus.textContent='No hay datos históricos.';
+            setTimeout(()=>{importStatus.textContent='';},3000);
+            loading.classList.remove('show');
+            return;
+        }
+        const ultimaFecha=data[0].fecha_cirugia;
+        const anio=ultimaFecha.slice(0,4);
+        const mes=ultimaFecha.slice(0,7);
+        document.getElementById('anioSelect').value=anio;
+        await actualizarMesesDisponibles(anio);
+        document.getElementById('mesSelect').value=mes;
+        await cargarDatosDelMes(mes);
+        importStatus.textContent=`Mostrando datos de ${mes.replace('-','/')} (último mes con registros)`;
+        setTimeout(()=>{importStatus.textContent='';},4000);
     }catch(err){
         console.error(err);
-        importStatus.textContent='Error: No se pudo cargar datos';
-        setTimeout(()=>{importStatus.textContent='';},5000);
-    }finally{
-        cargando=false;loading.classList.remove('show');
-    }
+        importStatus.textContent='Error al cargar último mes';
+        setTimeout(()=>{importStatus.textContent='';},3000);
+    }finally{loading.classList.remove('show');}
 }
-btnCargarMas.addEventListener('click',()=>cargarDatos());
+
+async function cargarDatosDelMes(mes){
+    tablaBody.innerHTML='';datosCache=[];
+    loading.classList.add('show');
+    try{
+        const [anio,mesNum]=mes.split('-');
+        const inicio=`${anio}-${mesNum}-01`;
+        const fin=`${anio}-${mesNum}-31`;
+        const {data,error}=await supabase.from('historico_cargas').select('*').gte('fecha_cirugia',inicio).lte('fecha_cirugia',fin).order('fecha_cirugia',{ascending:false});
+        if(error)throw error;
+        datosCache=data;
+        filtrarLocalmente();
+        await actualizarFiltros();
+    }catch(err){
+        console.error(err);
+        importStatus.textContent='Error al cargar datos del mes';
+        setTimeout(()=>{importStatus.textContent='';},5000);
+    }finally{loading.classList.remove('show');}
+}
 
 function filtrarLocalmente(){
     const filtros=getFiltros();
@@ -200,17 +171,13 @@ function filtrarLocalmente(){
     if(filtros.factura)filtrados=filtrados.filter(r=>r.numero_factura?.toLowerCase().includes(filtros.factura));
     if(filtros.descripcion)filtrados=filtrados.filter(r=>r.codigo_proveedor?.toLowerCase().includes(filtros.descripcion));
     if(filtros.proveedor)filtrados=filtrados.filter(r=>r.proveedor===filtros.proveedor);
-    if(filtros.anio){
-        filtrados=filtrados.filter(r=>r.fecha_cirugia?.startsWith(filtros.anio));
-    }
-    if(filtros.mes){
-        filtrados=filtrados.filter(r=>r.fecha_cirugia?.startsWith(filtros.mes));
-    }
+    if(filtros.anio)filtrados=filtrados.filter(r=>r.fecha_cirugia?.startsWith(filtros.anio));
+    if(filtros.mes)filtrados=filtrados.filter(r=>r.fecha_cirugia?.startsWith(filtros.mes));
     renderizarFilas(filtrados);
 }
 
 function getFiltros(){
-    return {
+    return{
         estado:document.getElementById('buscarEstado').value,
         admision:document.getElementById('buscarAdmision').value.trim().toLowerCase(),
         paciente:document.getElementById('buscarPaciente').value.trim().toLowerCase(),
@@ -263,19 +230,16 @@ async function actualizarFiltros(){
         const anioSelect=document.getElementById('anioSelect');
         const anioActual=anioSelect.value;
         anioSelect.innerHTML='<option value="">Todos</option>'+años.map(a=>`<option value="${a}" ${a===anioActual?'selected':''}>${a}</option>`).join('');
-
         const {data:estados}=await supabase.from('historico_cargas').select('estado').not('estado','is',null);
         const estUnicos=[...new Set(estados.map(r=>r.estado).filter(Boolean))];
         const estadoSelect=document.getElementById('buscarEstado');
         const estadoActual=estadoSelect.value;
         estadoSelect.innerHTML='<option value="">Todos</option>'+estUnicos.map(e=>`<option value="${e}" ${e===estadoActual?'selected':''}>${e}</option>`).join('');
-
         const {data:proveedores}=await supabase.from('historico_cargas').select('proveedor').not('proveedor','is',null);
         const provUnicos=[...new Set(proveedores.map(r=>r.proveedor).filter(Boolean))].sort();
         const provSelect=document.getElementById('buscarProveedor');
         const provActual=provSelect.value;
         provSelect.innerHTML='<option value="">Todos</option>'+provUnicos.map(p=>`<option value="${p}" ${p===provActual?'selected':''}>${p}</option>`).join('');
-
         await actualizarMesesDisponibles(anioSelect.value||new Date().getFullYear());
     }catch(e){console.warn('Sin datos para filtros');}
 }
@@ -372,4 +336,7 @@ function generarPlantillaExcel(){
     XLSX.writeFile(wb,'formato_historico.xlsx');
 }
 
-forzarRefreshEsquema().then(()=>{crearTablaSiNoExiste().then(()=>{cargarDatos(true);});}).catch(e=>{console.error(e);alert('Error crítico: Revisa la consola.');});
+forzarRefreshEsquema()
+    .then(()=>crearTablaSiNoExiste())
+    .then(()=>inicializarConUltimoMes())
+    .catch(e=>{console.error(e);alert('Error crítico: Revisa la consola.');});
