@@ -153,7 +153,9 @@ async function cargarDatosDelMes(mes){
     try{
         const [anio,mesNum]=mes.split('-');
         const inicio=`${anio}-${mesNum}-01`;
-        const fin=`${anio}-${mesNum}-31`;
+        const ultimoDia = new Date(anio, mesNum, 0).getDate();
+        const fin = `${anio}-${mesNum}-${String(ultimoDia).padStart(2, '0')}`;
+        
         const {data,error}=await supabase
             .from('historico_cargas')
             .select('*')
@@ -312,7 +314,13 @@ async function descargarDatos(tipo,valor=null){
     loading.classList.add('show');importStatus.textContent='Preparando descarga...';
     try{
         let q=supabase.from('historico_cargas').select('*');
-        if(tipo==='mes'&&valor){const [a,m]=valor.split('-');q=q.gte('fecha_cirugia',`${a}-${m}-01`).lte('fecha_cirugia',`${a}-${m}-31`);}
+        if(tipo==='mes'&&valor){
+            const [a,m]=valor.split('-');
+            const inicio=`${a}-${m}-01`;
+            const ultimoDia = new Date(a, m, 0).getDate();
+            const fin = `${a}-${m}-${String(ultimoDia).padStart(2, '0')}`;
+            q=q.gte('fecha_cirugia',inicio).lte('fecha_cirugia',fin);
+        }
         else if(tipo==='anio'&&valor){q=q.gte('fecha_cirugia',`${valor}-01-01`).lte('fecha_cirugia',`${valor}-12-31`);}
         const {data,error}=await q.order('fecha_cirugia',{ascending:false});
         if(error)throw error;
