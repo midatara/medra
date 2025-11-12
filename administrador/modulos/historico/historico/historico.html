@@ -3,101 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Histórico - Medra</title>
+    <title>Histórico de Cargas</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/supabase-js@2"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.18.5/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="historico.css">
-
-    <!-- Supabase Client -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- SheetJS para Excel -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
-    <div class="historico-main-container">
-        <h1 class="historico-title">Histórico de Cargas</h1>
+    <div class="registrar-main-container">
+        <h1 class="registrar-title">Histórico de Cargas</h1>
+        <div id="importStatus"></div>
 
-        <!-- Botón Importar Excel -->
-        <div style="margin-bottom: 15px;">
-            <input type="file" id="excelInput" accept=".xlsx, .xls" style="display:none;">
-            <button id="btnImportarExcel" class="btn-importar">
-                <i class="fas fa-file-excel"></i> Importar Excel
-            </button>
-            <span id="importStatus" style="margin-left:10px; font-size:11px; color:#666;"></span>
-        </div>
-<h3>Descargar formato para importar</h3>
-<a id="downloadTemplate" href="javascript:void(0)" style="color:#0066cc; text-decoration:underline; cursor:pointer;">
-    Descargar formato Excel
-</a>
-        <!-- Filtros -->
-        <div class="historico-search-container">
-            <div class="historico-search-row">
-                <div class="historico-form-group">
-                    <label class="historico-label" for="buscarEstado">Estado:</label>
+        <div class="registrar-fields-container">
+            <div class="registrar-first-row">
+                <div class="registrar-form-group">
+                    <label class="registrar-label" for="buscarEstado">Estado:</label>
                     <select id="buscarEstado">
                         <option value="">Todos</option>
                     </select>
                 </div>
-                <div class="historico-form-group">
-                    <label class="historico-label" for="buscarAdmision">Admisión:</label>
+                <div class="registrar-form-group">
+                    <label class="registrar-label" for="buscarAdmision">Admisión:</label>
                     <input type="text" id="buscarAdmision" autocomplete="off">
                 </div>
-                <div class="historico-form-group">
-                    <label class="historico-label" for="buscarPaciente">Paciente:</label>
+                <div class="registrar-form-group">
+                    <label class="registrar-label" for="buscarPaciente">Paciente:</label>
                     <input type="text" id="buscarPaciente" autocomplete="off">
                 </div>
-            </div>
-
-            <div class="filter-row" style="display:flex;align-items:center;gap:15px;margin:15px 0;">
-                <div style="display:flex;align-items:center;gap:8px;">
-                    <label style="font-weight:bold;white-space:nowrap;">Año:</label>
-                    <select id="anioSelect" class="anio-select"></select>
+                <div class="registrar-form-group">
+                    <label class="registrar-label" for="anioSelect">Año:</label>
+                    <select id="anioSelect">
+                        <option value="">Todos</option>
+                    </select>
                 </div>
-                <div id="mesesContainer" class="meses-buttons"></div>
+                <div class="registrar-form-group" id="mesesContainer"></div>
+                <div class="registrar-form-group registrar-actions-menu">
+                    <button id="actionsBtn">Acciones <i class="fas fa-caret-down"></i></button>
+                    <div class="registrar-dropdown-menu" id="actionsMenu">
+                        <div class="menu-title">Acciones</div>
+                        <a href="#" id="importExcel">Importar Excel</a>
+                        <a href="#" id="downloadTemplate">Descargar formato</a>
+                        <a href="#" id="downloadAll">Descargar todos</a>
+                        <a href="#" id="downloadMonth">Descargar mes actual</a>
+                        <a href="#" id="downloadYear">Descargar año actual</a>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Tabla -->
-        <div class="historico-table-container">
-            <table class="historico-table" id="historicoTable">
+        <div class="registrar-table-container">
+            <table class="registrar-table" id="tabla">
                 <thead>
                     <tr>
-                        <th>ID_PACIENTE<div class="resize-handle"></div></th>
-                        <th>PACIENTE<div class="resize-handle"></div></th>
-                        <th>MEDICO<div class="resize-handle"></div></th>
-                        <th>FECHA_CIRUGIA<div class="resize-handle"></div></th>
-                        <th>PROVEEDOR<div class="resize-handle"></div></th>
-                        <th>CODIGO_CLINICA<div class="resize-handle"></div></th>
-                        <th>CODIGO_PROVEEDOR<div class="resize-handle"></div></th>
-                        <th>CANTIDAD<div class="resize-handle"></div></th>
-                        <th>PRECIO_UNITARIO<div class="resize-handle"></div></th>
-                        <th>ATRIBUTO<div class="resize-handle"></div></th>
+                        <th>ID Paciente<div class="resize-handle"></div></th>
+                        <th>Paciente<div class="resize-handle"></div></th>
+                        <th>Médico<div class="resize-handle"></div></th>
+                        <th>Fecha Cirugía<div class="resize-handle"></div></th>
+                        <th>Proveedor<div class="resize-handle"></div></th>
+                        <th>Código Clínica<div class="resize-handle"></div></th>
+                        <th>Código Proveedor<div class="resize-handle"></div></th>
+                        <th>Cantidad<div class="resize-handle"></div></th>
+                        <th>Precio Unitario<div class="resize-handle"></div></th>
+                        <th>Atributo<div class="resize-handle"></div></th>
                         <th>OC<div class="resize-handle"></div></th>
-                        <th>OC_MONTO<div class="resize-handle"></div></th>
-                        <th>ESTADO<div class="resize-handle"></div></th>
-                        <th>FECHA_RECEPCION<div class="resize-handle"></div></th>
-                        <th>FECHA_CARGO<div class="resize-handle"></div></th>
-                        <th>NUMERO_GUIA<div class="resize-handle"></div></th>
-                        <th>NUMERO_FACTURA<div class="resize-handle"></div></th>
-                        <th>FECHA_EMISION<div class="resize-handle"></div></th>
-                        <th>FECHA_INGRESO<div class="resize-handle"></div></th>
-                        <th>LOTE<div class="resize-handle"></div></th>
-                        <th>FECHA_VENCIMIENTO<div class="resize-handle"></div></th>
+                        <th>OC Monto<div class="resize-handle"></div></th>
+                        <th>Estado<div class="resize-handle"></div></th>
+                        <th>Fecha Recepción<div class="resize-handle"></div></th>
+                        <th>Fecha Cargo<div class="resize-handle"></div></th>
+                        <th>Número Guía<div class="resize-handle"></div></th>
+                        <th>Número Factura<div class="resize-handle"></div></th>
+                        <th>Fecha Emisión<div class="resize-handle"></div></th>
+                        <th>Fecha Ingreso<div class="resize-handle"></div></th>
+                        <th>Lote<div class="resize-handle"></div></th>
+                        <th>Fecha Vencimiento<div class="resize-handle"></div></th>
                     </tr>
                 </thead>
                 <tbody id="tablaBody"></tbody>
             </table>
         </div>
 
-        <div class="historico-pagination">
-            <button id="btnCargarMas" style="display:none;">Cargar más</button>
+        <div class="registrar-pagination">
+            <button id="btnCargarMas" class="modal-btn modal-btn-primary">Cargar más</button>
         </div>
 
+        <input type="file" id="excelInput" accept=".xlsx, .xls" style="display:none;">
         <div id="loading" class="loading-modal">
             <div class="spinner"></div>
             <span class="loading-text">Cargando...</span>
         </div>
     </div>
 
-    <script type="module" src="historico.js"></script>
+    <script src="historico.js"></script>
 </body>
 </html>
