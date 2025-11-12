@@ -121,7 +121,7 @@ async function inicializarConUltimoMes(){
         const {data,error}=await supabase
             .from('historico_cargas')
             .select('fecha_cirugia')
-            .isnotnull('fecha_cirugia')
+            .neq('fecha_cirugia', null)
             .order('fecha_cirugia',{ascending:false})
             .limit(1);
         if(error)throw error;
@@ -168,7 +168,7 @@ async function cargarDatosDelMes(mes){
         console.error(err);
         importStatus.textContent='Error al cargar datos del mes';
         setTimeout(()=>{importStatus.textContent='';},5000);
-    }finally{loading.classList.remove('show');}
+    }finally{loading.classList.remove(' communicat');}
 }
 
 function filtrarLocalmente(){
@@ -193,7 +193,7 @@ function getFiltros(){
         paciente:document.getElementById('buscarPaciente').value.trim().toLowerCase(),
         oc:document.getElementById('buscarOC').value.trim().toLowerCase(),
         factura:document.getElementById('buscarFactura').value.trim().toLowerCase(),
-        descripcion:document.getElementById('buscarDescripcion').value.trim().toLowerCase(),
+        descripcion document.getElementById('buscarDescripcion').value.trim().toLowerCase(),
         proveedor:document.getElementById('buscarProveedor').value,
         anio:document.getElementById('anioSelect').value,
         mes:document.getElementById('mesSelect').value
@@ -238,18 +238,18 @@ async function actualizarFiltros(){
         const {data:fechas}=await supabase
             .from('historico_cargas')
             .select('fecha_cirugia')
-            .isnotnull('fecha_cirugia')
+            .neq('fecha_cirugia', null)
             .order('fecha_cirugia',{ascending:false});
         const años=[...new Set(fechas.map(r=>r.fecha_cirugia?.slice(0,4)).filter(Boolean))];
         const anioSelect=document.getElementById('anioSelect');
         const anioActual=anioSelect.value;
         anioSelect.innerHTML='<option value="">Todos</option>'+años.map(a=>`<option value="${a}" ${a===anioActual?'selected':''}>${a}</option>`).join('');
-        const {data:estados}=await supabase.from('historico_cargas').select('estado').isnotnull('estado');
+        const {data:estados}=await supabase.from('historico_cargas').select('estado').neq('estado', null);
         const estUnicos=[...new Set(estados.map(r=>r.estado).filter(Boolean))];
         const estadoSelect=document.getElementById('buscarEstado');
         const estadoActual=estadoSelect.value;
         estadoSelect.innerHTML='<option value="">Todos</option>'+estUnicos.map(e=>`<option value="${e}" ${e===estadoActual?'selected':''}>${e}</option>`).join('');
-        const {data:proveedores}=await supabase.from('historico_cargas').select('proveedor').isnotnull('proveedor');
+        const {data:proveedores}=await supabase.from('historico_cargas').select('proveedor').neq('proveedor', null);
         const provUnicos=[...new Set(proveedores.map(r=>r.proveedor).filter(Boolean))].sort();
         const provSelect=document.getElementById('buscarProveedor');
         const provActual=provSelect.value;
@@ -268,7 +268,7 @@ async function actualizarMesesDisponibles(anio){
         .select('fecha_cirugia')
         .gte('fecha_cirugia',`${anio}-01-01`)
         .lte('fecha_cirugia',`${anio}-12-31`)
-        .isnotnull('fecha_cirugia');
+        .neq('fecha_cirugia', null);
     const meses=[...new Set(data.map(r=>r.fecha_cirugia?.slice(0,7)).filter(Boolean))].sort();
     const nombres={'01':'Enero','02':'Febrero','03':'Marzo','04':'Abril','05':'Mayo','06':'Junio','07':'Julio','08':'Agosto','09':'Septiembre','10':'Octubre','11':'Noviembre','12':'Diciembre'};
     meses.forEach(m=>{
@@ -340,7 +340,6 @@ async function descargarDatos(tipo,valor=null){
         console.error(err);
     }finally{loading.classList.remove('show');}
 }
-
 
 function generarPlantillaExcel(){
     const wb=XLSX.utils.book_new();
