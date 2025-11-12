@@ -17,9 +17,7 @@ html,body{margin:0;padding:0;height:100%;font-family:Arial,sans-serif;background
 .registrar-table-container{width:100%;max-height:750px;overflow-y:auto;overflow-x:auto;margin-bottom:20px;border:1px solid #ddd;border-radius:4px;flex-grow:1;}
 .registrar-table{table-layout:fixed;border-collapse:collapse;font-size:11px;width:auto;box-sizing:border-box;}
 .registrar-table th,.registrar-table td{padding:4px;text-align:left;border:1px solid #ddd;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box;}
-.registrar-table th{background:#f2f2f2;font-size:11px;position:sticky;top:0;z-index:10;cursor:default;user-select:none;}
-.registrar-table th .resize-handle{position:absolute;right:0;top:0;width:5px;height:100%;cursor:col-resize;background:transparent;z-index:11;}
-.registrar-table th .resize-handle:hover,.registrar-table th .resize-handle.active{background:#007bff;width:5px;}
+.registrar-table th{background:#f2f2f2;font-size:11px;position:sticky;top:0;z-index:10;cursor:default;user-select:none;position:relative;}
 .registrar-table tbody tr:hover{background:#f8f9fa;}
 .registrar-table th:nth-child(1),.registrar-table td:nth-child(1){width:100px;min-width:100px;max-width:200px;}
 .registrar-table th:nth-child(2),.registrar-table td:nth-child(2){width:150px;min-width:150px;max-width:300px;}
@@ -57,11 +55,6 @@ html,body{margin:0;padding:0;height:100%;font-family:Arial,sans-serif;background
 .registrar-message-error{background:#f8d7da;color:#721c24;border:1px solid #f5c6cb;}
 @media screen and (max-width:1400px){.registrar-first-row{flex-wrap:wrap;}}
 @media screen and (max-width:768px){.registrar-main-container{padding:5px 10px 10px 10px;}.registrar-form-group{min-width:100%;}}
-#loading{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:120px;height:80px;background:rgba(255,255,255,.95);border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.2);z-index:1000;flex-direction:column;justify-content:center;align-items:center;}
-#loading.show{display:flex;}
-.spinner{width:32px;height:32px;border:3px solid #e3f2fd;border-top:3px solid #007bff;border-radius:50%;animation:spin 1s linear infinite;}
-.loading-text{margin-top:8px;font-size:12px;color:#333;}
-@keyframes spin{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}
 .progress-modal{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:400px;background:white;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.3);z-index:1001;padding:20px;}
 .progress-modal.show{display:block;}
 .progress-content h3{margin:0 0 15px 0;font-size:16px;color:#333;}
@@ -69,3 +62,7 @@ html,body{margin:0;padding:0;height:100%;font-family:Arial,sans-serif;background
 .progress-bar{height:100%;background:linear-gradient(90deg,#007bff,#0056b3);transition:width 0.3s ease;border-radius:12px;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:bold;}
 #progressText{font-size:13px;color:#333;margin:5px 0;font-weight:bold;}
 #progressDetail{font-size:11px;color:#666;margin:0;}
+
+.registrar-table th .resizer{position:absolute;top:0;right:0;width:5px;height:100%;cursor:col-resize;background:rgba(0,123,255,0.2);z-index:11;transition:background .2s;}
+.registrar-table th .resizer:hover{background:rgba(0,123,255,0.5);}
+.registrar-table th .resizer.active{background:#007bff;}

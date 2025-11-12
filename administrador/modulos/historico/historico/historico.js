@@ -208,12 +208,13 @@ function filtrarLocalmente(){
     if(filtros.anio)filtrados=filtrados.filter(r=>r.fecha_cirugia?.startsWith(filtros.anio));
     if(filtros.mes)filtrados=filtrados.filter(r=>r.fecha_cirugia?.startsWith(filtros.mes));
     renderizarFilas(ordenarDatos(filtrados));
+    initColumnResize();
 }
 
 function ordenarDatos(data) {
     return data.sort((a, b) => {
         if (a.fecha_cirugia !== b.fecha_cirugia) return (a.fecha_cirugia || '').localeCompare(b.fecha_cirugia || '');
-        if (a.p_paciente !== b.paciente) return (a.paciente || '').localeCompare(b.paciente || '');
+        if (a.paciente !== b.paciente) return (a.paciente || '').localeCompare(b.paciente || '');
         return (a.proveedor || '').localeCompare(b.proveedor || '');
     });
 }
@@ -269,6 +270,7 @@ function renderizarFilas(data){
         f.appendChild(tr);
     });
     tablaBody.appendChild(f);
+    initColumnResize();
 }
 
 async function actualizarFiltros(){
@@ -332,6 +334,7 @@ document.getElementById('mesSelect').addEventListener('change', async e => {
         } else {
             datosCache = [];
             renderizarFilas([]);
+            initColumnResize();
         }
     }
 });
@@ -347,6 +350,7 @@ document.getElementById('anioSelect').addEventListener('change', async e => {
     } else {
         datosCache = [];
         renderizarFilas([]);
+        initColumnResize();
     }
 });
 
@@ -410,6 +414,46 @@ function generarPlantillaExcel(){
     for(let C=r.s.c;C<=r.e.c;++C){const c=ws[XLSX.utils.encode_cell({r:0,c:C})];if(c)c.s={font:{bold:true}};}
     XLSX.utils.book_append_sheet(wb,ws,'Historico');
     XLSX.writeFile(wb,'formato_historico.xlsx');
+}
+
+function initColumnResize() {
+    const resizers = document.querySelectorAll('.registrar-table th .resizer');
+    let currentResizer = null;
+    let currentTh = null;
+    let startX = 0;
+    let startWidth = 0;
+
+    resizers.forEach(resizer => {
+        resizer.addEventListener('mousedown', function(e) {
+            e.stopPropagation();
+            currentResizer = this;
+            currentTh = this.parentElement;
+            startX = e.pageX;
+            startWidth = currentTh.offsetWidth;
+            currentResizer.classList.add('active');
+
+            document.addEventListener('mousemove', resize);
+            document.addEventListener('mouseup', stopResize);
+        });
+    });
+
+    function resize(e) {
+        if (!currentTh) return;
+        const width = startWidth + (e.pageX - startX);
+        if (width > 50) {
+            currentTh.style.width = width + 'px';
+            currentTh.style.minWidth = width + 'px';
+            currentTh.style.maxWidth = width + 'px';
+        }
+    }
+
+    function stopResize() {
+        if (currentResizer) currentResizer.classList.remove('active');
+        document.removeEventListener('mousemove', resize);
+        document.removeEventListener('mouseup', stopResize);
+        currentResizer = null;
+        currentTh = null;
+    }
 }
 
 forzarRefreshEsquema()
