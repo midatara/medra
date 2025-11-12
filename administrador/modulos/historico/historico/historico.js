@@ -38,16 +38,14 @@ async function forzarRefreshEsquema() {
 }
 
 // ==============================================================
-// 2. CREAR TABLA (solo si no existe, pero ya la modificamos en SQL)
+// 2. VERIFICAR TABLA
 // ==============================================================
 async function crearTablaSiNoExiste() {
-    // Ya no es necesario crear la tabla con id_paciente como PK
-    // Solo verificamos que exista
     try {
         await supabase.from('historico_cargas').select('id').limit(1);
         console.log('Tabla verificada');
     } catch (err) {
-        console.warn('Tabla no existe aún, pero se creará en la primera importación');
+        console.warn('Tabla no existe aún');
     }
 }
 
@@ -101,14 +99,14 @@ excelInput.addEventListener('change', async (e) => {
                 obj[col.toLowerCase()] = valor;
             });
             obj.created_at = new Date().toISOString();
-            obj.import_batch = 'import_' + Date.now(); // Opcional: rastreo
+            obj.import_batch = 'import_' + Date.now();
             return obj;
         });
 
         importStatus.textContent = `Subiendo ${registros.length} registros...`;
         const { error } = await supabase
             .from('historico_cargas')
-            .insert(registros);  // ← INSERT, no upsert
+            .insert(registros);
 
         if (error) throw error;
 
@@ -155,8 +153,7 @@ async function cargarDatos(reset = false) {
         const mesesActivos = [...document.querySelectorAll('#mesesContainer button.active')]
             .map(b => b.dataset.mes);
 
-        if (estado) query = query.eq('estado', estado!!
-
+        if (estado) query = query.eq('estado', estado);
         if (admision) query = query.ilike('codigo_clinica', `%${admision}%`);
         if (paciente) query = query.ilike('paciente', `%${paciente}%`);
         if (anio) {
@@ -233,7 +230,60 @@ function renderizarFilas(data) {
 // ==============================================================
 // 6. FILTROS
 // ==============================================================
- Sik... (el resto igual)
+async function actualizarFiltros() {
+    try {
+        const { data: fechas } = await supabase
+            .from('historico_cargas')
+            .select('fecha_cirugia')
+            .not('fecha_cirugia', 'is', null)
+            .order('fecha_cirugia', { ascending: false });
+
+        const añosUnicos = [...new Set(fechas.map(r => r.fecha_cirugia?.slice(0, 4)).filter(Boolean))];
+        const anioSelect = document.getElementById('anioSelect');
+        anioSelect.innerHTML = '<option value="">Todos</option>' +
+            añosUnicos.map(a => `<option value="${a}">${a}</option>`).join('');
+
+        const { data: estados } = await supabase
+            .from('historico_cargas')
+            .select('estado')
+            .not('estado', 'is', null);
+
+        const estadosUnicos = [...new Set(estados.map(r => r.estado).filter(Boolean))];
+        const estadoSelect = document.getElementById('buscarEstado');
+        estadoSelect.innerHTML = '<option value="">Todos</option>' +
+            estadosUnicos.map(e => `<option value="${e}">${e}</option>`).join('');
+
+        const anioActual = anioSelect.value || new Date().getFullYear();
+        generarBotonesMeses(anioActual);
+    } catch (err) {
+        console.warn('No hay datos para filtros aún');
+    }
+}
+
+function generarBotonesMeses(anio) {
+    const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    const container = document.getElementById('mesesContainer');
+    container.innerHTML = meses.map((m, i) => {
+        const mes = String(i + 1).padStart(2, '0');
+        return `<button data-mes="${anio}-${mes}">${m}</button>`;
+    }).join('');
+
+    container.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', () => {
+            btn.classList.toggle('active');
+            cargarDatos(true);
+        });
+    });
+}
+
+document.getElementById('anioSelect').addEventListener('change', (e) => {
+    generarBotonesMeses(e.target.value || new Date().getFullYear());
+    cargarDatos(true);
+});
+
+['buscarEstado', 'buscarAdmision', 'buscarPaciente'].forEach(id => {
+    document.getElementById(id).addEventListener('input', () => cargarDatos(true));
+});
 
 // ==============================================================
 // 8. DESCARGAR PLANTILLA
