@@ -102,7 +102,7 @@ excelInput.addEventListener('change',async e=>{
             }
         }
         progressDetail.textContent=`Completado! Actualizados: ${actualizados} | Insertados: ${insertados}`;
-        importStatus.className='registrar-message-success';
+        importStatus.className='';
         importStatus.textContent=`Importación completada: ${actualizados} actualizados, ${insertados} nuevos`;
         setTimeout(()=>{progressModal.classList.remove('show');importStatus.textContent='';progressBar.style.width='0%';progressBar.textContent='';},3000);
         await inicializarConUltimoMes();
@@ -121,8 +121,8 @@ async function inicializarConUltimoMes(){
         const {data,error}=await supabase
             .from('historico_cargas')
             .select('fecha_cirugia')
-            .neq('fecha_cirugia', null)
-            .order('fecha_cirugia',{ascending:false})
+            .not('fecha_cirugia', 'is', null)
+            .order('fecha_cirugia', { ascending: false })
             .limit(1);
         if(error)throw error;
         if(!data||data.length===0){
@@ -238,18 +238,18 @@ async function actualizarFiltros(){
         const {data:fechas}=await supabase
             .from('historico_cargas')
             .select('fecha_cirugia')
-            .neq('fecha_cirugia', null)
+            .not('fecha_cirugia', 'is', null)
             .order('fecha_cirugia',{ascending:false});
         const años=[...new Set(fechas.map(r=>r.fecha_cirugia?.slice(0,4)).filter(Boolean))];
         const anioSelect=document.getElementById('anioSelect');
         const anioActual=anioSelect.value;
         anioSelect.innerHTML='<option value="">Todos</option>'+años.map(a=>`<option value="${a}" ${a===anioActual?'selected':''}>${a}</option>`).join('');
-        const {data:estados}=await supabase.from('historico_cargas').select('estado').neq('estado', null);
+        const {data:estados}=await supabase.from('historico_cargas').select('estado').not('estado', 'is', null);
         const estUnicos=[...new Set(estados.map(r=>r.estado).filter(Boolean))];
         const estadoSelect=document.getElementById('buscarEstado');
         const estadoActual=estadoSelect.value;
         estadoSelect.innerHTML='<option value="">Todos</option>'+estUnicos.map(e=>`<option value="${e}" ${e===estadoActual?'selected':''}>${e}</option>`).join('');
-        const {data:proveedores}=await supabase.from('historico_cargas').select('proveedor').neq('proveedor', null);
+        const {data:proveedores}=await supabase.from('historico_cargas').select('proveedor').not('proveedor', 'is', null);
         const provUnicos=[...new Set(proveedores.map(r=>r.proveedor).filter(Boolean))].sort();
         const provSelect=document.getElementById('buscarProveedor');
         const provActual=provSelect.value;
@@ -268,7 +268,7 @@ async function actualizarMesesDisponibles(anio){
         .select('fecha_cirugia')
         .gte('fecha_cirugia',`${anio}-01-01`)
         .lte('fecha_cirugia',`${anio}-12-31`)
-        .neq('fecha_cirugia', null);
+        .not('fecha_cirugia', 'is', null);
     const meses=[...new Set(data.map(r=>r.fecha_cirugia?.slice(0,7)).filter(Boolean))].sort();
     const nombres={'01':'Enero','02':'Febrero','03':'Marzo','04':'Abril','05':'Mayo','06':'Junio','07':'Julio','08':'Agosto','09':'Septiembre','10':'Octubre','11':'Noviembre','12':'Diciembre'};
     meses.forEach(m=>{
