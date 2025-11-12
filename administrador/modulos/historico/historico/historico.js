@@ -71,14 +71,20 @@ async function cargarDatos(reset=false){
     try{
         let q=supabase.from('historico_cargas').select('*').order('id',{ascending:false}).limit(LIMITE);
         if(ultimaClave)q=q.lt('id',ultimaClave.id);
+
         const estado=document.getElementById('buscarEstado').value;
         const admision=document.getElementById('buscarAdmision').value.trim();
         const paciente=document.getElementById('buscarPaciente').value.trim();
+        const oc=document.getElementById('buscarOC').value.trim();
+        const factura=document.getElementById('buscarFactura').value.trim();
         const anio=document.getElementById('anioSelect').value;
         const mes=document.getElementById('mesSelect').value;
+
         if(estado)q=q.eq('estado',estado);
         if(admision)q=q.ilike('codigo_clinica',`%${admision}%`);
         if(paciente)q=q.ilike('paciente',`%${paciente}%`);
+        if(oc)q=q.ilike('oc',`%${oc}%`);
+        if(factura)q=q.ilike('numero_factura',`%${factura}%`);
         if(anio){
             q=q.gte('fecha_cirugia',`${anio}-01-01`).lte('fecha_cirugia',`${anio}-12-31`);
         }
@@ -86,6 +92,7 @@ async function cargarDatos(reset=false){
             const [a,m]=mes.split('-');
             q=q.gte('fecha_cirugia',`${a}-${m}-01`).lte('fecha_cirugia',`${a}-${m}-31`);
         }
+
         const {data,error}=await q;
         if(error)throw error;
         if(data.length>0){
@@ -141,16 +148,22 @@ async function actualizarFiltros(){
         const {data:fechas}=await supabase.from('historico_cargas').select('fecha_cirugia').not('fecha_cirugia','is',null).order('fecha_cirugia',{ascending:false});
         const años=[...new Set(fechas.map(r=>r.fecha_cirugia?.slice(0,4)).filter(Boolean))];
         const anioSelect=document.getElementById('anioSelect');
-        anioSelect.innerHTML='<option value="">Todos</option>'+años.map(a=>`<option value="${a}">${a}</option>`).join('');
+        const anioActual=anioSelect.value;
+        anioSelect.innerHTML='<option value="">Todos</option>'+años.map(a=>`<option value="${a}" ${a===anioActual?'selected':''}>${a}</option>`).join('');
+
         const {data:estados}=await supabase.from('historico_cargas').select('estado').not('estado','is',null);
         const estUnicos=[...new Set(estados.map(r=>r.estado).filter(Boolean))];
         const estadoSelect=document.getElementById('buscarEstado');
-        estadoSelect.innerHTML='<option value="">Todos</option>'+estUnicos.map(e=>`<option value="${e}">${e}</option>`).join('');
+        const estadoActual=estadoSelect.value;
+        estadoSelect.innerHTML='<option value="">Todos</option>'+estUnicos.map(e=>`<option value="${e}" ${e===estadoActual?'selected':''}>${e}</option>`).join('');
+
         await actualizarMesesDisponibles(anioSelect.value||new Date().getFullYear());
     }catch(e){console.warn('Sin datos para filtros');}
 }
+
 async function actualizarMesesDisponibles(anio){
     const mesSelect=document.getElementById('mesSelect');
+    const mesActual=mesSelect.value;
     mesSelect.innerHTML='<option value="">Todos</option>';
     if(!anio)return;
     const {data}=await supabase.from('historico_cargas').select('fecha_cirugia')
@@ -161,17 +174,23 @@ async function actualizarMesesDisponibles(anio){
     meses.forEach(m=>{
         const [a,mm]=m.split('-');
         const opt=document.createElement('option');
-        opt.value=m;opt.textContent=nombres[mm];
+        opt.value=m;
+        opt.textContent=nombres[mm];
+        if(m===mesActual)opt.selected=true;
         mesSelect.appendChild(opt);
     });
 }
+
 document.getElementById('anioSelect').addEventListener('change',e=>{
     const anio=e.target.value||new Date().getFullYear();
     actualizarMesesDisponibles(anio);
     cargarDatos(true);
 });
-['buscarEstado','buscarAdmision','buscarPaciente','mesSelect'].forEach(id=>{
-    document.getElementById(id).addEventListener('input',()=>cargarDatos(true));
+
+['buscarEstado','buscarAdmision','buscarPaciente','buscarOC','buscarFactura','mesSelect'].forEach(id=>{
+    const el=document.getElementById(id);
+    el.addEventListener('input',()=>{cargarDatos(true);});
+    el.addEventListener('change',()=>{cargarDatos(true);});
 });
 
 document.getElementById('actionsBtn').addEventListener('click',e=>{e.stopPropagation();const m=document.getElementById('actionsMenu');m.style.display=m.style.display==='block'?'none':'block';});
@@ -216,6 +235,7 @@ async function descargarDatos(tipo,valor=null){
         console.error(err);
     }finally{loading.classList.remove('show');}
 }
+
 function generarPlantillaExcel(){
     const wb=XLSX.utils.book_new();
     const headers=columnasExcel;
@@ -227,4 +247,5 @@ function generarPlantillaExcel(){
     XLSX.utils.book_append_sheet(wb,ws,'Historico');
     XLSX.writeFile(wb,'formato_historico.xlsx');
 }
+
 forzarRefreshEsquema().then(()=>{crearTablaSiNoExiste().then(()=>{cargarDatos(true);});}).catch(e=>{console.error(e);alert('Error crítico: Revisa la consola.');});
