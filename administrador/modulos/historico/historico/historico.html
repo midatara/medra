@@ -102,10 +102,20 @@
         </div>
 
         <input type="file" id="excelInput" accept=".xlsx, .xls" style="display:none;">
-        <div id="loading" class="loading-modal">
-            <div class="spinner"></div>
-            <span class="loading-text">Cargando...</span>
-        </div>
+                <div id="loading" class="loading-modal">
+                    <div class="spinner"></div>
+                    <span class="loading-text">Cargando...</span>
+                </div>
+                <div id="progressModal" class="progress-modal">
+                    <div class="progress-content">
+                        <h3>Importando Datos</h3>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar" id="progressBar"></div>
+                        </div>
+                        <p id="progressText">0 / 0 registros procesados</p>
+                        <p id="progressDetail"></p>
+                    </div>
+                </div>
     </div>
 
     <script src="historico.js"></script>

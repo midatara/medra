@@ -27,16 +27,26 @@ async function crearTablaSiNoExiste(){try{await supabase.from('historico_cargas'
 
 excelInput.addEventListener('change',async e=>{
     const file=e.target.files[0];if(!file)return;
-    importStatus.textContent='Leyendo archivo...';loading.classList.add('show');
+    const progressModal=document.getElementById('progressModal');
+    const progressBar=document.getElementById('progressBar');
+    const progressText=document.getElementById('progressText');
+    const progressDetail=document.getElementById('progressDetail');
+    
+    progressModal.classList.add('show');
+    progressDetail.textContent='Leyendo archivo Excel...';
+    
     try{
         const data=await file.arrayBuffer();
         const workbook=XLSX.read(data,{type:'array'});
         const sheet=workbook.Sheets[workbook.SheetNames[0]];
         const rows=XLSX.utils.sheet_to_json(sheet,{header:1});
         if(rows.length<2)throw new Error('El archivo no tiene datos');
+        
         const encabezados=rows[0];const datos=rows.slice(1);
         const faltantes=columnasExcel.filter(c=>!encabezados.includes(c));
         if(faltantes.length>0)throw new Error(`Faltan columnas: ${faltantes.join(', ')}`);
+        
+        progressDetail.textContent='Preparando registros...';
         const registros=datos.map(r=>{
             const o={};columnasExcel.forEach(c=>{
                 let v=r[encabezados.indexOf(c)]??null;
@@ -50,20 +60,103 @@ excelInput.addEventListener('change',async e=>{
                 }
                 o[c.toLowerCase()]=v;
             });
-            o.created_at=new Date().toISOString();o.import_batch='import_'+Date.now();
+            o.created_at=new Date().toISOString();
+            o.import_batch='import_'+Date.now();
             return o;
         });
-        importStatus.textContent=`Subiendo ${registros.length} registros...`;
-        const {error}=await supabase.from('historico_cargas').insert(registros);
-        if(error)throw error;
-        importStatus.textContent=`Importados ${registros.length} registros`;
-        setTimeout(()=>{importStatus.textContent='';},3000);
+
+        // Cargar todos los datos existentes
+        progressDetail.textContent='Cargando datos existentes...';
+        const {data:existentes,error:errorCarga}=await supabase
+            .from('historico_cargas')
+            .select('id,id_paciente,codigo_proveedor,fecha_cirugia,numero_factura');
+        if(errorCarga)throw errorCarga;
+
+        // Crear índice de registros existentes
+        const mapaExistentes=new Map();
+        existentes.forEach(reg=>{
+            const clave=`${reg.id_paciente||''}_${reg.codigo_proveedor||''}_${reg.fecha_cirugia||''}_${reg.numero_factura||''}`;
+            mapaExistentes.set(clave,reg.id);
+        });
+
+        // Separar actualizaciones e inserciones
+        const actualizaciones=[];
+        const inserciones=[];
+        
+        progressDetail.textContent='Clasificando registros...';
+        registros.forEach(reg=>{
+            const clave=`${reg.id_paciente||''}_${reg.codigo_proveedor||''}_${reg.fecha_cirugia||''}_${reg.numero_factura||''}`;
+            if(mapaExistentes.has(clave)){
+                actualizaciones.push({...reg,id:mapaExistentes.get(clave)});
+            }else{
+                inserciones.push(reg);
+            }
+        });
+
+        // Procesar en lotes
+        const LOTE=100;
+        let procesados=0;
+        let actualizados=0;
+        let insertados=0;
+        const total=registros.length;
+
+        // Actualizar registros existentes
+        if(actualizaciones.length>0){
+            progressDetail.textContent='Actualizando registros existentes...';
+            for(let i=0;i<actualizaciones.length;i+=LOTE){
+                const lote=actualizaciones.slice(i,i+LOTE);
+                for(const reg of lote){
+                    const {id,...datos}=reg;
+                    const {error}=await supabase
+                        .from('historico_cargas')
+                        .update(datos)
+                        .eq('id',id);
+                    if(!error)actualizados++;
+                }
+                procesados+=lote.length;
+                const porcentaje=Math.round((procesados/total)*100);
+                progressBar.style.width=porcentaje+'%';
+                progressBar.textContent=porcentaje+'%';
+                progressText.textContent=`${procesados} / ${total} registros procesados`;
+                progressDetail.textContent=`Actualizados: ${actualizados} | Insertados: ${insertados}`;
+                await new Promise(resolve=>setTimeout(resolve,10));
+            }
+        }
+
+        // Insertar nuevos registros
+        if(inserciones.length>0){
+            progressDetail.textContent='Insertando nuevos registros...';
+            for(let i=0;i<inserciones.length;i+=LOTE){
+                const lote=inserciones.slice(i,i+LOTE);
+                const {error}=await supabase.from('historico_cargas').insert(lote);
+                if(!error)insertados+=lote.length;
+                procesados+=lote.length;
+                const porcentaje=Math.round((procesados/total)*100);
+                progressBar.style.width=porcentaje+'%';
+                progressBar.textContent=porcentaje+'%';
+                progressText.textContent=`${procesados} / ${total} registros procesados`;
+                progressDetail.textContent=`Actualizados: ${actualizados} | Insertados: ${insertados}`;
+                await new Promise(resolve=>setTimeout(resolve,10));
+            }
+        }
+
+        progressDetail.textContent=`¡Completado! Actualizados: ${actualizados} | Insertados: ${insertados}`;
+        importStatus.className='registrar-message-success';
+        importStatus.textContent=`Importación completada: ${actualizados} actualizados, ${insertados} nuevos`;
+        setTimeout(()=>{
+            progressModal.classList.remove('show');
+            importStatus.textContent='';
+            progressBar.style.width='0%';
+            progressBar.textContent='';
+        },3000);
         recargarTodo();
     }catch(err){
+        progressModal.classList.remove('show');
+        importStatus.className='registrar-message-error';
         importStatus.textContent=`Error: ${err.message}`;
         console.error(err);
     }finally{
-        loading.classList.remove('show');excelInput.value='';
+        excelInput.value='';
     }
 });
 
