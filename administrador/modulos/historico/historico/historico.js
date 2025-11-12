@@ -114,22 +114,22 @@ excelInput.addEventListener('change',async e=>{
     }finally{excelInput.value='';}
 });
 
+
 async function inicializarConUltimoMes(){
     try{
         loading.classList.add('show');
-        importStatus.textContent='Buscando datos para inicializar...';
 
         const hoy = new Date();
         const anioActual = hoy.getFullYear();
         const mesActual = String(hoy.getMonth() + 1).padStart(2, '0');
         const mesActualStr = `${anioActual}-${mesActual}`;
 
-        // 1. Intentar cargar el mes actual
+        // 1. Verificar si hay datos en el mes actual
         const inicioMesActual = `${anioActual}-${mesActual}-01`;
         const ultimoDiaMes = new Date(anioActual, mesActual, 0).getDate();
         const finMesActual = `${anioActual}-${mesActual}-${String(ultimoDiaMes).padStart(2, '0')}`;
 
-        const {data: datosMesActual, error: errorMesActual} = await supabase
+        const {data: datosMesActual} = await supabase
             .from('historico_cargas')
             .select('fecha_cirugia')
             .gte('fecha_cirugia', inicioMesActual)
@@ -138,23 +138,24 @@ async function inicializarConUltimoMes(){
 
         let anioSeleccionado, mesSeleccionado;
 
-        if (!errorMesActual && datosMesActual && datosMesActual.length > 0) {
-            // Hay datos en el mes actual
+        if (datosMesActual && datosMesActual.length > 0) {
             anioSeleccionado = anioActual;
             mesSeleccionado = mesActualStr;
-            importStatus.textContent = `Mostrando datos del mes actual: ${mesActualStr.replace('-','/')}`;
         } else {
-            // No hay datos en el mes actual → buscar el último mes con datos
-            const {data: ultimoRegistro, error: errorUltimo} = await supabase
+            // 2. Si no hay datos → último mes con registros
+            const {data: ultimoRegistro} = await supabase
                 .from('historico_cargas')
                 .select('fecha_cirugia')
                 .not('fecha_cirugia', 'is', null)
                 .order('fecha_cirugia', { ascending: false })
                 .limit(1);
 
-            if (errorUltimo || !ultimoRegistro || ultimoRegistro.length === 0) {
-                importStatus.textContent = 'No hay datos históricos.';
-                setTimeout(() => { importStatus.textContent = ''; }, 3000);
+            if (!ultimoRegistro || ultimoRegistro.length === 0) {
+                // No hay datos → limpiar
+                document.getElementById('anioSelect').value = '';
+                document.getElementById('mesSelect').innerHTML = '<option value="">Todos</option>';
+                tablaBody.innerHTML = '';
+                datosCache = [];
                 loading.classList.remove('show');
                 return;
             }
@@ -162,27 +163,27 @@ async function inicializarConUltimoMes(){
             const ultimaFecha = ultimoRegistro[0].fecha_cirugia;
             anioSeleccionado = ultimaFecha.slice(0, 4);
             mesSeleccionado = ultimaFecha.slice(0, 7);
-            importStatus.textContent = `Mostrando último mes con datos: ${mesSeleccionado.replace('-','/')}`;
         }
 
-        // 2. Actualizar select de año
+        // 3. Actualizar select de año
         const anioSelect = document.getElementById('anioSelect');
         anioSelect.value = anioSeleccionado;
 
-        // 3. Actualizar meses disponibles y select de mes
+        // 4. Actualizar meses disponibles
         await actualizarMesesDisponibles(anioSeleccionado);
+
+        // 5. Seleccionar mes
         const mesSelect = document.getElementById('mesSelect');
         mesSelect.value = mesSeleccionado;
 
-        // 4. Cargar datos del mes seleccionado
+        // 6. Cargar datos
         await cargarDatosDelMes(mesSeleccionado);
-
-        setTimeout(() => { importStatus.textContent = ''; }, 4000);
 
     } catch(err) {
         console.error(err);
-        importStatus.textContent = 'Error al inicializar';
-        setTimeout(() => { importStatus.textContent = ''; }, 3000);
+        // Opcional: mensaje breve solo si hay error crítico
+        // importStatus.textContent = 'Error al cargar datos';
+        // setTimeout(() => { importStatus.textContent = ''; }, 3000);
     } finally {
         loading.classList.remove('show');
     }
