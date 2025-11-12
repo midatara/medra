@@ -117,34 +117,75 @@ excelInput.addEventListener('change',async e=>{
 async function inicializarConUltimoMes(){
     try{
         loading.classList.add('show');
-        importStatus.textContent='Buscando último mes con datos...';
-        const {data,error}=await supabase
+        importStatus.textContent='Buscando datos para inicializar...';
+
+        const hoy = new Date();
+        const anioActual = hoy.getFullYear();
+        const mesActual = String(hoy.getMonth() + 1).padStart(2, '0');
+        const mesActualStr = `${anioActual}-${mesActual}`;
+
+        // 1. Intentar cargar el mes actual
+        const inicioMesActual = `${anioActual}-${mesActual}-01`;
+        const ultimoDiaMes = new Date(anioActual, mesActual, 0).getDate();
+        const finMesActual = `${anioActual}-${mesActual}-${String(ultimoDiaMes).padStart(2, '0')}`;
+
+        const {data: datosMesActual, error: errorMesActual} = await supabase
             .from('historico_cargas')
             .select('fecha_cirugia')
-            .not('fecha_cirugia', 'is', null)
-            .order('fecha_cirugia', { ascending: false })
+            .gte('fecha_cirugia', inicioMesActual)
+            .lte('fecha_cirugia', finMesActual)
             .limit(1);
-        if(error)throw error;
-        if(!data||data.length===0){
-            importStatus.textContent='No hay datos históricos.';
-            setTimeout(()=>{importStatus.textContent='';},3000);
-            loading.classList.remove('show');
-            return;
+
+        let anioSeleccionado, mesSeleccionado;
+
+        if (!errorMesActual && datosMesActual && datosMesActual.length > 0) {
+            // Hay datos en el mes actual
+            anioSeleccionado = anioActual;
+            mesSeleccionado = mesActualStr;
+            importStatus.textContent = `Mostrando datos del mes actual: ${mesActualStr.replace('-','/')}`;
+        } else {
+            // No hay datos en el mes actual → buscar el último mes con datos
+            const {data: ultimoRegistro, error: errorUltimo} = await supabase
+                .from('historico_cargas')
+                .select('fecha_cirugia')
+                .not('fecha_cirugia', 'is', null)
+                .order('fecha_cirugia', { ascending: false })
+                .limit(1);
+
+            if (errorUltimo || !ultimoRegistro || ultimoRegistro.length === 0) {
+                importStatus.textContent = 'No hay datos históricos.';
+                setTimeout(() => { importStatus.textContent = ''; }, 3000);
+                loading.classList.remove('show');
+                return;
+            }
+
+            const ultimaFecha = ultimoRegistro[0].fecha_cirugia;
+            anioSeleccionado = ultimaFecha.slice(0, 4);
+            mesSeleccionado = ultimaFecha.slice(0, 7);
+            importStatus.textContent = `Mostrando último mes con datos: ${mesSeleccionado.replace('-','/')}`;
         }
-        const ultimaFecha=data[0].fecha_cirugia;
-        const anio=ultimaFecha.slice(0,4);
-        const mes=ultimaFecha.slice(0,7);
-        document.getElementById('anioSelect').value=anio;
-        await actualizarMesesDisponibles(anio);
-        document.getElementById('mesSelect').value=mes;
-        await cargarDatosDelMes(mes);
-        importStatus.textContent=`Mostrando datos de ${mes.replace('-','/')} (último mes con registros)`;
-        setTimeout(()=>{importStatus.textContent='';},4000);
-    }catch(err){
+
+        // 2. Actualizar select de año
+        const anioSelect = document.getElementById('anioSelect');
+        anioSelect.value = anioSeleccionado;
+
+        // 3. Actualizar meses disponibles y select de mes
+        await actualizarMesesDisponibles(anioSeleccionado);
+        const mesSelect = document.getElementById('mesSelect');
+        mesSelect.value = mesSeleccionado;
+
+        // 4. Cargar datos del mes seleccionado
+        await cargarDatosDelMes(mesSeleccionado);
+
+        setTimeout(() => { importStatus.textContent = ''; }, 4000);
+
+    } catch(err) {
         console.error(err);
-        importStatus.textContent='Error al cargar último mes';
-        setTimeout(()=>{importStatus.textContent='';},3000);
-    }finally{loading.classList.remove('show');}
+        importStatus.textContent = 'Error al inicializar';
+        setTimeout(() => { importStatus.textContent = ''; }, 3000);
+    } finally {
+        loading.classList.remove('show');
+    }
 }
 
 async function cargarDatosDelMes(mes){
