@@ -119,12 +119,15 @@ async function inicializarConUltimoMes(){
     try{
         loading.classList.add('show');
 
+        // 1. Cargar años y meses disponibles (CRUCIAL)
+        await actualizarFiltros();
+
         const hoy = new Date();
         const anioActual = hoy.getFullYear();
         const mesActual = String(hoy.getMonth() + 1).padStart(2, '0');
         const mesActualStr = `${anioActual}-${mesActual}`;
 
-        // 1. Verificar si hay datos en el mes actual
+        // 2. Verificar si hay datos en el mes actual
         const inicioMesActual = `${anioActual}-${mesActual}-01`;
         const ultimoDiaMes = new Date(anioActual, mesActual, 0).getDate();
         const finMesActual = `${anioActual}-${mesActual}-${String(ultimoDiaMes).padStart(2, '0')}`;
@@ -142,7 +145,7 @@ async function inicializarConUltimoMes(){
             anioSeleccionado = anioActual;
             mesSeleccionado = mesActualStr;
         } else {
-            // 2. Si no hay datos → último mes con registros
+            // 3. Último registro
             const {data: ultimoRegistro} = await supabase
                 .from('historico_cargas')
                 .select('fecha_cirugia')
@@ -151,7 +154,6 @@ async function inicializarConUltimoMes(){
                 .limit(1);
 
             if (!ultimoRegistro || ultimoRegistro.length === 0) {
-                // No hay datos → limpiar
                 document.getElementById('anioSelect').value = '';
                 document.getElementById('mesSelect').innerHTML = '<option value="">Todos</option>';
                 tablaBody.innerHTML = '';
@@ -165,25 +167,22 @@ async function inicializarConUltimoMes(){
             mesSeleccionado = ultimaFecha.slice(0, 7);
         }
 
-        // 3. Actualizar select de año
+        // 4. SELECCIONAR AÑO Y MES (ahora sí existe el <option>)
         const anioSelect = document.getElementById('anioSelect');
         anioSelect.value = anioSeleccionado;
 
-        // 4. Actualizar meses disponibles
+        // 5. Actualizar meses disponibles para el año seleccionado
         await actualizarMesesDisponibles(anioSeleccionado);
 
-        // 5. Seleccionar mes
+        // 6. Seleccionar mes
         const mesSelect = document.getElementById('mesSelect');
         mesSelect.value = mesSeleccionado;
 
-        // 6. Cargar datos
+        // 7. Cargar datos
         await cargarDatosDelMes(mesSeleccionado);
 
     } catch(err) {
         console.error(err);
-        // Opcional: mensaje breve solo si hay error crítico
-        // importStatus.textContent = 'Error al cargar datos';
-        // setTimeout(() => { importStatus.textContent = ''; }, 3000);
     } finally {
         loading.classList.remove('show');
     }
