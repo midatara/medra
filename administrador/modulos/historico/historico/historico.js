@@ -70,25 +70,36 @@ excelInput.addEventListener('change', async e => {
                     v = parseFloat(v) || 0;
                 }
 
-                if (c.includes('FECHA')) {
-                    if (v === null || v === undefined) {
+                if (c.toLowerCase().includes('fecha')) {
+                if (v === null || v === undefined) {
+                    v = null;
+                } else if (typeof v === 'string') {
+                    const val = v.trim().toLowerCase();
+                    // Textos inválidos comunes
+                    if (['', 'sin fecha', 'n/a', 'na', 'no aplica', '--'].includes(val)) {
                         v = null;
-                    } else if (typeof v === 'string') {
-                        const val = v.trim().toLowerCase();
-                        // Si contiene texto no válido, lo dejamos vacío
-                        if (['', 'sin fecha', 'n/a', 'na', 'no aplica', '--'].includes(val)) {
+                    } else {
+                        const d = new Date(v);
+                        // Si la fecha parseada es inválida o fuera de rango
+                        if (isNaN(d.getTime()) || d.getFullYear() < 1900 || d.getFullYear() > 2100) {
                             v = null;
                         } else {
-                            const d = new Date(v);
-                            v = isNaN(d.getTime()) ? null : d.toISOString().split('T')[0];
+                            v = d.toISOString().split('T')[0];
                         }
-                    } else if (typeof v === 'number') {
-                        const d = new Date((v - 25569) * 86400 * 1000);
-                        v = d.toISOString().split('T')[0];
-                    } else {
-                        v = null;
                     }
+                } else if (typeof v === 'number') {
+                    // Excel date serial → convertir a JS Date
+                    const d = new Date((v - 25569) * 86400 * 1000);
+                    if (isNaN(d.getTime()) || d.getFullYear() < 1900 || d.getFullYear() > 2100) {
+                        v = null;
+                    } else {
+                        v = d.toISOString().split('T')[0];
+                    }
+                } else {
+                    v = null;
                 }
+            }
+
 
 
                 o[c.toLowerCase()] = v;
