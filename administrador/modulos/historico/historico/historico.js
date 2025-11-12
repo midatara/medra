@@ -70,15 +70,26 @@ excelInput.addEventListener('change', async e => {
                     v = parseFloat(v) || 0;
                 }
 
-                if (c.includes('FECHA') && v != null) {
-                    if (typeof v === 'number') {
+                if (c.includes('FECHA')) {
+                    if (v === null || v === undefined) {
+                        v = null;
+                    } else if (typeof v === 'string') {
+                        const val = v.trim().toLowerCase();
+                        // Si contiene texto no válido, lo dejamos vacío
+                        if (['', 'sin fecha', 'n/a', 'na', 'no aplica', '--'].includes(val)) {
+                            v = null;
+                        } else {
+                            const d = new Date(v);
+                            v = isNaN(d.getTime()) ? null : d.toISOString().split('T')[0];
+                        }
+                    } else if (typeof v === 'number') {
                         const d = new Date((v - 25569) * 86400 * 1000);
                         v = d.toISOString().split('T')[0];
-                    } else if (typeof v === 'string') {
-                        const p = new Date(v.trim());
-                        if (!isNaN(p)) v = p.toISOString().split('T')[0];
+                    } else {
+                        v = null;
                     }
                 }
+
 
                 o[c.toLowerCase()] = v;
             });
