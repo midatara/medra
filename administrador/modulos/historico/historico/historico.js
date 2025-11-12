@@ -341,6 +341,7 @@ async function descargarDatos(tipo,valor=null){
     }finally{loading.classList.remove('show');}
 }
 
+
 function generarPlantillaExcel(){
     const wb=XLSX.utils.book_new();
     const headers=columnasExcel;
