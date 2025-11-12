@@ -11,6 +11,8 @@ const btnCargarMas = document.getElementById('btnCargarMas');
 let ultimaClave = null;
 const LIMITE = 50;
 let cargando = false;
+let datosCache = [];
+let debounceTimer = null;
 
 const columnasExcel = [
     'ID_PACIENTE','PACIENTE','MEDICO','FECHA_CIRUGIA','PROVEEDOR',
@@ -56,7 +58,7 @@ excelInput.addEventListener('change',async e=>{
         if(error)throw error;
         importStatus.textContent=`Importados ${registros.length} registros`;
         setTimeout(()=>{importStatus.textContent='';},3000);
-        cargarDatos(true);
+        recargarTodo();
     }catch(err){
         importStatus.textContent=`Error: ${err.message}`;
         console.error(err);
@@ -65,45 +67,25 @@ excelInput.addEventListener('change',async e=>{
     }
 });
 
+async function recargarTodo(){
+    ultimaClave=null;datosCache=[];tablaBody.innerHTML='';await cargarDatos(true);
+}
+
 async function cargarDatos(reset=false){
     if(cargando)return;cargando=true;loading.classList.add('show');
-    if(reset){ultimaClave=null;tablaBody.innerHTML='';}
+    if(reset){ultimaClave=null;datosCache=[];tablaBody.innerHTML='';}
     try{
         let q=supabase.from('historico_cargas').select('*').order('id',{ascending:false}).limit(LIMITE);
         if(ultimaClave)q=q.lt('id',ultimaClave.id);
-
-        const estado=document.getElementById('buscarEstado').value;
-        const admision=document.getElementById('buscarAdmision').value.trim();
-        const paciente=document.getElementById('buscarPaciente').value.trim();
-        const oc=document.getElementById('buscarOC').value.trim();
-        const factura=document.getElementById('buscarFactura').value.trim();
-        const descripcion=document.getElementById('buscarDescripcion').value.trim();
-        const proveedor=document.getElementById('buscarProveedor').value;
-        const anio=document.getElementById('anioSelect').value;
-        const mes=document.getElementById('mesSelect').value;
-
-        if(estado)q=q.eq('estado',estado);
-        if(admision)q=q.ilike('id_paciente',`%${admision}%`);
-        if(paciente)q=q.ilike('paciente',`%${paciente}%`);
-        if(oc)q=q.ilike('oc',`%${oc}%`);
-        if(factura)q=q.ilike('numero_factura',`%${factura}%`);
-        if(descripcion)q=q.ilike('codigo_proveedor',`%${descripcion}%`);
-        if(proveedor)q=q.eq('proveedor',proveedor);
-        if(anio){
-            q=q.gte('fecha_cirugia',`${anio}-01-01`).lte('fecha_cirugia',`${anio}-12-31`);
-        }
-        if(mes){
-            const [a,m]=mes.split('-');
-            q=q.gte('fecha_cirugia',`${a}-${m}-01`).lte('fecha_cirugia',`${a}-${m}-31`);
-        }
-
         const {data,error}=await q;
         if(error)throw error;
+        if(reset)datosCache=[];
+        datosCache=datosCache.concat(data);
         if(data.length>0){
             ultimaClave=data[data.length-1];
             btnCargarMas.style.display=data.length===LIMITE?'block':'none';
         }else btnCargarMas.style.display='none';
-        renderizarFilas(data);
+        filtrarLocalmente();
         if(reset)await actualizarFiltros();
     }catch(err){
         console.error(err);
@@ -115,7 +97,41 @@ async function cargarDatos(reset=false){
 }
 btnCargarMas.addEventListener('click',()=>cargarDatos());
 
+function filtrarLocalmente(){
+    const filtros=getFiltros();
+    let filtrados=datosCache.slice();
+    if(filtros.estado)filtrados=filtrados.filter(r=>r.estado===filtros.estado);
+    if(filtros.admision)filtrados=filtrados.filter(r=>r.id_paciente?.toLowerCase().includes(filtros.admision));
+    if(filtros.paciente)filtrados=filtrados.filter(r=>r.paciente?.toLowerCase().includes(filtros.paciente));
+    if(filtros.oc)filtrados=filtrados.filter(r=>r.oc?.toLowerCase().includes(filtros.oc));
+    if(filtros.factura)filtrados=filtrados.filter(r=>r.numero_factura?.toLowerCase().includes(filtros.factura));
+    if(filtros.descripcion)filtrados=filtrados.filter(r=>r.codigo_proveedor?.toLowerCase().includes(filtros.descripcion));
+    if(filtros.proveedor)filtrados=filtrados.filter(r=>r.proveedor===filtros.proveedor);
+    if(filtros.anio){
+        filtrados=filtrados.filter(r=>r.fecha_cirugia?.startsWith(filtros.anio));
+    }
+    if(filtros.mes){
+        filtrados=filtrados.filter(r=>r.fecha_cirugia?.startsWith(filtros.mes));
+    }
+    renderizarFilas(filtrados);
+}
+
+function getFiltros(){
+    return {
+        estado:document.getElementById('buscarEstado').value,
+        admision:document.getElementById('buscarAdmision').value.trim().toLowerCase(),
+        paciente:document.getElementById('buscarPaciente').value.trim().toLowerCase(),
+        oc:document.getElementById('buscarOC').value.trim().toLowerCase(),
+        factura:document.getElementById('buscarFactura').value.trim().toLowerCase(),
+        descripcion:document.getElementById('buscarDescripcion').value.trim().toLowerCase(),
+        proveedor:document.getElementById('buscarProveedor').value,
+        anio:document.getElementById('anioSelect').value,
+        mes:document.getElementById('mesSelect').value
+    };
+}
+
 function renderizarFilas(data){
+    tablaBody.innerHTML='';
     const f=document.createDocumentFragment();
     data.forEach(r=>{
         const tr=document.createElement('tr');
@@ -191,16 +207,21 @@ async function actualizarMesesDisponibles(anio){
     });
 }
 
+function debounceBuscar(){
+    clearTimeout(debounceTimer);
+    debounceTimer=setTimeout(()=>{filtrarLocalmente();},400);
+}
+
 document.getElementById('anioSelect').addEventListener('change',e=>{
     const anio=e.target.value||new Date().getFullYear();
     actualizarMesesDisponibles(anio);
-    cargarDatos(true);
+    debounceBuscar();
 });
 
 ['buscarEstado','buscarAdmision','buscarPaciente','buscarOC','buscarFactura','buscarDescripcion','buscarProveedor','mesSelect'].forEach(id=>{
     const el=document.getElementById(id);
-    el.addEventListener('input',()=>{cargarDatos(true);});
-    el.addEventListener('change',()=>{cargarDatos(true);});
+    el.addEventListener('input',debounceBuscar);
+    el.addEventListener('change',debounceBuscar);
 });
 
 document.getElementById('actionsBtn').addEventListener('click',e=>{e.stopPropagation();const m=document.getElementById('actionsMenu');m.style.display=m.style.display==='block'?'none':'block';});
