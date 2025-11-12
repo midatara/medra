@@ -35,11 +35,13 @@ const normaliza = (valor) => {
 
 // === Clave única normalizada ===
 const claveUnica = (r) => {
-    const id = normaliza(r.id_paciente);
-    const clinica = normaliza(r.codigo_clinica);
-    const factura = normaliza(r.numero_factura);
-    return `${id}|${clinica}|${factura}`;
+  const id = normaliza(r.id_paciente);
+  const clinica = normaliza(r.codigo_clinica);
+  const factura = normaliza(r.numero_factura);
+  const oc = normaliza(r.oc);
+  return `${id}|${clinica}|${factura}|${oc}`;
 };
+
 
 // === Evento principal ===
 excelInput.addEventListener('change', async e => {
