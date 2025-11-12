@@ -56,54 +56,43 @@ excelInput.addEventListener('change',async e=>{
             o.import_batch='import_'+Date.now();
             return o;
         });
-        progressDetail.textContent='Cargando datos existentes...';
-        const {data:existentes,error:errorCarga}=await supabase.from('historico_cargas').select('id,id_paciente,codigo_proveedor,fecha_cirugia,numero_factura');
-        if(errorCarga)throw errorCarga;
-        const mapaExistentes=new Map();
-        existentes.forEach(reg=>{const clave=`${reg.id_paciente||''}_${reg.codigo_proveedor||''}_${reg.fecha_cirugia||''}_${reg.numero_factura||''}`;mapaExistentes.set(clave,reg.id);});
-        const actualizaciones=[];const inserciones=[];
-        progressDetail.textContent='Clasificando registros...';
-        registros.forEach(reg=>{
-            const clave=`${reg.id_paciente||''}_${reg.codigo_proveedor||''}_${reg.fecha_cirugia||''}_${reg.numero_factura||''}`;
-            if(mapaExistentes.has(clave)){actualizaciones.push({...reg,id:mapaExistentes.get(clave)});}else{inserciones.push(reg);}
-        });
-        const LOTE=100;let procesados=0;let actualizados=0;let insertados=0;const total=registros.length;
-        if(actualizaciones.length>0){
-            progressDetail.textContent='Actualizando registros existentes...';
-            for(let i=0;i<actualizaciones.length;i+=LOTE){
-                const lote=actualizaciones.slice(i,i+LOTE);
-                for(const reg of lote){
-                    const {id,...datos}=reg;
-                    const {error}=await supabase.from('historico_cargas').update(datos).eq('id',id);
-                    if(!error)actualizados++;
-                }
-                procesados+=lote.length;
-                const porcentaje=Math.round((procesados/total)*100);
-                progressBar.style.width=porcentaje+'%';
-                progressBar.textContent=porcentaje+'%';
-                progressText.textContent=`${procesados} / ${total} registros procesados`;
-                progressDetail.textContent=`Actualizados: ${actualizados} | Insertados: ${insertados}`;
-                await new Promise(resolve=>setTimeout(resolve,10));
+        
+        // UPSERT: inserta nuevos y actualiza existentes en una sola operación
+        progressDetail.textContent='Procesando registros con UPSERT...';
+        
+        const LOTE=500; // Lotes de 500 registros
+        let procesados=0;
+        const total=registros.length;
+        
+        for(let i=0;i<registros.length;i+=LOTE){
+            const lote=registros.slice(i,i+LOTE);
+            
+            // UPSERT: Si el registro existe (según la clave única), lo actualiza. Si no existe, lo inserta.
+            const {error} = await supabase
+                .from('historico_cargas')
+                .upsert(lote, { 
+                    onConflict: 'id_paciente,codigo_proveedor,fecha_cirugia,numero_factura',
+                    ignoreDuplicates: false  // false = actualiza los existentes
+                });
+            
+            if(error){
+                console.error('Error en lote:', error);
+                throw new Error(`Error al procesar lote: ${error.message}`);
             }
+            
+            procesados+=lote.length;
+            const porcentaje=Math.round((procesados/total)*100);
+            progressBar.style.width=porcentaje+'%';
+            progressBar.textContent=porcentaje+'%';
+            progressText.textContent=`${procesados} / ${total} registros`;
+            progressDetail.textContent=`Procesados: ${procesados} (insertando nuevos y actualizando existentes)`;
+            
+            await new Promise(resolve=>setTimeout(resolve,1));
         }
-        if(inserciones.length>0){
-            progressDetail.textContent='Insertando nuevos registros...';
-            for(let i=0;i<inserciones.length;i+=LOTE){
-                const lote=inserciones.slice(i,i+LOTE);
-                const {error}=await supabase.from('historico_cargas').insert(lote);
-                if(!error)insertados+=lote.length;
-                procesados+=lote.length;
-                const porcentaje=Math.round((procesados/total)*100);
-                progressBar.style.width=porcentaje+'%';
-                progressBar.textContent=porcentaje+'%';
-                progressText.textContent=`${procesados} / ${total} registros procesados`;
-                progressDetail.textContent=`Actualizados: ${actualizados} | Insertados: ${insertados}`;
-                await new Promise(resolve=>setTimeout(resolve,10));
-            }
-        }
-        progressDetail.textContent=`Completado! Actualizados: ${actualizados} | Insertados: ${insertados}`;
-        importStatus.className='';
-        importStatus.textContent=`Importación completada: ${actualizados} actualizados, ${insertados} nuevos`;
+        
+        progressDetail.textContent=`¡Completado! ${procesados} registros procesados`;
+        importStatus.className='registrar-message-success';
+        importStatus.textContent=`Importación completada: ${procesados} registros procesados (nuevos + actualizados)`;
         setTimeout(()=>{progressModal.classList.remove('show');importStatus.textContent='';progressBar.style.width='0%';progressBar.textContent='';},3000);
         await inicializarConUltimoMes();
     }catch(err){
