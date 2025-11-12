@@ -11,6 +11,7 @@ const btnImportarExcel = document.getElementById('btnImportarExcel');
 const importStatus = document.getElementById('importStatus');
 const loading = document.getElementById('loading');
 const btnCargarMas = document.getElementById('btnCargarMas');
+const downloadTemplate = document.getElementById('downloadTemplate'); // Nuevo
 
 let ultimaClave = null;
 const LIMITE = 50;
@@ -29,7 +30,6 @@ const columnasExcel = [
 // ==============================================================
 async function forzarRefreshEsquema() {
     try {
-        // Esta consulta fuerza el cache refresh
         await supabase.from('historico_cargas').select('id_paciente').limit(0);
         console.log('Esquema refrescado (usando supabase)');
     } catch (err) {
@@ -102,7 +102,7 @@ excelInput.addEventListener('change', async (e) => {
 
         const faltantes = columnasExcel.filter(col => !encabezados.includes(col));
         if (faltantes.length > 0) {
-            throw new Error(`Faltan columnas: ${faltantes.join(', ')}`);
+            throw new Error(`Faltan columnas obligatorias: ${faltantes.join(', ')}`);
         }
 
         const registros = datos.map(row => {
@@ -310,6 +310,50 @@ document.getElementById('anioSelect').addEventListener('change', (e) => {
 
 ['buscarEstado', 'buscarAdmision', 'buscarPaciente'].forEach(id => {
     document.getElementById(id).addEventListener('input', () => cargarDatos(true));
+});
+
+// ==============================================================
+// 8. DESCARGAR PLANTILLA EXCEL (NUEVA FUNCIÓN)
+// ==============================================================
+function generarPlantillaExcel() {
+    // Crear libro
+    const wb = XLSX.utils.book_new();
+
+    // Encabezados
+    const headers = columnasExcel;
+
+    // Fila de ejemplo
+    const ejemplo = [
+        'P001', 'Juan Pérez', 'Dr. López', '2025-03-15', 'Proveedor ABC',
+        'CL001', 'PRD123', 2, 150.50, 'Tornillo 5mm', 'OC-2025-001', 301.00,
+        'RECIBIDO', '2025-03-20', '2025-03-25', 'GUIA-001', 'FAC-1001',
+        '2025-03-18', '2025-03-22', 'LOT123', '2027-03-15'
+    ];
+
+    // Crear hoja
+    const ws = XLSX.utils.aoa_to_sheet([headers, ejemplo]);
+
+    // Ancho de columnas
+    ws['!cols'] = headers.map(() => ({ wch: 16 }));
+
+    // Estilos opcionales (negrita en encabezados)
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+        const cell = ws[XLSX.utils.encode_cell({ r: 0, c: C })];
+        if (cell) cell.s = { font: { bold: true } };
+    }
+
+    // Agregar hoja al libro
+    XLSX.utils.book_append_sheet(wb, ws, 'Historico');
+
+    // Descargar
+    XLSX.writeFile(wb, 'formato_historico.xlsx');
+}
+
+// Evento para descargar plantilla
+downloadTemplate.addEventListener('click', (e) => {
+    e.preventDefault();
+    generarPlantillaExcel();
 });
 
 // ==============================================================
