@@ -168,7 +168,7 @@ async function cargarDatosDelMes(mes){
         console.error(err);
         importStatus.textContent='Error al cargar datos del mes';
         setTimeout(()=>{importStatus.textContent='';},5000);
-    }finally{loading.classList.remove(' communicat');}
+    }finally{loading.classList.remove('show');}
 }
 
 function filtrarLocalmente(){
@@ -187,16 +187,16 @@ function filtrarLocalmente(){
 }
 
 function getFiltros(){
-    return{
-        estado:document.getElementById('buscarEstado').value,
-        admision:document.getElementById('buscarAdmision').value.trim().toLowerCase(),
-        paciente:document.getElementById('buscarPaciente').value.trim().toLowerCase(),
-        oc:document.getElementById('buscarOC').value.trim().toLowerCase(),
-        factura:document.getElementById('buscarFactura').value.trim().toLowerCase(),
-        descripcion document.getElementById('buscarDescripcion').value.trim().toLowerCase(),
-        proveedor:document.getElementById('buscarProveedor').value,
-        anio:document.getElementById('anioSelect').value,
-        mes:document.getElementById('mesSelect').value
+    return {
+        estado: document.getElementById('buscarEstado').value,
+        admision: document.getElementById('buscarAdmision').value.trim().toLowerCase(),
+        paciente: document.getElementById('buscarPaciente').value.trim().toLowerCase(),
+        oc: document.getElementById('buscarOC').value.trim().toLowerCase(),
+        factura: document.getElementById('buscarFactura').value.trim().toLowerCase(),
+        descripcion: document.getElementById('buscarDescripcion').value.trim().toLowerCase(),
+        proveedor: document.getElementById('buscarProveedor').value,
+        anio: document.getElementById('anioSelect').value,
+        mes: document.getElementById('mesSelect').value
     };
 }
 
