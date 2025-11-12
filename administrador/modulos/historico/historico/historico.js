@@ -101,7 +101,7 @@ excelInput.addEventListener('change',async e=>{
                 await new Promise(resolve=>setTimeout(resolve,10));
             }
         }
-        progressDetail.textContent=`¡Completado! Actualizados: ${actualizados} | Insertados: ${insertados}`;
+        progressDetail.textContent=`Completado! Actualizados: ${actualizados} | Insertados: ${insertados}`;
         importStatus.className='registrar-message-success';
         importStatus.textContent=`Importación completada: ${actualizados} actualizados, ${insertados} nuevos`;
         setTimeout(()=>{progressModal.classList.remove('show');importStatus.textContent='';progressBar.style.width='0%';progressBar.textContent='';},3000);
@@ -118,7 +118,12 @@ async function inicializarConUltimoMes(){
     try{
         loading.classList.add('show');
         importStatus.textContent='Buscando último mes con datos...';
-        const {data,error}=await supabase.from('historico_cargas').select('fecha_cirugia').not('fecha_cirugia','is',null).order('fecha_cirugia',{ascending:false}).limit(1);
+        const {data,error}=await supabase
+            .from('historico_cargas')
+            .select('fecha_cirugia')
+            .isnotnull('fecha_cirugia')
+            .order('fecha_cirugia',{ascending:false})
+            .limit(1);
         if(error)throw error;
         if(!data||data.length===0){
             importStatus.textContent='No hay datos históricos.';
@@ -149,7 +154,12 @@ async function cargarDatosDelMes(mes){
         const [anio,mesNum]=mes.split('-');
         const inicio=`${anio}-${mesNum}-01`;
         const fin=`${anio}-${mesNum}-31`;
-        const {data,error}=await supabase.from('historico_cargas').select('*').gte('fecha_cirugia',inicio).lte('fecha_cirugia',fin).order('fecha_cirugia',{ascending:false});
+        const {data,error}=await supabase
+            .from('historico_cargas')
+            .select('*')
+            .gte('fecha_cirugia',inicio)
+            .lte('fecha_cirugia',fin)
+            .order('fecha_cirugia',{ascending:false});
         if(error)throw error;
         datosCache=data;
         filtrarLocalmente();
@@ -225,17 +235,21 @@ function renderizarFilas(data){
 
 async function actualizarFiltros(){
     try{
-        const {data:fechas}=await supabase.from('historico_cargas').select('fecha_cirugia').not('fecha_cirugia','is',null).order('fecha_cirugia',{ascending:false});
+        const {data:fechas}=await supabase
+            .from('historico_cargas')
+            .select('fecha_cirugia')
+            .isnotnull('fecha_cirugia')
+            .order('fecha_cirugia',{ascending:false});
         const años=[...new Set(fechas.map(r=>r.fecha_cirugia?.slice(0,4)).filter(Boolean))];
         const anioSelect=document.getElementById('anioSelect');
         const anioActual=anioSelect.value;
         anioSelect.innerHTML='<option value="">Todos</option>'+años.map(a=>`<option value="${a}" ${a===anioActual?'selected':''}>${a}</option>`).join('');
-        const {data:estados}=await supabase.from('historico_cargas').select('estado').not('estado','is',null);
+        const {data:estados}=await supabase.from('historico_cargas').select('estado').isnotnull('estado');
         const estUnicos=[...new Set(estados.map(r=>r.estado).filter(Boolean))];
         const estadoSelect=document.getElementById('buscarEstado');
         const estadoActual=estadoSelect.value;
         estadoSelect.innerHTML='<option value="">Todos</option>'+estUnicos.map(e=>`<option value="${e}" ${e===estadoActual?'selected':''}>${e}</option>`).join('');
-        const {data:proveedores}=await supabase.from('historico_cargas').select('proveedor').not('proveedor','is',null);
+        const {data:proveedores}=await supabase.from('historico_cargas').select('proveedor').isnotnull('proveedor');
         const provUnicos=[...new Set(proveedores.map(r=>r.proveedor).filter(Boolean))].sort();
         const provSelect=document.getElementById('buscarProveedor');
         const provActual=provSelect.value;
@@ -249,9 +263,12 @@ async function actualizarMesesDisponibles(anio){
     const mesActual=mesSelect.value;
     mesSelect.innerHTML='<option value="">Todos</option>';
     if(!anio)return;
-    const {data}=await supabase.from('historico_cargas').select('fecha_cirugia')
-        .gte('fecha_cirugia',`${anio}-01-01`).lte('fecha_cirugia',`${anio}-12-31`)
-        .not('fecha_cirugia','is',null);
+    const {data}=await supabase
+        .from('historico_cargas')
+        .select('fecha_cirugia')
+        .gte('fecha_cirugia',`${anio}-01-01`)
+        .lte('fecha_cirugia',`${anio}-12-31`)
+        .isnotnull('fecha_cirugia');
     const meses=[...new Set(data.map(r=>r.fecha_cirugia?.slice(0,7)).filter(Boolean))].sort();
     const nombres={'01':'Enero','02':'Febrero','03':'Marzo','04':'Abril','05':'Mayo','06':'Junio','07':'Julio','08':'Agosto','09':'Septiembre','10':'Octubre','11':'Noviembre','12':'Diciembre'};
     meses.forEach(m=>{
@@ -278,7 +295,7 @@ document.getElementById('anioSelect').addEventListener('change',e=>{
 ['buscarEstado','buscarAdmision','buscarPaciente','buscarOC','buscarFactura','buscarDescripcion','buscarProveedor','mesSelect'].forEach(id=>{
     const el=document.getElementById(id);
     el.addEventListener('input',debounceBuscar);
-    el.addEventListener('change',debounceBuscar);
+    el.addEventListener('change',debBounceBuscar);
 });
 
 document.getElementById('actionsBtn').addEventListener('click',e=>{e.stopPropagation();const m=document.getElementById('actionsMenu');m.style.display=m.style.display==='block'?'none':'block';});
@@ -288,7 +305,7 @@ document.getElementById('actionsMenu').addEventListener('click',e=>e.stopPropaga
 document.getElementById('importExcel').addEventListener('click',e=>{e.preventDefault();excelInput.click();});
 document.getElementById('downloadTemplate').addEventListener('click',e=>{e.preventDefault();generarPlantillaExcel();});
 document.getElementById('downloadAll').addEventListener('click',async e=>{e.preventDefault();await descargarDatos('todos');});
-document.getElementById('downloadMonth').addEventListener('click',async e=>{e.preventDefault();const h=new Date();const m=String(h.getMonth()+1).padStart(2,'0');const a=h.getFullYear();await descargarDatos('mes',`${a}-${m}`);});
+document.getElementById('downloadMonth').add0EventListener('click',async e=>{e.preventDefault();const h=new Date();const m=String(h.getMonth()+1).padStart(2,'0');const a=h.getFullYear();await descargarDatos('mes',`${a}-${m}`);});
 document.getElementById('downloadYear').addEventListener('click',async e=>{e.preventDefault();const a=new Date().getFullYear();await descargarDatos('anio',a);});
 
 async function descargarDatos(tipo,valor=null){
