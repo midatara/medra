@@ -652,13 +652,11 @@
         const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 
         window.actualizarEstadisticasConsignacion = async function() {
-            // Verificamos si los elementos existen antes de intentar usarlos
             const statsTitle = document.getElementById('statsTitle');
             const statsList = document.getElementById('statsList');
             const pendingList = document.getElementById('pendingList');
 
             if (!statsTitle || !statsList || !pendingList) {
-                // Estamos en un módulo (iframe), no hacemos nada
                 return;
             }
 
@@ -701,7 +699,7 @@
 
                 statsList.innerHTML = Object.keys(conteoPorMes).length > 0
                     ? Object.entries(conteoPorMes)
-                        .sort(([a], [b]) => meses.indexOf(a) - meses.indexOf(b)) // ordenar por mes
+                        .sort(([a], [b]) => meses.indexOf(a) - meses.indexOf(b)) 
                         .map(([mes, count]) => `<li><span>${mes.charAt(0).toUpperCase() + mes.slice(1)}:</span> <strong>${count} paciente${count !== 1 ? 's' : ''}</strong></li>`)
                         .join('')
                     : '<li style="color:#999;">Sin registros este año</li>';
@@ -720,10 +718,8 @@
             }
         };
 
-        // Solo ejecutar al cargar la página y cuando volvamos al dashboard
         document.addEventListener('DOMContentLoaded', () => {
             actualizarEstadisticasConsignacion();
-            // Actualizar cada 30 segundos SOLO si estamos en el dashboard
             setInterval(() => {
                 if (document.getElementById('statsTitle')) {
                     actualizarEstadisticasConsignacion();
@@ -731,9 +727,8 @@
             }, 30000);
         });
 
-        // También actualizar cuando se hace clic en el logo (volver al inicio)
         document.querySelector('.logo-title').addEventListener('click', function () {
-            setTimeout(actualizarEstadisticasConsignacion, 200); // pequeño delay para que el DOM se reconstruya
+            setTimeout(actualizarEstadisticasConsignacion, 200); 
         });
     </script>
 </body>
