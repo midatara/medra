@@ -173,6 +173,29 @@ async function cargarDatosDelMes(mes){
     }finally{loading.classList.remove('show');}
 }
 
+async function cargarDatosDelAnio(anio) {
+    tablaBody.innerHTML='';datosCache=[];
+    loading.classList.add('show');
+    try {
+        const {data,error}=await supabase
+            .from('historico_cargas')
+            .select('*')
+            .gte('fecha_cirugia',`${anio}-01-01`)
+            .lte('fecha_cirugia',`${anio}-12-31`)
+            .order('fecha_cirugia',{ascending:false});
+        if(error)throw error;
+        datosCache=data;
+        filtrarLocalmente();
+        await actualizarFiltros();
+    } catch(err) {
+        console.error(err);
+        importStatus.textContent='Error al cargar datos del año';
+        setTimeout(()=>{importStatus.textContent='';},5000);
+    } finally {
+        loading.classList.remove('show');
+    }
+}
+
 function filtrarLocalmente(){
     const filtros=getFiltros();
     let filtrados=datosCache.slice();
@@ -288,16 +311,42 @@ function debounceBuscar(){
     debounceTimer=setTimeout(()=>{filtrarLocalmente();},400);
 }
 
-document.getElementById('anioSelect').addEventListener('change',e=>{
-    const anio=e.target.value||new Date().getFullYear();
-    actualizarMesesDisponibles(anio);
-    debounceBuscar();
-});
-
-['buscarEstado','buscarAdmision','buscarPaciente','buscarOC','buscarFactura','buscarDescripcion','buscarProveedor','mesSelect'].forEach(id=>{
+// FILTROS DE TEXTO
+['buscarEstado','buscarAdmision','buscarPaciente','buscarOC','buscarFactura','buscarDescripcion','buscarProveedor'].forEach(id=>{
     const el=document.getElementById(id);
     el.addEventListener('input',debounceBuscar);
     el.addEventListener('change',debounceBuscar);
+});
+
+// CAMBIO DE MES → recargar datos
+document.getElementById('mesSelect').addEventListener('change', async e => {
+    const mes = e.target.value;
+    if (mes) {
+        await cargarDatosDelMes(mes);
+    } else {
+        const anio = document.getElementById('anioSelect').value;
+        if (anio) {
+            await cargarDatosDelAnio(anio);
+        } else {
+            datosCache = [];
+            renderizarFilas([]);
+        }
+    }
+});
+
+// CAMBIO DE AÑO → recargar datos
+document.getElementById('anioSelect').addEventListener('change', async e => {
+    const anio = e.target.value;
+    await actualizarMesesDisponibles(anio);
+    const mes = document.getElementById('mesSelect').value;
+    if (mes) {
+        await cargarDatosDelMes(mes);
+    } else if (anio) {
+        await cargarDatosDelAnio(anio);
+    } else {
+        datosCache = [];
+        renderizarFilas([]);
+    }
 });
 
 document.getElementById('actionsBtn').addEventListener('click',e=>{e.stopPropagation();const m=document.getElementById('actionsMenu');m.style.display=m.style.display==='block'?'none':'block';});
