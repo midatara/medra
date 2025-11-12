@@ -114,45 +114,24 @@ excelInput.addEventListener('change',async e=>{
     }finally{excelInput.value='';}
 });
 
-
 async function inicializarConUltimoMes(){
     try{
         loading.classList.add('show');
-
-        // 1. Cargar años y meses disponibles (CRUCIAL)
         await actualizarFiltros();
-
         const hoy = new Date();
         const anioActual = hoy.getFullYear();
         const mesActual = String(hoy.getMonth() + 1).padStart(2, '0');
         const mesActualStr = `${anioActual}-${mesActual}`;
-
-        // 2. Verificar si hay datos en el mes actual
         const inicioMesActual = `${anioActual}-${mesActual}-01`;
         const ultimoDiaMes = new Date(anioActual, mesActual, 0).getDate();
         const finMesActual = `${anioActual}-${mesActual}-${String(ultimoDiaMes).padStart(2, '0')}`;
-
-        const {data: datosMesActual} = await supabase
-            .from('historico_cargas')
-            .select('fecha_cirugia')
-            .gte('fecha_cirugia', inicioMesActual)
-            .lte('fecha_cirugia', finMesActual)
-            .limit(1);
-
+        const {data: datosMesActual} = await supabase.from('historico_cargas').select('fecha_cirugia').gte('fecha_cirugia', inicioMesActual).lte('fecha_cirugia', finMesActual).limit(1);
         let anioSeleccionado, mesSeleccionado;
-
         if (datosMesActual && datosMesActual.length > 0) {
             anioSeleccionado = anioActual;
             mesSeleccionado = mesActualStr;
         } else {
-            // 3. Último registro
-            const {data: ultimoRegistro} = await supabase
-                .from('historico_cargas')
-                .select('fecha_cirugia')
-                .not('fecha_cirugia', 'is', null)
-                .order('fecha_cirugia', { ascending: false })
-                .limit(1);
-
+            const {data: ultimoRegistro} = await supabase.from('historico_cargas').select('fecha_cirugia').not('fecha_cirugia', 'is', null).order('fecha_cirugia', { ascending: false }).limit(1);
             if (!ultimoRegistro || ultimoRegistro.length === 0) {
                 document.getElementById('anioSelect').value = '';
                 document.getElementById('mesSelect').innerHTML = '<option value="">Todos</option>';
@@ -161,26 +140,16 @@ async function inicializarConUltimoMes(){
                 loading.classList.remove('show');
                 return;
             }
-
             const ultimaFecha = ultimoRegistro[0].fecha_cirugia;
             anioSeleccionado = ultimaFecha.slice(0, 4);
             mesSeleccionado = ultimaFecha.slice(0, 7);
         }
-
-        // 4. SELECCIONAR AÑO Y MES (ahora sí existe el <option>)
         const anioSelect = document.getElementById('anioSelect');
         anioSelect.value = anioSeleccionado;
-
-        // 5. Actualizar meses disponibles para el año seleccionado
         await actualizarMesesDisponibles(anioSeleccionado);
-
-        // 6. Seleccionar mes
         const mesSelect = document.getElementById('mesSelect');
         mesSelect.value = mesSeleccionado;
-
-        // 7. Cargar datos
         await cargarDatosDelMes(mesSeleccionado);
-
     } catch(err) {
         console.error(err);
     } finally {
@@ -196,13 +165,7 @@ async function cargarDatosDelMes(mes){
         const inicio=`${anio}-${mesNum}-01`;
         const ultimoDia = new Date(anio, mesNum, 0).getDate();
         const fin = `${anio}-${mesNum}-${String(ultimoDia).padStart(2, '0')}`;
-        
-        const {data,error}=await supabase
-            .from('historico_cargas')
-            .select('*')
-            .gte('fecha_cirugia',inicio)
-            .lte('fecha_cirugia',fin)
-            .order('fecha_cirugia',{ascending:false});
+        const {data,error}=await supabase.from('historico_cargas').select('*').gte('fecha_cirugia',inicio).lte('fecha_cirugia',fin).order('fecha_cirugia',{ascending:false});
         if(error)throw error;
         datosCache=data;
         filtrarLocalmente();
@@ -218,12 +181,7 @@ async function cargarDatosDelAnio(anio) {
     tablaBody.innerHTML='';datosCache=[];
     loading.classList.add('show');
     try {
-        const {data,error}=await supabase
-            .from('historico_cargas')
-            .select('*')
-            .gte('fecha_cirugia',`${anio}-01-01`)
-            .lte('fecha_cirugia',`${anio}-12-31`)
-            .order('fecha_cirugia',{ascending:false});
+        const {data,error}=await supabase.from('historico_cargas').select('*').gte('fecha_cirugia',`${anio}-01-01`).lte('fecha_cirugia',`${anio}-12-31`).order('fecha_cirugia',{ascending:false});
         if(error)throw error;
         datosCache=data;
         filtrarLocalmente();
@@ -266,6 +224,12 @@ function getFiltros(){
     };
 }
 
+function formatearFecha(fecha) {
+    if (!fecha) return '';
+    const [a, m, d] = fecha.split('-');
+    return `${d}-${m}-${a}`;
+}
+
 function renderizarFilas(data){
     tablaBody.innerHTML='';
     const f=document.createDocumentFragment();
@@ -275,7 +239,7 @@ function renderizarFilas(data){
             <td>${r.id_paciente||''}</td>
             <td>${r.paciente||''}</td>
             <td>${r.medico||''}</td>
-            <td>${r.fecha_cirugia||''}</td>
+            <td>${formatearFecha(r.fecha_cirugia)}</td>
             <td>${r.proveedor||''}</td>
             <td>${r.codigo_clinica||''}</td>
             <td>${r.codigo_proveedor||''}</td>
@@ -285,14 +249,14 @@ function renderizarFilas(data){
             <td>${r.oc||''}</td>
             <td style="text-align:right;font-family:monospace;">${(r.oc_monto||0).toFixed(2)}</td>
             <td>${r.estado||''}</td>
-            <td>${r.fecha_recepcion||''}</td>
-            <td>${r.fecha_cargo||''}</td>
+            <td>${formatearFecha(r.fecha_recepcion)}</td>
+            <td>${formatearFecha(r.fecha_cargo)}</td>
             <td>${r.numero_guia||''}</td>
             <td>${r.numero_factura||''}</td>
-            <td>${r.fecha_emision||''}</td>
-            <td>${r.fecha_ingreso||''}</td>
+            <td>${formatearFecha(r.fecha_emision)}</td>
+            <td>${formatearFecha(r.fecha_ingreso)}</td>
             <td>${r.lote||''}</td>
-            <td>${r.fecha_vencimiento||''}</td>
+            <td>${formatearFecha(r.fecha_vencimiento)}</td>
         `;
         f.appendChild(tr);
     });
@@ -301,11 +265,7 @@ function renderizarFilas(data){
 
 async function actualizarFiltros(){
     try{
-        const {data:fechas}=await supabase
-            .from('historico_cargas')
-            .select('fecha_cirugia')
-            .not('fecha_cirugia', 'is', null)
-            .order('fecha_cirugia',{ascending:false});
+        const {data:fechas}=await supabase.from('historico_cargas').select('fecha_cirugia').not('fecha_cirugia', 'is', null).order('fecha_cirugia',{ascending:false});
         const años=[...new Set(fechas.map(r=>r.fecha_cirugia?.slice(0,4)).filter(Boolean))];
         const anioSelect=document.getElementById('anioSelect');
         const anioActual=anioSelect.value;
@@ -329,12 +289,7 @@ async function actualizarMesesDisponibles(anio){
     const mesActual=mesSelect.value;
     mesSelect.innerHTML='<option value="">Todos</option>';
     if(!anio)return;
-    const {data}=await supabase
-        .from('historico_cargas')
-        .select('fecha_cirugia')
-        .gte('fecha_cirugia',`${anio}-01-01`)
-        .lte('fecha_cirugia',`${anio}-12-31`)
-        .not('fecha_cirugia', 'is', null);
+    const {data}=await supabase.from('historico_cargas').select('fecha_cirugia').gte('fecha_cirugia',`${anio}-01-01`).lte('fecha_cirugia',`${anio}-12-31`).not('fecha_cirugia', 'is', null);
     const meses=[...new Set(data.map(r=>r.fecha_cirugia?.slice(0,7)).filter(Boolean))].sort();
     const nombres={'01':'Enero','02':'Febrero','03':'Marzo','04':'Abril','05':'Mayo','06':'Junio','07':'Julio','08':'Agosto','09':'Septiembre','10':'Octubre','11':'Noviembre','12':'Diciembre'};
     meses.forEach(m=>{
@@ -352,14 +307,12 @@ function debounceBuscar(){
     debounceTimer=setTimeout(()=>{filtrarLocalmente();},400);
 }
 
-// FILTROS DE TEXTO
 ['buscarEstado','buscarAdmision','buscarPaciente','buscarOC','buscarFactura','buscarDescripcion','buscarProveedor'].forEach(id=>{
     const el=document.getElementById(id);
     el.addEventListener('input',debounceBuscar);
     el.addEventListener('change',debounceBuscar);
 });
 
-// CAMBIO DE MES → recargar datos
 document.getElementById('mesSelect').addEventListener('change', async e => {
     const mes = e.target.value;
     if (mes) {
@@ -375,7 +328,6 @@ document.getElementById('mesSelect').addEventListener('change', async e => {
     }
 });
 
-// CAMBIO DE AÑO → recargar datos
 document.getElementById('anioSelect').addEventListener('change', async e => {
     const anio = e.target.value;
     await actualizarMesesDisponibles(anio);
@@ -418,12 +370,13 @@ async function descargarDatos(tipo,valor=null){
         const wb=XLSX.utils.book_new();
         const ws=XLSX.utils.json_to_sheet(data.map(r=>({
             'ID_PACIENTE':r.id_paciente,'PACIENTE':r.paciente,'MEDICO':r.medico,
-            'FECHA_CIRUGIA':r.fecha_cirugia,'PROVEEDOR':r.proveedor,'CODIGO_CLINICA':r.codigo_clinica,
+            'FECHA_CIRUGIA':formatearFecha(r.fecha_cirugia),'PROVEEDOR':r.proveedor,'CODIGO_CLINICA':r.codigo_clinica,
             'CODIGO_PROVEEDOR':r.codigo_proveedor,'CANTIDAD':r.cantidad,'PRECIO_UNITARIO':r.precio_unitario,
             'ATRIBUTO':r.atributo,'OC':r.oc,'OC_MONTO':r.oc_monto,'ESTADO':r.estado,
-            'FECHA_RECEPCION':r.fecha_recepcion,'FECHA_CARGO':r.fecha_cargo,'NUMERO_GUIA':r.numero_guia,
-            'NUMERO_FACTURA':r.numero_factura,'FECHA_EMISION':r.fecha_emision,'FECHA_INGRESO':r.fecha_ingreso,
-            'LOTE':r.lote,'FECHA_VENCIMIENTO':r.fecha_vencimiento
+            'FECHA_RECEPCION':formatearFecha(r.fecha_recepcion),'FECHA_CARGO':formatearFecha(r.fecha_cargo),
+            'NUMERO_GUIA':r.numero_guia,'NUMERO_FACTURA':r.numero_factura,
+            'FECHA_EMISION':formatearFecha(r.fecha_emision),'FECHA_INGRESO':formatearFecha(r.fecha_ingreso),
+            'LOTE':r.lote,'FECHA_VENCIMIENTO':formatearFecha(r.fecha_vencimiento)
         })));
         ws['!cols']=columnasExcel.map(()=>({wch:16}));
         const r=XLSX.utils.decode_range(ws['!ref']);
