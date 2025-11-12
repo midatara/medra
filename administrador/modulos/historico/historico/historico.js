@@ -1,5 +1,5 @@
 const SUPABASE_URL = 'https://opxvlqcvjnkpzfdpxosh.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9weHZscWN2am5rcHpmZHB4b3NoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5MTg5ODYsImV4cCI6MjA3ODQ5NDk4Nn0.7_rJ2-jqmmV93H7irIStmSq6tzppjgsUNVKsoUphl3s';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9weHZscWN2am5rcHpmZHB4c3NoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5MTg5ODYsImV4cCI6MjA3ODQ5NDk4Nn0.7_rJ2-jqmmV93H7irIStmSq6tzppjgsUNVKsoUphl3s';
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const tablaBody = document.getElementById('tablaBody');
@@ -71,36 +71,34 @@ excelInput.addEventListener('change', async e => {
                 }
 
                 if (c.toLowerCase().includes('fecha')) {
-                if (v === null || v === undefined) {
-                    v = null;
-                } else if (typeof v === 'string') {
-                    const val = v.trim().toLowerCase();
-                    // Textos inválidos comunes
-                    if (['', 'sin fecha', 'n/a', 'na', 'no aplica', '--'].includes(val)) {
+                    if (v === null || v === undefined) {
                         v = null;
-                    } else {
-                        const d = new Date(v);
-                        // Si la fecha parseada es inválida o fuera de rango
+                    } else if (typeof v === 'string') {
+                        const val = v.trim().toLowerCase();
+                        // Textos inválidos comunes
+                        if (['', 'sin fecha', 'n/a', 'na', 'no aplica', '--'].includes(val)) {
+                            v = null;
+                        } else {
+                            const d = new Date(v);
+                            // Si la fecha parseada es inválida o fuera de rango
+                            if (isNaN(d.getTime()) || d.getFullYear() < 1900 || d.getFullYear() > 2100) {
+                                v = null;
+                            } else {
+                                v = d.toISOString().split('T')[0];
+                            }
+                        }
+                    } else if (typeof v === 'number') {
+                        // Excel date serial → convertir a JS Date
+                        const d = new Date((v - 25569) * 86400 * 1000);
                         if (isNaN(d.getTime()) || d.getFullYear() < 1900 || d.getFullYear() > 2100) {
                             v = null;
                         } else {
                             v = d.toISOString().split('T')[0];
                         }
-                    }
-                } else if (typeof v === 'number') {
-                    // Excel date serial → convertir a JS Date
-                    const d = new Date((v - 25569) * 86400 * 1000);
-                    if (isNaN(d.getTime()) || d.getFullYear() < 1900 || d.getFullYear() > 2100) {
-                        v = null;
                     } else {
-                        v = d.toISOString().split('T')[0];
+                        v = null;
                     }
-                } else {
-                    v = null;
                 }
-            }
-
-
 
                 o[c.toLowerCase()] = v;
             });
@@ -203,6 +201,7 @@ async function inicializarConUltimoMes(){
     }
 }
 
+// ←─── Aquí están las funciones modificadas para PAGINACIÓN ───→
 async function cargarDatosDelMes(mes){
     tablaBody.innerHTML='';datosCache=[];
     loading.classList.add('show');
@@ -211,9 +210,29 @@ async function cargarDatosDelMes(mes){
         const inicio=`${anio}-${mesNum}-01`;
         const ultimoDia = new Date(anio, mesNum, 0).getDate();
         const fin = `${anio}-${mesNum}-${String(ultimoDia).padStart(2, '0')}`;
-        const {data,error}=await supabase.from('historico_cargas').select('*').gte('fecha_cirugia',inicio).lte('fecha_cirugia',fin);
-        if(error)throw error;
-        datosCache=data;
+
+        // Paginación manual para evitar límite de 1000 registros
+        let allData = [];
+        let from = 0;
+        const chunk = 1000;
+        let more = true;
+
+        while (more) {
+            const { data, error } = await supabase.from('historico_cargas')
+                .select('*')
+                .gte('fecha_cirugia', inicio)
+                .lte('fecha_cirugia', fin)
+                .range(from, from + chunk - 1);
+
+            if (error) throw error;
+            if (!data || data.length === 0) break;
+
+            allData = allData.concat(data);
+            more = data.length === chunk;
+            from += chunk;
+        }
+
+        datosCache = allData;
         filtrarLocalmente();
         await actualizarFiltros();
     }catch(err){
@@ -227,9 +246,31 @@ async function cargarDatosDelAnio(anio) {
     tablaBody.innerHTML='';datosCache=[];
     loading.classList.add('show');
     try {
-        const {data,error}=await supabase.from('historico_cargas').select('*').gte('fecha_cirugia',`${anio}-01-01`).lte('fecha_cirugia',`${anio}-12-31`);
-        if(error)throw error;
-        datosCache=data;
+        const inicio = `${anio}-01-01`;
+        const fin = `${anio}-12-31`;
+
+        // Paginación manual para evitar límite de 1000 registros
+        let allData = [];
+        let from = 0;
+        const chunk = 1000;
+        let more = true;
+
+        while (more) {
+            const { data, error } = await supabase.from('historico_cargas')
+                .select('*')
+                .gte('fecha_cirugia', inicio)
+                .lte('fecha_cirugia', fin)
+                .range(from, from + chunk - 1);
+
+            if (error) throw error;
+            if (!data || data.length === 0) break;
+
+            allData = allData.concat(data);
+            more = data.length === chunk;
+            from += chunk;
+        }
+
+        datosCache = allData;
         filtrarLocalmente();
         await actualizarFiltros();
     } catch(err) {
@@ -240,6 +281,7 @@ async function cargarDatosDelAnio(anio) {
         loading.classList.remove('show');
     }
 }
+// ←─────────────────────────────────────────────────────────────→
 
 function filtrarLocalmente(){
     const filtros=getFiltros();
