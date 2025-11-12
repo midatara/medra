@@ -22,11 +22,14 @@ async function forzarRefreshEsquema(){try{await supabase.from('historico_cargas'
 async function crearTablaSiNoExiste(){try{await supabase.from('historico_cargas').select('id').limit(1);}catch(e){}}
 
 excelInput.addEventListener('change', async e => {
-    const file = e.target.files[0]; if (!file) return;
+    const file = e.target.files[0]; 
+    if (!file) return;
+
     const progressModal = document.getElementById('progressModal');
     const progressBar = document.getElementById('progressBar');
     const progressText = document.getElementById('progressText');
     const progressDetail = document.getElementById('progressDetail');
+
     progressModal.classList.add('show');
     progressDetail.textContent = 'Leyendo archivo Excel...';
 
@@ -35,15 +38,25 @@ excelInput.addEventListener('change', async e => {
         const workbook = XLSX.read(data, { type: 'array' });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
         if (rows.length < 2) throw new Error('El archivo no tiene datos');
-        const encabezados = rows[0]; const datos = rows.slice(1);
+
+        const encabezados = rows[0]; 
+        const datos = rows.slice(1);
+
         const faltantes = columnasExcel.filter(c => !encabezados.includes(c));
         if (faltantes.length > 0) throw new Error(`Faltan columnas: ${faltantes.join(', ')}`);
 
         progressDetail.textContent = 'Preparando registros...';
 
-        // === CLAVE ÚNICA CORRECTA: id_paciente + codigo_clinica + numero_factura ===
-        const claveUnica = (r) => `${r.id_paciente}|${r.codigo_clinica}|${r.numero_factura || ''}`.trim();
+        // ✅ CLAVE ÚNICA CORREGIDA Y NORMALIZADA
+        const claveUnica = (r) => {
+            const id = (r.id_paciente || '').toString().trim();
+            const clinica = (r.codigo_clinica || '').toString().trim();
+            const factura = (r.numero_factura || '').toString().trim();
+            return `${id}|${clinica}|${factura}`;
+        };
+
         const duplicadosEncontrados = [];
         const vistos = new Map();
 
@@ -110,7 +123,7 @@ excelInput.addEventListener('change', async e => {
             console.log(`Sin duplicados. ${registros.length} registros listos.`);
         }
 
-        // === UPSERT CON CLAVE CORRECTA ===
+        // === UPSERT CON CLAVE FINAL Y LIMPIEZA DE CAMPOS ===
         progressDetail.textContent = 'Procesando con UPSERT...';
         const LOTE = 500;
         let procesados = 0;
@@ -118,10 +131,14 @@ excelInput.addEventListener('change', async e => {
 
         for (let i = 0; i < registros.length; i += LOTE) {
             const lote = registros.slice(i, i + LOTE);
+
+            // ✅ Eliminar campos no existentes en la tabla
+            const loteLimpio = lote.map(({ _fila_excel, ...rest }) => rest);
+
             const { error } = await supabase
                 .from('historico_cargas')
-                .upsert(lote, { 
-                    onConflict: 'id_paciente,codigo_clinica,numero_factura',  // CLAVE FINAL
+                .upsert(loteLimpio, { 
+                    onConflict: 'id_paciente,codigo_clinica,numero_factura',
                     ignoreDuplicates: false
                 });
 
@@ -142,6 +159,7 @@ excelInput.addEventListener('change', async e => {
         progressDetail.textContent = `¡Completado! ${procesados} registros`;
         importStatus.className = 'registrar-message-success';
         importStatus.textContent = `Importación OK: ${procesados} registros`;
+
         setTimeout(() => {
             progressModal.classList.remove('show');
             importStatus.textContent = '';
@@ -160,6 +178,7 @@ excelInput.addEventListener('change', async e => {
         excelInput.value = '';
     }
 });
+
 
 // === RESTO DEL CÓDIGO (sin cambios) ===
 
