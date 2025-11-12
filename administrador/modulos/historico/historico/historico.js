@@ -21,6 +21,27 @@ const columnasExcel = [
 async function forzarRefreshEsquema(){try{await supabase.from('historico_cargas').select('id').limit(0);}catch(e){}}
 async function crearTablaSiNoExiste(){try{await supabase.from('historico_cargas').select('id').limit(1);}catch(e){}}
 
+// === Función de normalización segura ===
+// Corrige los problemas de redondeo o tipos erróneos (número vs texto)
+const normaliza = (valor) => {
+    if (valor === null || valor === undefined) return '';
+    if (typeof valor === 'number') {
+        // Evita confusiones tipo 710549.0 → convierte siempre a entero sin decimales
+        return Math.trunc(valor).toString().trim();
+    }
+    // Si llega como string, lo limpia
+    return valor.toString().trim();
+};
+
+// === Clave única normalizada ===
+const claveUnica = (r) => {
+    const id = normaliza(r.id_paciente);
+    const clinica = normaliza(r.codigo_clinica);
+    const factura = normaliza(r.numero_factura);
+    return `${id}|${clinica}|${factura}`;
+};
+
+// === Evento principal ===
 excelInput.addEventListener('change', async e => {
     const file = e.target.files[0]; 
     if (!file) return;
@@ -49,14 +70,6 @@ excelInput.addEventListener('change', async e => {
 
         progressDetail.textContent = 'Preparando registros...';
 
-        // ✅ CLAVE ÚNICA CORREGIDA Y NORMALIZADA
-        const claveUnica = (r) => {
-            const id = (r.id_paciente || '').toString().trim();
-            const clinica = (r.codigo_clinica || '').toString().trim();
-            const factura = (r.numero_factura || '').toString().trim();
-            return `${id}|${clinica}|${factura}`;
-        };
-
         const duplicadosEncontrados = [];
         const vistos = new Map();
 
@@ -66,7 +79,16 @@ excelInput.addEventListener('change', async e => {
                 const o = {};
                 columnasExcel.forEach(c => {
                     let v = r[encabezados.indexOf(c)] ?? null;
-                    if (['CANTIDAD', 'PRECIO_UNITARIO', 'OC_MONTO'].includes(c)) v = parseFloat(v) || 0;
+
+                    // ⚙️ Forzar a texto limpio en las columnas clave
+                    if (['ID_PACIENTE', 'CODIGO_CLINICA', 'NUMERO_FACTURA'].includes(c) && v != null) {
+                        v = normaliza(v);
+                    }
+
+                    if (['CANTIDAD', 'PRECIO_UNITARIO', 'OC_MONTO'].includes(c)) {
+                        v = parseFloat(v) || 0;
+                    }
+
                     if (c.includes('FECHA') && v != null) {
                         if (typeof v === 'number') {
                             const d = new Date((v - 25569) * 86400 * 1000);
@@ -76,6 +98,7 @@ excelInput.addEventListener('change', async e => {
                             if (!isNaN(p)) v = p.toISOString().split('T')[0];
                         }
                     }
+
                     o[c.toLowerCase()] = v;
                 });
                 o.created_at = new Date().toISOString();
@@ -85,6 +108,20 @@ excelInput.addEventListener('change', async e => {
             })
             .filter(reg => {
                 const clave = claveUnica(reg);
+
+                // 🔍 DEBUG opcional para detectar claves específicas
+                if (reg.id_paciente == 90264 && reg.numero_factura == 166146) {
+                    console.log('DEBUG PACIENTE 90264', {
+                        fila: reg._fila_excel,
+                        id: reg.id_paciente,
+                        clinica: reg.codigo_clinica,
+                        tipoId: typeof reg.id_paciente,
+                        tipoClinica: typeof reg.codigo_clinica,
+                        tipoFactura: typeof reg.numero_factura,
+                        claveGenerada: clave
+                    });
+                }
+
                 if (vistos.has(clave)) {
                     duplicadosEncontrados.push({
                         fila: reg._fila_excel,
@@ -178,6 +215,7 @@ excelInput.addEventListener('change', async e => {
         excelInput.value = '';
     }
 });
+
 
 
 // === RESTO DEL CÓDIGO (sin cambios) ===
