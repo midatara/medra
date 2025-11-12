@@ -281,7 +281,6 @@ async function cargarDatosDelAnio(anio) {
         loading.classList.remove('show');
     }
 }
-// ←─────────────────────────────────────────────────────────────→
 
 function filtrarLocalmente(){
     const filtros=getFiltros();
