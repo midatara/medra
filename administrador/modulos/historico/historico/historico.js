@@ -1,6 +1,6 @@
 // historico.js
 const SUPABASE_URL = 'https://opxvlqcvjnkpzfdpxosh.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9weHZscWN2am5rcHpmZHB4b3NoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5MTg5ODYsImV4cCI6MjA3ODQ5NDk4Nn0.7_rJ2-jqmmV93H7irIStmSq6tzppjgsUNVKsoUphl3s'; 
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9weHZscWN2am5rcHpmZHB4b3NoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5MTg5ODYsImV4cCI6MjA3ODQ5NDk4Nn0.7_rJ2-jqmmV93H7irIStmSq6tzppjgsUNVKsoUphl3s';
 
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -25,7 +25,25 @@ const columnasExcel = [
 ];
 
 // ==============================================================
-// 1. CREAR TABLA AUTOMÁTICAMENTE
+// 1. REFRESCAR ESQUEMA (OBLIGATORIO DESPUÉS DE CREAR TABLA)
+// ==============================================================
+async function forzarRefreshEsquema() {
+    try {
+        await fetch(`${SUPABASE_URL}/rest/v1/`, {
+            method: 'GET',
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+            }
+        });
+        console.log('Esquema refrescado');
+    } catch (err) {
+        console.warn('No se pudo refrescar esquema:', err);
+    }
+}
+
+// ==============================================================
+// 2. CREAR TABLA (opcional, ya existe)
 // ==============================================================
 async function crearTablaSiNoExiste() {
     const sql = `
@@ -58,19 +76,14 @@ async function crearTablaSiNoExiste() {
     try {
         const { error } = await supabase.rpc('execute_sql', { query: sql });
         if (error && error.code !== '23505') throw error;
-        console.log('Tabla historico_cargas creada o ya existe');
+        console.log('Tabla historico_cargas verificada');
     } catch (err) {
-        console.warn('No se pudo crear la tabla con RPC:', err.message);
-        // Intentar verificar si existe
-        const { error } = await supabase.from('historico_cargas').select('id_paciente').limit(0);
-        if (error && error.code === '42P01') {
-            alert('Error: Tabla no existe y no se puede crear. Ejecuta el SQL manualmente.');
-        }
+        console.warn('RPC no disponible o tabla ya existe:', err.message);
     }
 }
 
 // ==============================================================
-// 2. IMPORTAR EXCEL
+// 3. IMPORTAR EXCEL
 // ==============================================================
 btnImportarExcel.addEventListener('click', () => excelInput.click());
 
@@ -140,7 +153,7 @@ excelInput.addEventListener('change', async (e) => {
 });
 
 // ==============================================================
-// 3. CARGAR DATOS
+// 4. CARGAR DATOS
 // ==============================================================
 async function cargarDatos(reset = false) {
     if (cargando) return;
@@ -201,6 +214,8 @@ async function cargarDatos(reset = false) {
         if (reset) await actualizarFiltros();
     } catch (err) {
         console.error('Error cargando datos:', err);
+        importStatus.textContent = 'Error: No se pudo cargar datos';
+        setTimeout(() => importStatus.textContent = '', 5000);
     } finally {
         cargando = false;
         loading.classList.remove('show');
@@ -210,7 +225,7 @@ async function cargarDatos(reset = false) {
 btnCargarMas.addEventListener('click', () => cargarDatos());
 
 // ==============================================================
-// 4. RENDERIZAR
+// 5. RENDERIZAR
 // ==============================================================
 function renderizarFilas(data) {
     const fragment = document.createDocumentFragment();
@@ -245,32 +260,36 @@ function renderizarFilas(data) {
 }
 
 // ==============================================================
-// 5. FILTROS
+// 6. FILTROS
 // ==============================================================
 async function actualizarFiltros() {
-    const { data: fechas } = await supabase
-        .from('historico_cargas')
-        .select('fecha_cirugia')
-        .not('fecha_cirugia', 'is', null)
-        .order('fecha_cirugia', { ascending: false });
+    try {
+        const { data: fechas } = await supabase
+            .from('historico_cargas')
+            .select('fecha_cirugia')
+            .not('fecha_cirugia', 'is', null)
+            .order('fecha_cirugia', { ascending: false });
 
-    const añosUnicos = [...new Set(fechas.map(r => r.fecha_cirugia?.slice(0, 4)).filter(Boolean))];
-    const anioSelect = document.getElementById('anioSelect');
-    anioSelect.innerHTML = '<option value="">Todos</option>' +
-        añosUnicos.map(a => `<option value="${a}">${a}</option>`).join('');
+        const añosUnicos = [...new Set(fechas.map(r => r.fecha_cirugia?.slice(0, 4)).filter(Boolean))];
+        const anioSelect = document.getElementById('anioSelect');
+        anioSelect.innerHTML = '<option value="">Todos</option>' +
+            añosUnicos.map(a => `<option value="${a}">${a}</option>`).join('');
 
-    const { data: estados } = await supabase
-        .from('historico_cargas')
-        .select('estado')
-        .not('estado', 'is', null);
+        const { data: estados } = await supabase
+            .from('historico_cargas')
+            .select('estado')
+            .not('estado', 'is', null);
 
-    const estadosUnicos = [...new Set(estados.map(r => r.estado).filter(Boolean))];
-    const estadoSelect = document.getElementById('buscarEstado');
-    estadoSelect.innerHTML = '<option value="">Todos</option>' +
-        estadosUnicos.map(e => `<option value="${e}">${e}</option>`).join('');
+        const estadosUnicos = [...new Set(estados.map(r => r.estado).filter(Boolean))];
+        const estadoSelect = document.getElementById('buscarEstado');
+        estadoSelect.innerHTML = '<option value="">Todos</option>' +
+            estadosUnicos.map(e => `<option value="${e}">${e}</option>`).join('');
 
-    const anioActual = anioSelect.value || new Date().getFullYear();
-    generarBotonesMeses(anioActual);
+        const anioActual = anioSelect.value || new Date().getFullYear();
+        generarBotonesMeses(anioActual);
+    } catch (err) {
+        console.warn('No hay datos para filtros aún');
+    }
 }
 
 function generarBotonesMeses(anio) {
@@ -299,10 +318,12 @@ document.getElementById('anioSelect').addEventListener('change', (e) => {
 });
 
 // ==============================================================
-// 6. INICIAR
+// 7. INICIAR
 // ==============================================================
-crearTablaSiNoExiste().then(() => {
-    cargarDatos(true);
+forzarRefreshEsquema().then(() => {
+    crearTablaSiNoExiste().then(() => {
+        cargarDatos(true);
+    });
 }).catch(err => {
     console.error('Error iniciando:', err);
     alert('Error crítico: Revisa la consola.');
