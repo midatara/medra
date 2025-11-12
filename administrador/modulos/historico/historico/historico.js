@@ -165,7 +165,7 @@ async function cargarDatosDelMes(mes){
         const inicio=`${anio}-${mesNum}-01`;
         const ultimoDia = new Date(anio, mesNum, 0).getDate();
         const fin = `${anio}-${mesNum}-${String(ultimoDia).padStart(2, '0')}`;
-        const {data,error}=await supabase.from('historico_cargas').select('*').gte('fecha_cirugia',inicio).lte('fecha_cirugia',fin).order('fecha_cirugia',{ascending:false});
+        const {data,error}=await supabase.from('historico_cargas').select('*').gte('fecha_cirugia',inicio).lte('fecha_cirugia',fin);
         if(error)throw error;
         datosCache=data;
         filtrarLocalmente();
@@ -181,7 +181,7 @@ async function cargarDatosDelAnio(anio) {
     tablaBody.innerHTML='';datosCache=[];
     loading.classList.add('show');
     try {
-        const {data,error}=await supabase.from('historico_cargas').select('*').gte('fecha_cirugia',`${anio}-01-01`).lte('fecha_cirugia',`${anio}-12-31`).order('fecha_cirugia',{ascending:false});
+        const {data,error}=await supabase.from('historico_cargas').select('*').gte('fecha_cirugia',`${anio}-01-01`).lte('fecha_cirugia',`${anio}-12-31`);
         if(error)throw error;
         datosCache=data;
         filtrarLocalmente();
@@ -207,7 +207,15 @@ function filtrarLocalmente(){
     if(filtros.proveedor)filtrados=filtrados.filter(r=>r.proveedor===filtros.proveedor);
     if(filtros.anio)filtrados=filtrados.filter(r=>r.fecha_cirugia?.startsWith(filtros.anio));
     if(filtros.mes)filtrados=filtrados.filter(r=>r.fecha_cirugia?.startsWith(filtros.mes));
-    renderizarFilas(filtrados);
+    renderizarFilas(ordenarDatos(filtrados));
+}
+
+function ordenarDatos(data) {
+    return data.sort((a, b) => {
+        if (a.paciente !== b.paciente) return (a.paciente || '').localeCompare(b.paciente || '');
+        if (a.fecha_cirugia !== b.fecha_cirugia) return (a.fecha_cirugia || '').localeCompare(b.fecha_cirugia || '');
+        return (a.proveedor || '').localeCompare(b.proveedor || '');
+    });
 }
 
 function getFiltros(){
@@ -364,11 +372,11 @@ async function descargarDatos(tipo,valor=null){
             q=q.gte('fecha_cirugia',inicio).lte('fecha_cirugia',fin);
         }
         else if(tipo==='anio'&&valor){q=q.gte('fecha_cirugia',`${valor}-01-01`).lte('fecha_cirugia',`${valor}-12-31`);}
-        const {data,error}=await q.order('fecha_cirugia',{ascending:false});
+        const {data,error}=await q;
         if(error)throw error;
         if(data.length===0){importStatus.textContent='No hay datos para descargar';setTimeout(()=>{importStatus.textContent='';},3000);return;}
         const wb=XLSX.utils.book_new();
-        const ws=XLSX.utils.json_to_sheet(data.map(r=>({
+        const ws=XLSX.utils.json_to_sheet(ordenarDatos(data).map(r=>({
             'ID_PACIENTE':r.id_paciente,'PACIENTE':r.paciente,'MEDICO':r.medico,
             'FECHA_CIRUGIA':formatearFecha(r.fecha_cirugia),'PROVEEDOR':r.proveedor,'CODIGO_CLINICA':r.codigo_clinica,
             'CODIGO_PROVEEDOR':r.codigo_proveedor,'CANTIDAD':r.cantidad,'PRECIO_UNITARIO':r.precio_unitario,
