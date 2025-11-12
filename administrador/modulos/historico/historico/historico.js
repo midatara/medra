@@ -38,9 +38,14 @@ const claveUnica = (r) => {
   const id = normaliza(r.id_paciente);
   const clinica = normaliza(r.codigo_clinica);
   const factura = normaliza(r.numero_factura);
-  const oc = normaliza(r.oc);
+  
+  // Si OC está vacío, usamos un marcador único por fila
+  let oc = normaliza(r.oc);
+  if (!oc) oc = `NOOC_${r._fila_excel || Math.random().toString(36).slice(2,7)}`;
+  
   return `${id}|${clinica}|${factura}|${oc}`;
 };
+
 
 
 // === Evento principal ===
