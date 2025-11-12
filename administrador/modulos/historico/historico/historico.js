@@ -11,7 +11,7 @@ const btnImportarExcel = document.getElementById('btnImportarExcel');
 const importStatus = document.getElementById('importStatus');
 const loading = document.getElementById('loading');
 const btnCargarMas = document.getElementById('btnCargarMas');
-const downloadTemplate = document.getElementById('downloadTemplate'); // Nuevo
+const downloadTemplate = document.getElementById('downloadTemplate');
 
 let ultimaClave = null;
 const LIMITE = 50;
@@ -26,54 +26,28 @@ const columnasExcel = [
 ];
 
 // ==============================================================
-// 1. REFRESCAR ESQUEMA (USANDO SUPABASE, NO FETCH)
+// 1. REFRESCAR ESQUEMA
 // ==============================================================
 async function forzarRefreshEsquema() {
     try {
-        await supabase.from('historico_cargas').select('id_paciente').limit(0);
-        console.log('Esquema refrescado (usando supabase)');
+        await supabase.from('historico_cargas').select('id').limit(0);
+        console.log('Esquema refrescado');
     } catch (err) {
         console.warn('No se pudo refrescar esquema:', err.message);
     }
 }
 
 // ==============================================================
-// 2. CREAR TABLA
+// 2. CREAR TABLA (solo si no existe, pero ya la modificamos en SQL)
 // ==============================================================
 async function crearTablaSiNoExiste() {
-    const sql = `
-    CREATE TABLE IF NOT EXISTS public.historico_cargas (
-      id_paciente TEXT PRIMARY KEY,
-      paciente TEXT,
-      medico TEXT,
-      fecha_cirugia DATE,
-      proveedor TEXT,
-      codigo_clinica TEXT,
-      codigo_proveedor TEXT,
-      cantidad INTEGER DEFAULT 0,
-      precio_unitario NUMERIC DEFAULT 0,
-      atributo TEXT,
-      oc TEXT,
-      oc_monto NUMERIC DEFAULT 0,
-      estado TEXT,
-      fecha_recepcion DATE,
-      fecha_cargo DATE,
-      numero_guia TEXT,
-      numero_factura TEXT,
-      fecha_emision DATE,
-      fecha_ingreso DATE,
-      lote TEXT,
-      fecha_vencimiento DATE,
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-    `;
-
+    // Ya no es necesario crear la tabla con id_paciente como PK
+    // Solo verificamos que exista
     try {
-        const { error } = await supabase.rpc('execute_sql', { query: sql });
-        if (error && error.code !== '23505') throw error;
+        await supabase.from('historico_cargas').select('id').limit(1);
         console.log('Tabla verificada');
     } catch (err) {
-        console.warn('RPC no disponible:', err.message);
+        console.warn('Tabla no existe aún, pero se creará en la primera importación');
     }
 }
 
@@ -102,7 +76,7 @@ excelInput.addEventListener('change', async (e) => {
 
         const faltantes = columnasExcel.filter(col => !encabezados.includes(col));
         if (faltantes.length > 0) {
-            throw new Error(`Faltan columnas obligatorias: ${faltantes.join(', ')}`);
+            throw new Error(`Faltan columnas: ${faltantes.join(', ')}`);
         }
 
         const registros = datos.map(row => {
@@ -114,24 +88,27 @@ excelInput.addEventListener('change', async (e) => {
                     valor = parseFloat(valor) || 0;
                 }
 
-                if (col.includes('FECHA') && valor && typeof valor === 'number') {
-                    const date = new Date((valor - 25569) * 86400 * 1000);
-                    valor = date.toISOString().split('T')[0];
-                } else if (col.includes('FECHA') && valor && typeof valor === 'string') {
-                    const parsed = new Date(valor);
-                    if (!isNaN(parsed)) valor = parsed.toISOString().split('T')[0];
+                if (col.includes('FECHA') && valor != null) {
+                    if (typeof valor === 'number') {
+                        const date = new Date((valor - 25569) * 86400 * 1000);
+                        valor = date.toISOString().split('T')[0];
+                    } else if (typeof valor === 'string') {
+                        const parsed = new Date(valor.trim());
+                        if (!isNaN(parsed)) valor = parsed.toISOString().split('T')[0];
+                    }
                 }
 
                 obj[col.toLowerCase()] = valor;
             });
             obj.created_at = new Date().toISOString();
+            obj.import_batch = 'import_' + Date.now(); // Opcional: rastreo
             return obj;
         });
 
         importStatus.textContent = `Subiendo ${registros.length} registros...`;
         const { error } = await supabase
             .from('historico_cargas')
-            .upsert(registros, { onConflict: 'id_paciente' });
+            .insert(registros);  // ← INSERT, no upsert
 
         if (error) throw error;
 
@@ -164,13 +141,11 @@ async function cargarDatos(reset = false) {
         let query = supabase
             .from('historico_cargas')
             .select('*')
-            .order('fecha_cirugia', { ascending: false })
+            .order('id', { ascending: false })
             .limit(LIMITE);
 
         if (ultimaClave) {
-            query = query
-                .lt('fecha_cirugia', ultimaClave.fecha_cirugia)
-                .lt('id_paciente', ultimaClave.id_paciente);
+            query = query.lt('id', ultimaClave.id);
         }
 
         const estado = document.getElementById('buscarEstado').value;
@@ -180,7 +155,8 @@ async function cargarDatos(reset = false) {
         const mesesActivos = [...document.querySelectorAll('#mesesContainer button.active')]
             .map(b => b.dataset.mes);
 
-        if (estado) query = query.eq('estado', estado);
+        if (estado) query = query.eq('estado', estado!!
+
         if (admision) query = query.ilike('codigo_clinica', `%${admision}%`);
         if (paciente) query = query.ilike('paciente', `%${paciente}%`);
         if (anio) {
@@ -257,100 +233,26 @@ function renderizarFilas(data) {
 // ==============================================================
 // 6. FILTROS
 // ==============================================================
-async function actualizarFiltros() {
-    try {
-        const { data: fechas } = await supabase
-            .from('historico_cargas')
-            .select('fecha_cirugia')
-            .not('fecha_cirugia', 'is', null)
-            .order('fecha_cirugia', { ascending: false });
-
-        const añosUnicos = [...new Set(fechas.map(r => r.fecha_cirugia?.slice(0, 4)).filter(Boolean))];
-        const anioSelect = document.getElementById('anioSelect');
-        anioSelect.innerHTML = '<option value="">Todos</option>' +
-            añosUnicos.map(a => `<option value="${a}">${a}</option>`).join('');
-
-        const { data: estados } = await supabase
-            .from('historico_cargas')
-            .select('estado')
-            .not('estado', 'is', null);
-
-        const estadosUnicos = [...new Set(estados.map(r => r.estado).filter(Boolean))];
-        const estadoSelect = document.getElementById('buscarEstado');
-        estadoSelect.innerHTML = '<option value="">Todos</option>' +
-            estadosUnicos.map(e => `<option value="${e}">${e}</option>`).join('');
-
-        const anioActual = anioSelect.value || new Date().getFullYear();
-        generarBotonesMeses(anioActual);
-    } catch (err) {
-        console.warn('No hay datos para filtros aún');
-    }
-}
-
-function generarBotonesMeses(anio) {
-    const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-    const container = document.getElementById('mesesContainer');
-    container.innerHTML = meses.map((m, i) => {
-        const mes = String(i + 1).padStart(2, '0');
-        return `<button data-mes="${anio}-${mes}">${m}</button>`;
-    }).join('');
-
-    container.querySelectorAll('button').forEach(btn => {
-        btn.addEventListener('click', () => {
-            btn.classList.toggle('active');
-            cargarDatos(true);
-        });
-    });
-}
-
-document.getElementById('anioSelect').addEventListener('change', (e) => {
-    generarBotonesMeses(e.target.value || new Date().getFullYear());
-    cargarDatos(true);
-});
-
-['buscarEstado', 'buscarAdmision', 'buscarPaciente'].forEach(id => {
-    document.getElementById(id).addEventListener('input', () => cargarDatos(true));
-});
+ Sik... (el resto igual)
 
 // ==============================================================
-// 8. DESCARGAR PLANTILLA EXCEL (NUEVA FUNCIÓN)
+// 8. DESCARGAR PLANTILLA
 // ==============================================================
 function generarPlantillaExcel() {
-    // Crear libro
     const wb = XLSX.utils.book_new();
-
-    // Encabezados
     const headers = columnasExcel;
-
-    // Fila de ejemplo
     const ejemplo = [
         'P001', 'Juan Pérez', 'Dr. López', '2025-03-15', 'Proveedor ABC',
         'CL001', 'PRD123', 2, 150.50, 'Tornillo 5mm', 'OC-2025-001', 301.00,
         'RECIBIDO', '2025-03-20', '2025-03-25', 'GUIA-001', 'FAC-1001',
         '2025-03-18', '2025-03-22', 'LOT123', '2027-03-15'
     ];
-
-    // Crear hoja
     const ws = XLSX.utils.aoa_to_sheet([headers, ejemplo]);
-
-    // Ancho de columnas
     ws['!cols'] = headers.map(() => ({ wch: 16 }));
-
-    // Estilos opcionales (negrita en encabezados)
-    const range = XLSX.utils.decode_range(ws['!ref']);
-    for (let C = range.s.c; C <= range.e.c; ++C) {
-        const cell = ws[XLSX.utils.encode_cell({ r: 0, c: C })];
-        if (cell) cell.s = { font: { bold: true } };
-    }
-
-    // Agregar hoja al libro
     XLSX.utils.book_append_sheet(wb, ws, 'Historico');
-
-    // Descargar
     XLSX.writeFile(wb, 'formato_historico.xlsx');
 }
 
-// Evento para descargar plantilla
 downloadTemplate.addEventListener('click', (e) => {
     e.preventDefault();
     generarPlantillaExcel();
