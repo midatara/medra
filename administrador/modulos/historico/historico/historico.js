@@ -25,25 +25,20 @@ const columnasExcel = [
 ];
 
 // ==============================================================
-// 1. REFRESCAR ESQUEMA (OBLIGATORIO DESPUÉS DE CREAR TABLA)
+// 1. REFRESCAR ESQUEMA (USANDO SUPABASE, NO FETCH)
 // ==============================================================
 async function forzarRefreshEsquema() {
     try {
-        await fetch(`${SUPABASE_URL}/rest/v1/`, {
-            method: 'GET',
-            headers: {
-                'apikey': SUPABASE_ANON_KEY,
-                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-            }
-        });
-        console.log('Esquema refrescado');
+        // Esta consulta fuerza el cache refresh
+        await supabase.from('historico_cargas').select('id_paciente').limit(0);
+        console.log('Esquema refrescado (usando supabase)');
     } catch (err) {
-        console.warn('No se pudo refrescar esquema:', err);
+        console.warn('No se pudo refrescar esquema:', err.message);
     }
 }
 
 // ==============================================================
-// 2. CREAR TABLA (opcional, ya existe)
+// 2. CREAR TABLA
 // ==============================================================
 async function crearTablaSiNoExiste() {
     const sql = `
@@ -76,9 +71,9 @@ async function crearTablaSiNoExiste() {
     try {
         const { error } = await supabase.rpc('execute_sql', { query: sql });
         if (error && error.code !== '23505') throw error;
-        console.log('Tabla historico_cargas verificada');
+        console.log('Tabla verificada');
     } catch (err) {
-        console.warn('RPC no disponible o tabla ya existe:', err.message);
+        console.warn('RPC no disponible:', err.message);
     }
 }
 
