@@ -16,7 +16,6 @@ let ultimaClave = null;
 const LIMITE = 50;
 let cargando = false;
 
-// Columnas esperadas en el Excel (en mayúsculas, como en el archivo)
 const columnasExcel = [
     'ID_PACIENTE', 'PACIENTE', 'MEDICO', 'FECHA_CIRUGIA', 'PROVEEDOR',
     'CODIGO_CLINICA', 'CODIGO_PROVEEDOR', 'CANTIDAD', 'PRECIO_UNITARIO', 'ATRIBUTO',
@@ -26,7 +25,7 @@ const columnasExcel = [
 ];
 
 // ==============================================================
-// 1. CREAR TABLA AUTOMÁTICAMENTE SI NO EXISTE
+// 1. CREAR TABLA AUTOMÁTICAMENTE
 // ==============================================================
 async function crearTablaSiNoExiste() {
     const sql = `
@@ -57,17 +56,15 @@ async function crearTablaSiNoExiste() {
     `;
 
     try {
-        // Intentamos usar una función RPC personalizada
         const { error } = await supabase.rpc('execute_sql', { query: sql });
         if (error && error.code !== '23505') throw error;
-        console.log('Tabla historico_cargas verificada/creada');
+        console.log('Tabla historico_cargas creada o ya existe');
     } catch (err) {
-        console.warn('RPC no disponible, intentando crear manualmente...');
-        // Si no existe la función, creamos la tabla directamente (solo en desarrollo)
+        console.warn('No se pudo crear la tabla con RPC:', err.message);
+        // Intentar verificar si existe
         const { error } = await supabase.from('historico_cargas').select('id_paciente').limit(0);
         if (error && error.code === '42P01') {
-            alert('Tabla no existe y no se puede crear automáticamente. Crea la tabla en SQL Editor.');
-            console.error('Tabla no existe:', error);
+            alert('Error: Tabla no existe y no se puede crear. Ejecuta el SQL manualmente.');
         }
     }
 }
@@ -95,7 +92,6 @@ excelInput.addEventListener('change', async (e) => {
         const encabezados = rows[0];
         const datos = rows.slice(1);
 
-        // Validar columnas
         const faltantes = columnasExcel.filter(col => !encabezados.includes(col));
         if (faltantes.length > 0) {
             throw new Error(`Faltan columnas: ${faltantes.join(', ')}`);
@@ -106,17 +102,14 @@ excelInput.addEventListener('change', async (e) => {
             columnasExcel.forEach(col => {
                 let valor = row[encabezados.indexOf(col)] ?? null;
 
-                // Convertir números
                 if (['CANTIDAD', 'PRECIO_UNITARIO', 'OC_MONTO'].includes(col)) {
                     valor = parseFloat(valor) || 0;
                 }
 
-                // Convertir fechas de Excel a ISO (YYYY-MM-DD)
                 if (col.includes('FECHA') && valor && typeof valor === 'number') {
                     const date = new Date((valor - 25569) * 86400 * 1000);
                     valor = date.toISOString().split('T')[0];
                 } else if (col.includes('FECHA') && valor && typeof valor === 'string') {
-                    // Si ya es string, intentar parsear
                     const parsed = new Date(valor);
                     if (!isNaN(parsed)) valor = parsed.toISOString().split('T')[0];
                 }
@@ -147,7 +140,7 @@ excelInput.addEventListener('change', async (e) => {
 });
 
 // ==============================================================
-// 3. CARGAR DATOS CON FILTROS Y PAGINACIÓN
+// 3. CARGAR DATOS
 // ==============================================================
 async function cargarDatos(reset = false) {
     if (cargando) return;
@@ -172,7 +165,6 @@ async function cargarDatos(reset = false) {
                 .lt('id_paciente', ultimaClave.id_paciente);
         }
 
-        // === FILTROS ===
         const estado = document.getElementById('buscarEstado').value;
         const admision = document.getElementById('buscarAdmision').value.trim();
         const paciente = document.getElementById('buscarPaciente').value.trim();
@@ -209,8 +201,6 @@ async function cargarDatos(reset = false) {
         if (reset) await actualizarFiltros();
     } catch (err) {
         console.error('Error cargando datos:', err);
-        importStatus.textContent = 'Error cargando datos';
-        setTimeout(() => importStatus.textContent = '', 3000);
     } finally {
         cargando = false;
         loading.classList.remove('show');
@@ -220,7 +210,7 @@ async function cargarDatos(reset = false) {
 btnCargarMas.addEventListener('click', () => cargarDatos());
 
 // ==============================================================
-// 4. RENDERIZAR FILAS
+// 4. RENDERIZAR
 // ==============================================================
 function renderizarFilas(data) {
     const fragment = document.createDocumentFragment();
@@ -255,10 +245,9 @@ function renderizarFilas(data) {
 }
 
 // ==============================================================
-// 5. ACTUALIZAR FILTROS (AÑO, ESTADO, MESES)
+// 5. FILTROS
 // ==============================================================
 async function actualizarFiltros() {
-    // Años
     const { data: fechas } = await supabase
         .from('historico_cargas')
         .select('fecha_cirugia')
@@ -270,7 +259,6 @@ async function actualizarFiltros() {
     anioSelect.innerHTML = '<option value="">Todos</option>' +
         añosUnicos.map(a => `<option value="${a}">${a}</option>`).join('');
 
-    // Estado
     const { data: estados } = await supabase
         .from('historico_cargas')
         .select('estado')
@@ -281,7 +269,6 @@ async function actualizarFiltros() {
     estadoSelect.innerHTML = '<option value="">Todos</option>' +
         estadosUnicos.map(e => `<option value="${e}">${e}</option>`).join('');
 
-    // Generar meses del año actual o seleccionado
     const anioActual = anioSelect.value || new Date().getFullYear();
     generarBotonesMeses(anioActual);
 }
@@ -302,26 +289,21 @@ function generarBotonesMeses(anio) {
     });
 }
 
-// ==============================================================
-// 6. EVENTOS DE FILTROS
-// ==============================================================
 document.getElementById('anioSelect').addEventListener('change', (e) => {
     generarBotonesMeses(e.target.value || new Date().getFullYear());
     cargarDatos(true);
 });
 
 ['buscarEstado', 'buscarAdmision', 'buscarPaciente'].forEach(id => {
-    document.getElementById(id).addEventListener('input', () => {
-        cargarDatos(true);
-    });
+    document.getElementById(id).addEventListener('input', () => cargarDatos(true));
 });
 
 // ==============================================================
-// 7. INICIAR
+// 6. INICIAR
 // ==============================================================
 crearTablaSiNoExiste().then(() => {
     cargarDatos(true);
 }).catch(err => {
-    console.error('Error iniciando módulo:', err);
-    alert('Error crítico: No se pudo conectar con la base de datos.');
+    console.error('Error iniciando:', err);
+    alert('Error crítico: Revisa la consola.');
 });
