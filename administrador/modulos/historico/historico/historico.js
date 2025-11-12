@@ -212,8 +212,8 @@ function filtrarLocalmente(){
 
 function ordenarDatos(data) {
     return data.sort((a, b) => {
-        if (a.paciente !== b.paciente) return (a.paciente || '').localeCompare(b.paciente || '');
         if (a.fecha_cirugia !== b.fecha_cirugia) return (a.fecha_cirugia || '').localeCompare(b.fecha_cirugia || '');
+        if (a.p_paciente !== b.paciente) return (a.paciente || '').localeCompare(b.paciente || '');
         return (a.proveedor || '').localeCompare(b.proveedor || '');
     });
 }
