@@ -21,32 +21,11 @@ const columnasExcel = [
 async function forzarRefreshEsquema(){try{await supabase.from('historico_cargas').select('id').limit(0);}catch(e){}}
 async function crearTablaSiNoExiste(){try{await supabase.from('historico_cargas').select('id').limit(1);}catch(e){}}
 
-// === Función de normalización segura ===
-// Corrige los problemas de redondeo o tipos erróneos (número vs texto)
 const normaliza = (valor) => {
     if (valor === null || valor === undefined) return '';
-    if (typeof valor === 'number') {
-        // Evita confusiones tipo 710549.0 → convierte siempre a entero sin decimales
-        return Math.trunc(valor).toString().trim();
-    }
-    // Si llega como string, lo limpia
+    if (typeof valor === 'number') return Math.trunc(valor).toString().trim();
     return valor.toString().trim();
 };
-
-// === Clave única normalizada ===
-const claveUnica = (r) => {
-  const id = normaliza(r.id_paciente);
-  const clinica = normaliza(r.codigo_clinica);
-  const factura = normaliza(r.numero_factura);
-  
-  // Si OC está vacío, usamos un marcador único por fila
-  let oc = normaliza(r.oc);
-  if (!oc) oc = `NOOC_${r._fila_excel || Math.random().toString(36).slice(2,7)}`;
-  
-  return `${id}|${clinica}|${factura}|${oc}`;
-};
-
-
 
 // === Evento principal ===
 excelInput.addEventListener('change', async e => {
@@ -77,119 +56,54 @@ excelInput.addEventListener('change', async e => {
 
         progressDetail.textContent = 'Preparando registros...';
 
-        const duplicadosEncontrados = [];
-        const vistos = new Map();
+        const registros = datos.map((r, index) => {
+            const filaExcel = index + 2;
+            const o = {};
+            columnasExcel.forEach(c => {
+                let v = r[encabezados.indexOf(c)] ?? null;
 
-        const registros = datos
-            .map((r, index) => {
-                const filaExcel = index + 2;
-                const o = {};
-                columnasExcel.forEach(c => {
-                    let v = r[encabezados.indexOf(c)] ?? null;
-
-                    // ⚙️ Forzar a texto limpio en las columnas clave
-                    if (['ID_PACIENTE', 'CODIGO_CLINICA', 'NUMERO_FACTURA'].includes(c) && v != null) {
-                        v = normaliza(v);
-                    }
-
-                    if (['CANTIDAD', 'PRECIO_UNITARIO', 'OC_MONTO'].includes(c)) {
-                        v = parseFloat(v) || 0;
-                    }
-
-                    if (c.includes('FECHA') && v != null) {
-                        if (typeof v === 'number') {
-                            const d = new Date((v - 25569) * 86400 * 1000);
-                            v = d.toISOString().split('T')[0];
-                        } else if (typeof v === 'string') {
-                            const p = new Date(v.trim());
-                            if (!isNaN(p)) v = p.toISOString().split('T')[0];
-                        }
-                    }
-
-                    o[c.toLowerCase()] = v;
-                });
-                o.created_at = new Date().toISOString();
-                o.import_batch = 'import_' + Date.now();
-                o._fila_excel = filaExcel;
-                return o;
-            })
-            .filter(reg => {
-                const clave = claveUnica(reg);
-
-                // 🔍 DEBUG opcional para detectar claves específicas
-                if (reg.id_paciente == 90264 && reg.numero_factura == 166146) {
-                    console.log('DEBUG PACIENTE 90264', {
-                        fila: reg._fila_excel,
-                        id: reg.id_paciente,
-                        clinica: reg.codigo_clinica,
-                        tipoId: typeof reg.id_paciente,
-                        tipoClinica: typeof reg.codigo_clinica,
-                        tipoFactura: typeof reg.numero_factura,
-                        claveGenerada: clave
-                    });
+                if (['ID_PACIENTE', 'CODIGO_CLINICA', 'NUMERO_FACTURA'].includes(c) && v != null) {
+                    v = normaliza(v);
                 }
 
-                if (vistos.has(clave)) {
-                    duplicadosEncontrados.push({
-                        fila: reg._fila_excel,
-                        clave,
-                        datos: { ...reg }
-                    });
-                    return false;
-                } else {
-                    vistos.set(clave, true);
-                    return true;
+                if (['CANTIDAD', 'PRECIO_UNITARIO', 'OC_MONTO'].includes(c)) {
+                    v = parseFloat(v) || 0;
                 }
+
+                if (c.includes('FECHA') && v != null) {
+                    if (typeof v === 'number') {
+                        const d = new Date((v - 25569) * 86400 * 1000);
+                        v = d.toISOString().split('T')[0];
+                    } else if (typeof v === 'string') {
+                        const p = new Date(v.trim());
+                        if (!isNaN(p)) v = p.toISOString().split('T')[0];
+                    }
+                }
+
+                o[c.toLowerCase()] = v;
             });
+            o.created_at = new Date().toISOString();
+            o.import_batch = 'import_' + Date.now();
+            o._fila_excel = filaExcel;
+            return o;
+        });
 
-        // === MOSTRAR DUPLICADOS EN CONSOLA + UI ===
-        if (duplicadosEncontrados.length > 0) {
-            console.warn(`ELIMINADOS ${duplicadosEncontrados.length} DUPLICADOS (paciente + clínica + factura):`);
-            duplicadosEncontrados.forEach(d => {
-                console.group(`FILA ${d.fila} (duplicada)`);
-                console.log('Clave:', d.clave);
-                console.table({
-                    ID_PACIENTE: d.datos.id_paciente,
-                    CODIGO_CLINICA: d.datos.codigo_clinica,
-                    NUMERO_FACTURA: d.datos.numero_factura,
-                    OC: d.datos.oc,
-                    PACIENTE: d.datos.paciente,
-                    CANTIDAD: d.datos.cantidad
-                });
-                console.groupEnd();
-            });
-            console.log(`Registros únicos: ${registros.length} de ${datos.length}`);
+        // ✅ No filtramos duplicados, se insertan todos tal cual
+        progressDetail.textContent = 'Insertando registros (sin eliminar duplicados)...';
 
-            importStatus.className = 'registrar-message-warning';
-            importStatus.textContent = `Advertencia: ${duplicadosEncontrados.length} duplicados eliminados (paciente + clínica + factura). Revisa consola (F12).`;
-            setTimeout(() => { importStatus.textContent = ''; }, 10000);
-        } else {
-            console.log(`Sin duplicados. ${registros.length} registros listos.`);
-        }
-
-        // === UPSERT CON CLAVE FINAL Y LIMPIEZA DE CAMPOS ===
-        progressDetail.textContent = 'Procesando con UPSERT...';
         const LOTE = 500;
         let procesados = 0;
         const total = registros.length;
 
         for (let i = 0; i < registros.length; i += LOTE) {
             const lote = registros.slice(i, i + LOTE);
-
-            // ✅ Eliminar campos no existentes en la tabla
             const loteLimpio = lote.map(({ _fila_excel, ...rest }) => rest);
 
             const { error } = await supabase
                 .from('historico_cargas')
-                .upsert(loteLimpio, { 
-                    onConflict: 'id_paciente,codigo_clinica,numero_factura',
-                    ignoreDuplicates: false
-                });
+                .insert(loteLimpio); // 👈 insert en lugar de upsert
 
-            if (error) {
-                console.error('Error en lote:', error);
-                throw new Error(`Error al procesar lote: ${error.message}`);
-            }
+            if (error) throw new Error(`Error al insertar lote: ${error.message}`);
 
             procesados += lote.length;
             const porcentaje = Math.round((procesados / total) * 100);
@@ -200,7 +114,7 @@ excelInput.addEventListener('change', async e => {
             await new Promise(resolve => setTimeout(resolve, 1));
         }
 
-        progressDetail.textContent = `¡Completado! ${procesados} registros`;
+        progressDetail.textContent = `¡Completado! ${procesados} registros insertados`;
         importStatus.className = 'registrar-message-success';
         importStatus.textContent = `Importación OK: ${procesados} registros`;
 
@@ -223,9 +137,6 @@ excelInput.addEventListener('change', async e => {
     }
 });
 
-
-
-// === RESTO DEL CÓDIGO (sin cambios) ===
 
 async function inicializarConUltimoMes(){
     try{
