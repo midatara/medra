@@ -295,7 +295,7 @@ document.getElementById('anioSelect').addEventListener('change',e=>{
 ['buscarEstado','buscarAdmision','buscarPaciente','buscarOC','buscarFactura','buscarDescripcion','buscarProveedor','mesSelect'].forEach(id=>{
     const el=document.getElementById(id);
     el.addEventListener('input',debounceBuscar);
-    el.addEventListener('change',debBounceBuscar);
+    el.addEventListener('change',debounceBuscar);
 });
 
 document.getElementById('actionsBtn').addEventListener('click',e=>{e.stopPropagation();const m=document.getElementById('actionsMenu');m.style.display=m.style.display==='block'?'none':'block';});
@@ -305,7 +305,7 @@ document.getElementById('actionsMenu').addEventListener('click',e=>e.stopPropaga
 document.getElementById('importExcel').addEventListener('click',e=>{e.preventDefault();excelInput.click();});
 document.getElementById('downloadTemplate').addEventListener('click',e=>{e.preventDefault();generarPlantillaExcel();});
 document.getElementById('downloadAll').addEventListener('click',async e=>{e.preventDefault();await descargarDatos('todos');});
-document.getElementById('downloadMonth').add0EventListener('click',async e=>{e.preventDefault();const h=new Date();const m=String(h.getMonth()+1).padStart(2,'0');const a=h.getFullYear();await descargarDatos('mes',`${a}-${m}`);});
+document.getElementById('downloadMonth').addEventListener('click',async e=>{e.preventDefault();const h=new Date();const m=String(h.getMonth()+1).padStart(2,'0');const a=h.getFullYear();await descargarDatos('mes',`${a}-${m}`);});
 document.getElementById('downloadYear').addEventListener('click',async e=>{e.preventDefault();const a=new Date().getFullYear();await descargarDatos('anio',a);});
 
 async function descargarDatos(tipo,valor=null){
