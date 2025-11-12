@@ -21,87 +21,152 @@ const columnasExcel = [
 async function forzarRefreshEsquema(){try{await supabase.from('historico_cargas').select('id').limit(0);}catch(e){}}
 async function crearTablaSiNoExiste(){try{await supabase.from('historico_cargas').select('id').limit(1);}catch(e){}}
 
-excelInput.addEventListener('change',async e=>{
-    const file=e.target.files[0];if(!file)return;
-    const progressModal=document.getElementById('progressModal');
-    const progressBar=document.getElementById('progressBar');
-    const progressText=document.getElementById('progressText');
-    const progressDetail=document.getElementById('progressDetail');
+excelInput.addEventListener('change', async e => {
+    const file = e.target.files[0]; if (!file) return;
+    const progressModal = document.getElementById('progressModal');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    const progressDetail = document.getElementById('progressDetail');
     progressModal.classList.add('show');
-    progressDetail.textContent='Leyendo archivo Excel...';
-    try{
-        const data=await file.arrayBuffer();
-        const workbook=XLSX.read(data,{type:'array'});
-        const sheet=workbook.Sheets[workbook.SheetNames[0]];
-        const rows=XLSX.utils.sheet_to_json(sheet,{header:1});
-        if(rows.length<2)throw new Error('El archivo no tiene datos');
-        const encabezados=rows[0];const datos=rows.slice(1);
-        const faltantes=columnasExcel.filter(c=>!encabezados.includes(c));
-        if(faltantes.length>0)throw new Error(`Faltan columnas: ${faltantes.join(', ')}`);
-        progressDetail.textContent='Preparando registros...';
-        const registros=datos.map(r=>{
-            const o={};columnasExcel.forEach(c=>{
-                let v=r[encabezados.indexOf(c)]??null;
-                if(['CANTIDAD','PRECIO_UNITARIO','OC_MONTO'].includes(c))v=parseFloat(v)||0;
-                if(c.includes('FECHA')&&v!=null){
-                    if(typeof v==='number'){
-                        const d=new Date((v-25569)*86400*1000);v=d.toISOString().split('T')[0];
-                    }else if(typeof v==='string'){
-                        const p=new Date(v.trim());if(!isNaN(p))v=p.toISOString().split('T')[0];
+    progressDetail.textContent = 'Leyendo archivo Excel...';
+
+    try {
+        const data = await file.arrayBuffer();
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+        if (rows.length < 2) throw new Error('El archivo no tiene datos');
+        const encabezados = rows[0]; const datos = rows.slice(1);
+        const faltantes = columnasExcel.filter(c => !encabezados.includes(c));
+        if (faltantes.length > 0) throw new Error(`Faltan columnas: ${faltantes.join(', ')}`);
+
+        progressDetail.textContent = 'Preparando registros...';
+
+        // === DETECCIÓN DE DUPLICADOS EN EXCEL ===
+        const claveUnica = (r) => `${r.id_paciente}|${r.codigo_proveedor}|${r.fecha_cirugia}|${r.numero_factura}`;
+        const duplicadosEncontrados = [];
+        const vistos = new Map();
+
+        const registros = datos
+            .map((r, index) => {
+                const filaExcel = index + 2; // +2: fila 1 = encabezados
+                const o = {};
+                columnasExcel.forEach(c => {
+                    let v = r[encabezados.indexOf(c)] ?? null;
+                    if (['CANTIDAD', 'PRECIO_UNITARIO', 'OC_MONTO'].includes(c)) v = parseFloat(v) || 0;
+                    if (c.includes('FECHA') && v != null) {
+                        if (typeof v === 'number') {
+                            const d = new Date((v - 25569) * 86400 * 1000);
+                            v = d.toISOString().split('T')[0];
+                        } else if (typeof v === 'string') {
+                            const p = new Date(v.trim());
+                            if (!isNaN(p)) v = p.toISOString().split('T')[0];
+                        }
                     }
+                    o[c.toLowerCase()] = v;
+                });
+                o.created_at = new Date().toISOString();
+                o.import_batch = 'import_' + Date.now();
+                o._fila_excel = filaExcel; // para debug
+                return o;
+            })
+            .filter(reg => {
+                const clave = claveUnica(reg);
+                if (vistos.has(clave)) {
+                    duplicadosEncontrados.push({
+                        fila: reg._fila_excel,
+                        clave,
+                        datos: { ...reg }
+                    });
+                    return false;
+                } else {
+                    vistos.set(clave, true);
+                    return true;
                 }
-                o[c.toLowerCase()]=v;
             });
-            o.created_at=new Date().toISOString();
-            o.import_batch='import_'+Date.now();
-            return o;
-        });
-        
-        // UPSERT: inserta nuevos y actualiza existentes en una sola operación
-        progressDetail.textContent='Procesando registros con UPSERT...';
-        
-        const LOTE=500; // Lotes de 500 registros
-        let procesados=0;
-        const total=registros.length;
-        
-        for(let i=0;i<registros.length;i+=LOTE){
-            const lote=registros.slice(i,i+LOTE);
-            
-            // UPSERT: Si el registro existe (según la clave única), lo actualiza. Si no existe, lo inserta.
-            const {error} = await supabase
+
+        // === MOSTRAR DUPLICADOS EN CONSOLA ===
+        if (duplicadosEncontrados.length > 0) {
+            console.warn(`ELIMINADOS ${duplicadosEncontrados.length} REGISTROS DUPLICADOS:`);
+            duplicadosEncontrados.forEach(d => {
+                console.group(`FILA ${d.fila} (duplicada)`);
+                console.log('Clave única:', d.clave);
+                console.table({
+                    ID_PACIENTE: d.datos.id_paciente,
+                    CODIGO_PROVEEDOR: d.datos.codigo_proveedor,
+                    FECHA_CIRUGIA: d.datos.fecha_cirugia,
+                    NUMERO_FACTURA: d.datos.numero_factura,
+                    PACIENTE: d.datos.paciente,
+                    PROVEEDOR: d.datos.proveedor,
+                    CANTIDAD: d.datos.cantidad,
+                    PRECIO: d.datos.precio_unitario,
+                    ESTADO: d.datos.estado
+                });
+                console.groupEnd();
+            });
+            console.log(`Registros únicos: ${registros.length} de ${datos.length} originales`);
+
+            // Advertencia en pantalla
+            importStatus.className = 'registrar-message-warning';
+            importStatus.textContent = `Advertencia: ${duplicadosEncontrados.length} filas duplicadas eliminadas. Revisa la consola (F12).`;
+            setTimeout(() => { importStatus.textContent = ''; }, 10000);
+        } else {
+            console.log(`Sin duplicados. ${registros.length} registros listos.`);
+        }
+
+        // === UPSERT SIN DUPLICADOS ===
+        progressDetail.textContent = 'Procesando registros con UPSERT...';
+        const LOTE = 500;
+        let procesados = 0;
+        const total = registros.length;
+
+        for (let i = 0; i < registros.length; i += LOTE) {
+            const lote = registros.slice(i, i + LOTE);
+            const { error } = await supabase
                 .from('historico_cargas')
                 .upsert(lote, { 
                     onConflict: 'id_paciente,codigo_proveedor,fecha_cirugia,numero_factura',
-                    ignoreDuplicates: false  // false = actualiza los existentes
+                    ignoreDuplicates: false
                 });
-            
-            if(error){
+
+            if (error) {
                 console.error('Error en lote:', error);
                 throw new Error(`Error al procesar lote: ${error.message}`);
             }
-            
-            procesados+=lote.length;
-            const porcentaje=Math.round((procesados/total)*100);
-            progressBar.style.width=porcentaje+'%';
-            progressBar.textContent=porcentaje+'%';
-            progressText.textContent=`${procesados} / ${total} registros`;
-            progressDetail.textContent=`Procesados: ${procesados} (insertando nuevos y actualizando existentes)`;
-            
-            await new Promise(resolve=>setTimeout(resolve,1));
+
+            procesados += lote.length;
+            const porcentaje = Math.round((procesados / total) * 100);
+            progressBar.style.width = porcentaje + '%';
+            progressBar.textContent = porcentaje + '%';
+            progressText.textContent = `${procesados} / ${total} registros`;
+            progressDetail.textContent = `Procesados: ${procesados} (insertando nuevos y actualizando existentes)`;
+
+            await new Promise(resolve => setTimeout(resolve, 1));
         }
-        
-        progressDetail.textContent=`¡Completado! ${procesados} registros procesados`;
-        importStatus.className='registrar-message-success';
-        importStatus.textContent=`Importación completada: ${procesados} registros procesados (nuevos + actualizados)`;
-        setTimeout(()=>{progressModal.classList.remove('show');importStatus.textContent='';progressBar.style.width='0%';progressBar.textContent='';},3000);
+
+        progressDetail.textContent = `¡Completado! ${procesados} registros procesados`;
+        importStatus.className = 'registrar-message-success';
+        importStatus.textContent = `Importación completada: ${procesados} registros procesados (nuevos + actualizados)`;
+        setTimeout(() => {
+            progressModal.classList.remove('show');
+            importStatus.textContent = '';
+            progressBar.style.width = '0%';
+            progressBar.textContent = '';
+        }, 3000);
+
         await inicializarConUltimoMes();
-    }catch(err){
+
+    } catch (err) {
         progressModal.classList.remove('show');
-        importStatus.className='registrar-message-error';
-        importStatus.textContent=`Error: ${err.message}`;
+        importStatus.className = 'registrar-message-error';
+        importStatus.textContent = `Error: ${err.message}`;
         console.error(err);
-    }finally{excelInput.value='';}
+    } finally {
+        excelInput.value = '';
+    }
 });
+
+// === RESTO DEL CÓDIGO (sin cambios) ===
 
 async function inicializarConUltimoMes(){
     try{
@@ -446,6 +511,6 @@ function initColumnResize() {
 }
 
 forzarRefreshEsquema()
-    .then(()=>crearTablaSiNoExiste())
-    .then(()=>inicializarConUltimoMes())
-    .catch(e=>{console.error(e);alert('Error crítico: Revisa la consola.');});
+    .then(() => crearTablaSiNoExiste())
+    .then(() => inicializarConUltimoMes())
+    .catch(e => { console.error(e); alert('Error crítico: Revisa la consola.'); });
