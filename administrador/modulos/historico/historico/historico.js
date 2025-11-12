@@ -77,14 +77,18 @@ async function cargarDatos(reset=false){
         const paciente=document.getElementById('buscarPaciente').value.trim();
         const oc=document.getElementById('buscarOC').value.trim();
         const factura=document.getElementById('buscarFactura').value.trim();
+        const descripcion=document.getElementById('buscarDescripcion').value.trim();
+        const proveedor=document.getElementById('buscarProveedor').value;
         const anio=document.getElementById('anioSelect').value;
         const mes=document.getElementById('mesSelect').value;
 
         if(estado)q=q.eq('estado',estado);
-        if(admision)q=q.ilike('codigo_clinica',`%${admision}%`);
+        if(admision)q=q.ilike('id_paciente',`%${admision}%`);
         if(paciente)q=q.ilike('paciente',`%${paciente}%`);
         if(oc)q=q.ilike('oc',`%${oc}%`);
         if(factura)q=q.ilike('numero_factura',`%${factura}%`);
+        if(descripcion)q=q.ilike('codigo_proveedor',`%${descripcion}%`);
+        if(proveedor)q=q.eq('proveedor',proveedor);
         if(anio){
             q=q.gte('fecha_cirugia',`${anio}-01-01`).lte('fecha_cirugia',`${anio}-12-31`);
         }
@@ -157,6 +161,12 @@ async function actualizarFiltros(){
         const estadoActual=estadoSelect.value;
         estadoSelect.innerHTML='<option value="">Todos</option>'+estUnicos.map(e=>`<option value="${e}" ${e===estadoActual?'selected':''}>${e}</option>`).join('');
 
+        const {data:proveedores}=await supabase.from('historico_cargas').select('proveedor').not('proveedor','is',null);
+        const provUnicos=[...new Set(proveedores.map(r=>r.proveedor).filter(Boolean))].sort();
+        const provSelect=document.getElementById('buscarProveedor');
+        const provActual=provSelect.value;
+        provSelect.innerHTML='<option value="">Todos</option>'+provUnicos.map(p=>`<option value="${p}" ${p===provActual?'selected':''}>${p}</option>`).join('');
+
         await actualizarMesesDisponibles(anioSelect.value||new Date().getFullYear());
     }catch(e){console.warn('Sin datos para filtros');}
 }
@@ -187,7 +197,7 @@ document.getElementById('anioSelect').addEventListener('change',e=>{
     cargarDatos(true);
 });
 
-['buscarEstado','buscarAdmision','buscarPaciente','buscarOC','buscarFactura','mesSelect'].forEach(id=>{
+['buscarEstado','buscarAdmision','buscarPaciente','buscarOC','buscarFactura','buscarDescripcion','buscarProveedor','mesSelect'].forEach(id=>{
     const el=document.getElementById(id);
     el.addEventListener('input',()=>{cargarDatos(true);});
     el.addEventListener('change',()=>{cargarDatos(true);});
