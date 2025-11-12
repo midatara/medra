@@ -42,14 +42,14 @@ excelInput.addEventListener('change', async e => {
 
         progressDetail.textContent = 'Preparando registros...';
 
-        // === CLAVE ÚNICA: id_paciente + codigo_clinica ===
-        const claveUnica = (r) => `${r.id_paciente}|${r.codigo_clinica}`;
+        // === CLAVE ÚNICA CORRECTA: id_paciente + codigo_clinica + numero_factura ===
+        const claveUnica = (r) => `${r.id_paciente}|${r.codigo_clinica}|${r.numero_factura || ''}`.trim();
         const duplicadosEncontrados = [];
         const vistos = new Map();
 
         const registros = datos
             .map((r, index) => {
-                const filaExcel = index + 2; // Fila 1 = encabezados
+                const filaExcel = index + 2;
                 const o = {};
                 columnasExcel.forEach(c => {
                     let v = r[encabezados.indexOf(c)] ?? null;
@@ -87,24 +87,24 @@ excelInput.addEventListener('change', async e => {
 
         // === MOSTRAR DUPLICADOS EN CONSOLA + UI ===
         if (duplicadosEncontrados.length > 0) {
-            console.warn(`ELIMINADOS ${duplicadosEncontrados.length} DUPLICADOS (id_paciente + codigo_clinica):`);
+            console.warn(`ELIMINADOS ${duplicadosEncontrados.length} DUPLICADOS (paciente + clínica + factura):`);
             duplicadosEncontrados.forEach(d => {
                 console.group(`FILA ${d.fila} (duplicada)`);
                 console.log('Clave:', d.clave);
                 console.table({
                     ID_PACIENTE: d.datos.id_paciente,
                     CODIGO_CLINICA: d.datos.codigo_clinica,
-                    CODIGO_PROVEEDOR: d.datos.codigo_proveedor,
+                    NUMERO_FACTURA: d.datos.numero_factura,
+                    OC: d.datos.oc,
                     PACIENTE: d.datos.paciente,
-                    CANTIDAD: d.datos.cantidad,
-                    PRECIO: d.datos.precio_unitario
+                    CANTIDAD: d.datos.cantidad
                 });
                 console.groupEnd();
             });
             console.log(`Registros únicos: ${registros.length} de ${datos.length}`);
 
             importStatus.className = 'registrar-message-warning';
-            importStatus.textContent = `Advertencia: ${duplicadosEncontrados.length} duplicados eliminados (paciente + clínica). Revisa consola (F12).`;
+            importStatus.textContent = `Advertencia: ${duplicadosEncontrados.length} duplicados eliminados (paciente + clínica + factura). Revisa consola (F12).`;
             setTimeout(() => { importStatus.textContent = ''; }, 10000);
         } else {
             console.log(`Sin duplicados. ${registros.length} registros listos.`);
@@ -121,7 +121,7 @@ excelInput.addEventListener('change', async e => {
             const { error } = await supabase
                 .from('historico_cargas')
                 .upsert(lote, { 
-                    onConflict: 'id_paciente,codigo_clinica',  // CLAVE CORRECTA
+                    onConflict: 'id_paciente,codigo_clinica,numero_factura',  // CLAVE FINAL
                     ignoreDuplicates: false
                 });
 
