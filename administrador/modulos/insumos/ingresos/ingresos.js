@@ -341,19 +341,20 @@ function initTotalItemsCalculation() {
 }
 
 function initOtherFields() {
-    const admisionInput = document.getElementById('admision');
-    const pacienteInput = document.getElementById('paciente');
-    const fechaInput = document.getElementById('fecha');
+    const fields = [
+        { id: 'admision', name: 'Admisión' },
+        { id: 'paciente', name: 'Paciente' },
+        { id: 'fecha', name: 'Fecha' }
+    ];
 
-    if (!admisionInput || !pacienteInput || !fechaInput) {
-        console.error('Elementos de admisión, paciente o fecha no encontrados');
-        return;
-    }
-
-    [admisionInput, pacienteInput, fechaInput].forEach(input => {
-        input.addEventListener('input', () => {
-            // No realizar ninguna acción que limpie otros campos
-        });
+    fields.forEach(field => {
+        const input = document.getElementById(field.id);
+        if (input) {
+            input.addEventListener('input', () => {
+            });
+        } else {
+            console.warn(`Elemento ${field.name} con ID "${field.id}" no encontrado en el DOM`);
+        }
     });
 }
 
