@@ -122,7 +122,9 @@ function showDropdown(items, dropdownElement, key, inputId) {
         div.dataset.id = item.id;
         div.addEventListener('click', () => {
             document.getElementById(inputId).value = item[key];
-            fillRelatedFields(item);
+            if (inputId === 'codigo' || inputId === 'descripcion') {
+                fillRelatedFields(item);
+            }
             dropdownElement.style.display = 'none';
         });
         dropdownElement.appendChild(div);
@@ -338,6 +340,23 @@ function initTotalItemsCalculation() {
     cantidadInput.addEventListener('input', updateTotalItems);
 }
 
+function initOtherFields() {
+    const admisionInput = document.getElementById('admision');
+    const pacienteInput = document.getElementById('paciente');
+    const fechaInput = document.getElementById('fecha');
+
+    if (!admisionInput || !pacienteInput || !fechaInput) {
+        console.error('Elementos de admisión, paciente o fecha no encontrados');
+        return;
+    }
+
+    [admisionInput, pacienteInput, fechaInput].forEach(input => {
+        input.addEventListener('input', () => {
+            // No realizar ninguna acción que limpie otros campos
+        });
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, async (user) => {
         if (!user) {
@@ -353,6 +372,7 @@ document.addEventListener('DOMContentLoaded', () => {
             initDescripcionField();
             initAtributoFilter();
             initTotalItemsCalculation();
+            initOtherFields();
         } catch (error) {
             showToast('Error al inicializar la aplicación: ' + error.message, 'error');
             console.error('Error al inicializar:', error);
