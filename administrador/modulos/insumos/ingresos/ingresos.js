@@ -1,6 +1,6 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { getFirestore, collection, getDocs, query, orderBy, where } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { getFirestore, collection, getDocs, query, orderBy, where, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const firebaseConfig = {
     apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
@@ -21,6 +21,7 @@ setPersistence(auth, browserSessionPersistence);
 let medicos = [];
 let referencias = [];
 let atributoFilter = 'CONSIGNACION';
+let registros = [];
 
 function showLoading() {
     const loading = document.getElementById('loading');
@@ -106,6 +107,23 @@ async function loadReferencias() {
         hideLoading();
         showToast('Error al cargar las referencias: ' + error.message, 'error');
         console.error('Error al cargar referencias:', error);
+    }
+}
+
+async function loadRegistros() {
+    showLoading();
+    try {
+        const querySnapshot = await getDocs(query(collection(db, 'consigna_ingresos'), orderBy('createdAt', 'desc')));
+        registros = [];
+        querySnapshot.forEach((doc) => {
+            registros.push({ id: doc.id, ...doc.data() });
+        });
+        renderTable();
+        hideLoading();
+    } catch (error) {
+        hideLoading();
+        showToast('Error al cargar los registros: ' + error.message, 'error');
+        console.error('Error al cargar registros:', error);
     }
 }
 
@@ -419,9 +437,168 @@ function initDocDeliveryField() {
     });
 }
 
+async function registrarIngreso() {
+    console.log('Función registrarIngreso ejecutada');
+    const admision = document.getElementById('admision').value.trim();
+    const paciente = document.getElementById('paciente').value.trim();
+    const medico = document.getElementById('medico').value.trim();
+    const fechaCX = document.getElementById('fechaCX').value;
+    const codigo = document.getElementById('codigo').value.trim();
+    const descripcion = document.getElementById('descripcion').value.trim();
+    const cantidad = parseInt(document.getElementById('cantidad').value) || 0;
+    const referencia = document.getElementById('referencia').value.trim();
+    const proveedor = document.getElementById('proveedor').value.trim();
+    const precioUnitario = parseFloat(document.getElementById('precioUnitario').value.replace(/\./g, '')) || 0;
+    const atributo = document.getElementById('atributo').value.trim();
+    const totalItems = parseFloat(document.getElementById('totalItems').value.replace(/\./g, '')) || 0;
+    const docDelivery = document.getElementById('docDelivery').value.trim();
+    const usuario = auth.currentUser ? auth.currentUser.email : 'unknown';
+
+    if (!admision || !paciente || !medico || !fechaCX || !codigo || !descripcion || !cantidad || !referencia || !proveedor || !precioUnitario || !atributo) {
+        showToast('Por favor, completa todos los campos obligatorios', 'error');
+        console.error('Campos obligatorios vacíos');
+        return;
+    }
+
+    showLoading();
+    try {
+        const docRef = await addDoc(collection(db, 'consigna_ingresos'), {
+            admision,
+            paciente,
+            medico,
+            fechaCX,
+            codigo,
+            descripcion,
+            cantidad,
+            referencia,
+            proveedor,
+            precioUnitario,
+            atributo,
+            totalItems,
+            docDelivery,
+            usuario,
+            createdAt: serverTimestamp()
+        });
+
+        const nuevoRegistro = {
+            id: docRef.id,
+            admision,
+            paciente,
+            medico,
+            fechaCX,
+            codigo,
+            descripcion,
+            cantidad,
+            referencia,
+            proveedor,
+            precioUnitario,
+            atributo,
+            totalItems,
+            docDelivery,
+            usuario,
+            createdAt: new Date()
+        };
+
+        registros.unshift(nuevoRegistro);
+        renderTable();
+
+        document.getElementById('codigo').value = '';
+        document.getElementById('descripcion').value = '';
+        document.getElementById('cantidad').value = '';
+        document.getElementById('referencia').value = '';
+        document.getElementById('proveedor').value = '';
+        document.getElementById('precioUnitario').value = '';
+        document.getElementById('atributo').value = '';
+        document.getElementById('totalItems').value = '';
+        document.getElementById('codigoDropdown').style.display = 'none';
+        document.getElementById('descripcionDropdown').style.display = 'none';
+
+        showToast('Registro guardado exitosamente', 'success');
+        console.log('Registro guardado:', nuevoRegistro);
+    } catch (error) {
+        showToast('Error al guardar el registro: ' + error.message, 'error');
+        console.error('Error al registrar:', error);
+    } finally {
+        hideLoading();
+    }
+}
+
+function limpiarCampos() {
+    console.log('Función limpiarCampos ejecutada');
+    document.getElementById('admision').value = '';
+    document.getElementById('paciente').value = '';
+    document.getElementById('medico').value = '';
+    document.getElementById('fechaCX').value = '';
+    document.getElementById('docDelivery').value = '';
+    document.getElementById('guiaStatus').textContent = '';
+    document.getElementById('guiaStatus').style.color = '#999';
+    document.getElementById('medicoDropdown').style.display = 'none';
+}
+
+function renderTable() {
+    console.log('Función renderTable ejecutada');
+    const tbody = document.querySelector('#registrarTable tbody');
+    if (!tbody) {
+        console.error('Cuerpo de la tabla registrarTable no encontrado');
+        return;
+    }
+
+    tbody.innerHTML = '';
+    if (registros.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="15">No hay registros para mostrar</td></tr>';
+        return;
+    }
+
+    registros.forEach((registro) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${registro.admision || ''}</td>
+            <td>${registro.paciente || ''}</td>
+            <td>${registro.medico || ''}</td>
+            <td>${registro.fechaCX || ''}</td>
+            <td>${registro.codigo || ''}</td>
+            <td>${registro.descripcion || ''}</td>
+            <td>${registro.cantidad || ''}</td>
+            <td>${registro.referencia || ''}</td>
+            <td>${registro.proveedor || ''}</td>
+            <td>${formatNumberWithThousandsSeparator(registro.precioUnitario)}</td>
+            <td>${registro.atributo || ''}</td>
+            <td>${formatNumberWithThousandsSeparator(registro.totalItems)}</td>
+            <td>${registro.docDelivery || ''}</td>
+            <td>${registro.usuario || ''}</td>
+            <td class="registrar-actions">
+                <button class="registrar-btn-edit" title="Editar"><i class="fas fa-edit"></i></button>
+                <button class="registrar-btn-delete" title="Eliminar"><i class="fas fa-trash"></i></button>
+                <button class="registrar-btn-history" title="Historial"><i class="fas fa-history"></i></button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function initRegistrarButton() {
+    const registrarBtn = document.getElementById('registrarBtn');
+    if (!registrarBtn) {
+        console.error('Botón Registrar con ID "registrarBtn" no encontrado');
+        return;
+    }
+    registrarBtn.addEventListener('click', registrarIngreso);
+}
+
+function initLimpiarButton() {
+    const limpiarBtn = document.getElementById('limpiarBtn');
+    if (!limpiarBtn) {
+        console.error('Botón Limpiar con ID "limpiarBtn" no encontrado');
+        return;
+    }
+    limpiarBtn.addEventListener('click', limpiarCampos);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOMContentLoaded ejecutado');
     onAuthStateChanged(auth, async (user) => {
         if (!user) {
+            console.log('Usuario no autenticado, redirigiendo...');
             window.location.replace('../../../index.html');
             return;
         }
@@ -429,6 +606,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             await loadMedicos();
             await loadReferencias();
+            await loadRegistros();
             initMedicoField();
             initCodigoField();
             initDescripcionField();
@@ -436,6 +614,9 @@ document.addEventListener('DOMContentLoaded', () => {
             initTotalItemsCalculation();
             initOtherFields();
             initDocDeliveryField();
+            initRegistrarButton();
+            initLimpiarButton();
+            console.log('Inicialización completada');
         } catch (error) {
             showToast('Error al inicializar la aplicación: ' + error.message, 'error');
             console.error('Error al inicializar:', error);
