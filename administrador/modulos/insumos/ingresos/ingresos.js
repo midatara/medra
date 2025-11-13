@@ -53,6 +53,11 @@ function showToast(message, type = 'success') {
     }, 5000);
 }
 
+function formatNumberWithThousandsSeparator(number) {
+    if (!number || isNaN(number)) return '';
+    return Number(number).toLocaleString('es-CL', { minimumFractionDigits: 0 });
+}
+
 async function loadMedicos() {
     showLoading();
     try {
@@ -138,8 +143,25 @@ function fillRelatedFields(item) {
     descripcionInput.value = item.descripcion || '';
     referenciaInput.value = item.referencia || '';
     proveedorInput.value = item.proveedor || '';
-    precioUnitarioInput.value = item.precioUnitario || '';
+    precioUnitarioInput.value = item.precioUnitario ? formatNumberWithThousandsSeparator(item.precioUnitario) : '';
     atributoInput.value = item.atributo || '';
+    updateTotalItems();
+}
+
+function updateTotalItems() {
+    const cantidadInput = document.getElementById('cantidad');
+    const precioUnitarioInput = document.getElementById('precioUnitario');
+    const totalItemsInput = document.getElementById('totalItems');
+
+    const cantidad = parseFloat(cantidadInput.value) || 0;
+    const precioUnitario = parseFloat(precioUnitarioInput.value.replace(/\./g, '')) || 0;
+
+    if (cantidad > 0 && precioUnitario > 0) {
+        const total = cantidad * precioUnitario;
+        totalItemsInput.value = formatNumberWithThousandsSeparator(total);
+    } else {
+        totalItemsInput.value = '';
+    }
 }
 
 function filterItems(searchText, items, key) {
@@ -288,6 +310,7 @@ function initAtributoFilter() {
             const proveedorInput = document.getElementById('proveedor');
             const precioUnitarioInput = document.getElementById('precioUnitario');
             const atributoInput = document.getElementById('atributo');
+            const totalItemsInput = document.getElementById('totalItems');
             const codigoDropdown = document.getElementById('codigoDropdown');
             const descripcionDropdown = document.getElementById('descripcionDropdown');
             if (codigoInput) codigoInput.value = '';
@@ -296,10 +319,23 @@ function initAtributoFilter() {
             if (proveedorInput) proveedorInput.value = '';
             if (precioUnitarioInput) precioUnitarioInput.value = '';
             if (atributoInput) atributoInput.value = '';
+            if (totalItemsInput) totalItemsInput.value = '';
             if (codigoDropdown) codigoDropdown.style.display = 'none';
             if (descripcionDropdown) descripcionDropdown.style.display = 'none';
         });
     });
+}
+
+function initTotalItemsCalculation() {
+    const cantidadInput = document.getElementById('cantidad');
+    const precioUnitarioInput = document.getElementById('precioUnitario');
+
+    if (!cantidadInput || !precioUnitarioInput) {
+        console.error('Elementos de cantidad o precio unitario no encontrados');
+        return;
+    }
+
+    cantidadInput.addEventListener('input', updateTotalItems);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -316,6 +352,7 @@ document.addEventListener('DOMContentLoaded', () => {
             initCodigoField();
             initDescripcionField();
             initAtributoFilter();
+            initTotalItemsCalculation();
         } catch (error) {
             showToast('Error al inicializar la aplicación: ' + error.message, 'error');
             console.error('Error al inicializar:', error);
