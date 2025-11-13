@@ -681,15 +681,13 @@
             mainMenu.style.display = 'block';
             submenu.style.display = 'none';
             
-            // Cargar estadísticas del caché si existen
             const cachedStats = window.statsCache;
-            if (cachedStats && (Date.now() - cachedStats.timestamp < 300000)) { // 5 minutos
+            if (cachedStats && (Date.now() - cachedStats.timestamp < 300000)) {
                 displayStats(cachedStats.data);
             } else {
                 setTimeout(actualizarEstadisticasConsignacion, 100);
             }
             
-            // Re-attach event listener
             setTimeout(() => {
                 const btn = document.getElementById('refreshStats');
                 if (btn) {
@@ -704,7 +702,6 @@
 
         const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 
-        // Cache global para estadísticas
         window.statsCache = null;
         let isLoading = false;
 
@@ -756,10 +753,8 @@
                 return;
             }
 
-            // Si ya estamos cargando, no hacer nada
             if (isLoading) return;
 
-            // Verificar si tenemos datos en caché recientes (5 minutos)
             if (!forceRefresh && window.statsCache && (Date.now() - window.statsCache.timestamp < 300000)) {
                 displayStats(window.statsCache.data);
                 return;
@@ -778,7 +773,6 @@
                 const startOfYear = new Date(year, 0, 1);
                 const endOfYear = new Date(year, 11, 31, 23, 59, 59, 999);
 
-                // OPTIMIZACIÓN 1: Usar límite si solo necesitamos datos recientes
                 const q = query(
                     collection(window.db, "pacientes_consignaciones"),
                     where("fechaCX", ">=", startOfYear),
@@ -790,7 +784,6 @@
                 const conteoPorMes = {};
                 const pendientesPorMes = {};
 
-                // OPTIMIZACIÓN 2: Procesar en un solo loop
                 snapshot.docs.forEach(doc => {
                     const data = doc.data();
                     const fecha = data.fechaCX?.toDate?.() || new Date(data.fechaCX);
@@ -812,7 +805,6 @@
                     timestamp: Date.now()
                 };
 
-                // Guardar en caché
                 window.statsCache = {
                     data: statsData,
                     timestamp: Date.now()
@@ -833,12 +825,10 @@
             }
         };
 
-        // Cargar datos solo una vez al iniciar
         document.addEventListener('DOMContentLoaded', () => {
             actualizarEstadisticasConsignacion();
         });
 
-        // Agregar listener al botón de refresh
         setTimeout(() => {
             const btn = document.getElementById('refreshStats');
             if (btn) {
