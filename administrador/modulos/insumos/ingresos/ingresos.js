@@ -99,20 +99,27 @@ async function loadReferencias() {
     isLoadingReferencias = true;
     window.showLoading('loadReferencias');
     try {
+        console.log('Cargando referencias con atributo:', atributoFilter);
         const normalizedAtributoFilter = normalizeText(atributoFilter);
         const querySnapshot = await getDocs(
             query(collection(db, "referencias_implantes"),
                 where("atributo", "==", normalizedAtributoFilter))
         );
-        referencias = [];
-        querySnapshot.forEach(doc => referencias.push({ id: doc.id, ...doc.data() }));
+        referencias = []; // Limpiar referencias antes de recargar
+        querySnapshot.forEach(doc => {
+            const data = { id: doc.id, ...doc.data() };
+            referencias.push(data);
+        });
         referencias.sort((a, b) => (a.codigo || '').localeCompare(b.codigo || ''));
+        console.log('Referencias cargadas:', referencias.length, referencias.map(r => ({ codigo: r.codigo, descripcion: r.descripcion, atributo: r.atributo })));
+
+        // Recargar todos los autocompletados
         setupAutocomplete('codigo', 'codigoToggle', 'codigoDropdown', referencias, 'codigo');
         setupAutocomplete('descripcion', 'descripcionToggle', 'descripcionDropdown', referencias, 'descripcion');
         setupAutocomplete('editCodigo', 'editCodigoToggle', 'editCodigoDropdown', referencias, 'codigo');
         setupAutocomplete('editDescripcion', 'editDescripcionToggle', 'editDescripcionDropdown', referencias, 'descripcion');
     } catch (e) {
-        console.error(e);
+        console.error('Error en loadReferencias:', e);
         showToast('Error al cargar referencias: ' + e.message, 'error');
     } finally {
         isLoadingReferencias = false;
@@ -122,9 +129,13 @@ async function loadReferencias() {
 
 function attachIconForceLoad(iconId) {
     const icon = document.getElementById(iconId);
-    if (!icon) return;
+    if (!icon) {
+        console.warn(`Icono con ID ${iconId} no encontrado`);
+        return;
+    }
     icon.addEventListener('click', async (e) => {
         e.stopPropagation();
+        console.log(`Clic en icono ${iconId}`);
         const dropdownMap = {
             'codigoToggle': 'codigoDropdown',
             'descripcionToggle': 'descripcionDropdown',
@@ -132,17 +143,57 @@ function attachIconForceLoad(iconId) {
             'editDescripcionToggle': 'editDescripcionDropdown'
         };
         const dropdown = document.getElementById(dropdownMap[iconId]);
-        if (!dropdown || dropdown.children.length === 0) {
+        if (!dropdown) {
+            console.warn(`Dropdown con ID ${dropdownMap[iconId]} no encontrado`);
+            return;
+        }
+
+        // Forzar recarga si el dropdown está vacío o las referencias no están cargadas
+        if (!referencias.length || dropdown.children.length === 0) {
+            console.log('Recargando referencias por dropdown vacío');
             window.showLoading('forceLoad');
             try {
                 await loadReferencias();
-                if (dropdown) dropdown.style.display = 'block';
+                populateDropdown(dropdown, iconId.includes('Codigo') ? 'codigo' : 'descripcion');
+                dropdown.style.display = 'block';
             } finally {
                 window.hideLoading('forceLoad');
             }
         } else {
+            // Mostrar u ocultar el dropdown
             dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+            if (dropdown.style.display === 'block') {
+                populateDropdown(dropdown, iconId.includes('Codigo') ? 'codigo' : 'descripcion');
+            }
         }
+    });
+}
+
+function populateDropdown(dropdown, key) {
+    dropdown.innerHTML = '';
+    console.log(`Poblando dropdown con ${referencias.length} referencias para ${key}`);
+    if (referencias.length === 0) {
+        dropdown.innerHTML = '<div class="autocomplete-item" style="color:#999; font-style:italic;">No hay opciones disponibles</div>';
+        return;
+    }
+    referencias.slice(0, 20).forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'autocomplete-item';
+        div.textContent = item[key] || '';
+        div.title = item[key] || '';
+        div.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const inputId = dropdown.id.replace('Dropdown', '');
+            const input = document.getElementById(inputId);
+            if (input) {
+                input.value = item[key] || '';
+                fillFields(item, inputId);
+                input.dispatchEvent(new Event('change'));
+                dropdown.style.display = 'none';
+            }
+        });
+        dropdown.appendChild(div);
     });
 }
 
@@ -150,7 +201,10 @@ function setupMedicoAutocomplete(inputId, iconId, listId) {
     const input = document.getElementById(inputId);
     const icon = document.getElementById(iconId);
     const list = document.getElementById(listId);
-    if (!input || !icon || !list) return;
+    if (!input || !icon || !list) {
+        console.warn(`Faltan elementos para autocompletado de médicos: input=${inputId}, icon=${iconId}, list=${listId}`);
+        return;
+    }
 
     const showAll = () => {
         list.innerHTML = '';
@@ -224,30 +278,62 @@ function setupAtributoFilter() {
     const radios = document.querySelectorAll('input[name="atributoFilter"], input[name="editAtributoFilter"]');
     const refresh = async (nuevoAtributo) => {
         const normalized = normalizeText(nuevoAtributo);
-        if (atributoFilter === normalized) return;
+        if (atributoFilter === normalized) {
+            console.log('Atributo no cambió:', normalized);
+            return;
+        }
+        console.log('Cambiando atributo a:', normalized);
+        atributoFilter = normalized;
+
+        // Limpiar campos
         ['codigo', 'descripcion', 'referencia', 'proveedor', 'precioUnitario', 'atributo', 'totalItems',
             'editCodigo', 'editDescripcion', 'editReferencia', 'editProveedor', 'editPrecioUnitario', 'editAtributo', 'editTotalItems']
-            .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+            .forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
         ['codigoDropdown', 'descripcionDropdown', 'editCodigoDropdown', 'editDescripcionDropdown']
-            .forEach(id => { const d = document.getElementById(id); if (d) d.style.display = 'none'; });
-        atributoFilter = normalized;
+            .forEach(id => {
+                const d = document.getElementById(id);
+                if (d) {
+                    d.style.display = 'none';
+                    d.innerHTML = '';
+                }
+            });
+
+        // Recargar referencias
         window.showLoading('atributoChange');
         try {
             await loadReferencias();
+            console.log('Referencias recargadas para atributo:', atributoFilter);
         } finally {
             window.hideLoading('atributoChange');
         }
     };
-    radios.forEach(r => r.addEventListener('change', e => refresh(e.target.value)));
+
+    radios.forEach(r => {
+        r.addEventListener('change', e => {
+            console.log('Radio cambiado a:', e.target.value);
+            refresh(e.target.value);
+        });
+    });
+
+    // Inicializar con el valor seleccionado
     const checked = document.querySelector('input[name="atributoFilter"]:checked');
-    if (checked) refresh(checked.value);
+    if (checked) {
+        console.log('Inicializando con atributo:', checked.value);
+        refresh(checked.value);
+    }
 }
 
 function setupAutocomplete(inputId, iconId, listId, data, key) {
     const input = document.getElementById(inputId);
     const icon = document.getElementById(iconId);
     const list = document.getElementById(listId);
-    if (!input || !icon || !list) return;
+    if (!input || !icon || !list) {
+        console.warn(`Faltan elementos para autocompletado: input=${inputId}, icon=${iconId}, list=${listId}`);
+        return;
+    }
 
     function showSuggestions(value) {
         list.innerHTML = '';
@@ -279,7 +365,10 @@ function setupAutocomplete(inputId, iconId, listId, data, key) {
     function showAll() {
         list.innerHTML = '';
         list.style.display = 'none';
-        if (data.length === 0) return;
+        if (data.length === 0) {
+            list.innerHTML = '<div class="autocomplete-item" style="color:#999; font-style:italic;">No hay opciones disponibles</div>';
+            return;
+        }
         data.slice(0, 20).forEach(item => {
             const div = document.createElement('div');
             div.className = 'autocomplete-item';
@@ -306,6 +395,7 @@ function setupAutocomplete(inputId, iconId, listId, data, key) {
     icon.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
+        console.log(`Clic en icono de autocompletado ${iconId}`);
         list.style.display = list.style.display === 'block' ? 'none' : 'block';
         if (list.style.display === 'block') showAll();
         input.focus();
@@ -325,6 +415,8 @@ function fillFields(item, inputId) {
     const proveedorInput = isEdit ? document.getElementById('editProveedor') : document.getElementById('proveedor');
     const precioUnitarioInput = isEdit ? document.getElementById('editPrecioUnitario') : document.getElementById('precioUnitario');
     const atributoInput = isEdit ? document.getElementById('editAtributo') : document.getElementById('atributo');
+
+    console.log(`Llenando campos para item:`, item, `desde input: ${inputId}`);
 
     if (inputId.includes('descripcion') || inputId.includes('Descripcion')) {
         if (codigoInput) codigoInput.value = item.codigo || '';
