@@ -273,6 +273,48 @@ function initDescripcionField() {
         showDropdown(filteredReferencias, descripcionDropdown, 'descripcion', 'descripcion');
     });
 
+    codigoToggle.addEventListener('click', () => {
+        if (codigoDropdown.style.display === 'block') {
+            codigoDropdown.style.display = 'none';
+        } else {
+            showDropdown(referencias, codigoDropdown, 'codigo', 'codigo');
+        }
+    });
+
+    document.addEventListener('click', (e) => {
+        if (
+            !codigoInput.contains(e.target) &&
+            !codigoToggle.contains(e.target) &&
+            !codigoDropdown.contains(e.target)
+        ) {
+            codigoDropdown.style.display = 'none';
+        }
+    });
+
+    codigoInput.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const searchText = codigoInput.value;
+        const filteredReferencias = filterItems(searchText, referencias, 'codigo');
+        showDropdown(filteredReferencias, codigoDropdown, 'codigo', 'codigo');
+    });
+}
+
+function initDescripcionField() {
+    const descripcionInput = document.getElementById('descripcion');
+    const descripcionToggle = document.getElementById('descripcionToggle');
+    const descripcionDropdown = document.getElementById('descripcionDropdown');
+
+    if (!descripcionInput || !descripcionToggle || !descripcionDropdown) {
+        console.error('Elementos del campo Descripción no encontrados');
+        return;
+    }
+
+    descripcionInput.addEventListener('input', () => {
+        const searchText = descripcionInput.value;
+        const filteredReferencias = filterItems(searchText, referencias, 'descripcion');
+        showDropdown(filteredReferencias, descripcionDropdown, 'descripcion', 'descripcion');
+    });
+
     descripcionToggle.addEventListener('click', () => {
         if (descripcionDropdown.style.display === 'block') {
             descripcionDropdown.style.display = 'none';
@@ -343,14 +385,15 @@ function initTotalItemsCalculation() {
 function initOtherFields() {
     const fields = [
         { id: 'admision', name: 'Admisión' },
-        { id: 'paciente', name: 'Paciente' },
-        { id: 'fecha', name: 'Fecha' }
+        { id: 'paciente', name: 'Paciente' }
+        // Eliminado 'fecha' para evitar la advertencia
     ];
 
     fields.forEach(field => {
         const input = document.getElementById(field.id);
         if (input) {
             input.addEventListener('input', () => {
+                // No realizar ninguna acción que limpie otros campos
             });
         } else {
             console.warn(`Elemento ${field.name} con ID "${field.id}" no encontrado en el DOM`);
