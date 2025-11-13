@@ -36,9 +36,9 @@ function initColumnResizing() {
         const deltaX = e.clientX - startX;
         let newWidth = startWidth + deltaX;
 
-        // Establecer límites para el ancho de la columna
-        const minWidth = parseInt(getComputedStyle(currentHeader).minWidth) || 50;
-        const maxWidth = parseInt(getComputedStyle(currentHeader).maxWidth) || 600;
+        // Establecer límites fijos para el ancho de la columna
+        const minWidth = 20; // Mínimo 20px
+        const maxWidth = 600; // Máximo 600px
         newWidth = Math.max(minWidth, Math.min(newWidth, maxWidth));
 
         // Actualizar el ancho del encabezado
