@@ -221,10 +221,10 @@ html, body {
 }
 
 .registrar-table {
-    table-layout: fixed;
+    table-layout: auto; /* Cambiar de fixed a auto */
     border-collapse: collapse;
     font-size: 11px;
-    width: auto;
+    width: 100%; /* Asegura que la tabla ocupe el contenedor */
     box-sizing: border-box;
 }
 
@@ -269,6 +269,7 @@ html, body {
     background-color: #f8f9fa;
 }
 
+/* Definir anchos iniciales y límites para cada columna */
 .registrar-table th:nth-child(1), .registrar-table td:nth-child(1) { width: 70px; min-width: 20px; max-width: 600px; }
 .registrar-table th:nth-child(2), .registrar-table td:nth-child(2) { width: 130px; min-width: 20px; max-width: 600px; }
 .registrar-table th:nth-child(3), .registrar-table td:nth-child(3) { width: 200px; min-width: 20px; max-width: 600px; }
