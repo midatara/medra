@@ -64,14 +64,6 @@
                 <div class="registrar-form-group button-group">
                     <button id="limpiarBtn" class="modal-btn modal-btn-secondary">Limpiar</button>
                 </div>
-                <div class="registrar-form-group registrar-actions-menu">
-                    <button id="actionsBtn">Acciones <i class="fas fa-caret-down"></i></button>
-                    <div class="registrar-dropdown-menu" id="actionsMenu">
-                        <div class="menu-title">Acciones</div>
-                        <a href="#" id="downloadAll">Descargar todos los registros</a>
-                        <a href="#" id="downloadCurrent">Descargar hoja actual</a>
-                    </div>
-                </div>
             </div>
             <div class="registrar-second-row">
                 <div class="registrar-form-group">
@@ -119,7 +111,7 @@
                         <th>Precio Unitario<div class="resize-handle"></div></th>
                         <th>Atributo<div class="resize-handle"></div></th>
                         <th>Total Items<div class="resize-handle"></div></th>
-                        <th>Doc. Delivery<div class="resize-handle"></div></th> <!-- NUEVA COLUMNA -->
+                        <th>Doc. Delivery<div class="resize-handle"></div></th>
                         <th>Usuario<div class="resize-handle"></div></th>
                         <th>Acciones<div class="resize-handle"></div></th>
                     </tr>
@@ -220,7 +212,6 @@
                         <span id="editGuiaStatus" class="doc-delivery-status"></span>
                     </div>
                 </div>
-
                 <div class="modal-buttons">
                     <button class="modal-btn modal-btn-primary" id="saveEditBtn">Guardar</button>
                     <button class="modal-btn modal-btn-secondary" id="cancelEditBtn">Cancelar</button>
@@ -229,7 +220,7 @@
         </div>
     </div>
 
-    <!-- MODALES DE ELIMINAR E HISTORIAL (sin cambios) -->
+    <!-- MODALES DE ELIMINAR E HISTORIAL -->
     <div id="deleteModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -258,6 +249,6 @@
     <div class="registrar-toast-container" id="toastContainer"></div>
 
     <script type="module" src="ingresos.js"></script>
-<script type="module" src="resizeColumns.js"></script>
+    <script type="module" src="resizeColumns.js"></script>
 </body>
 </html>

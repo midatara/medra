@@ -60,15 +60,17 @@ html, body {
     min-width: auto;
     max-width: none;
     margin-bottom: 8px;
+    align-items: flex-end; /* Align buttons with input fields */
 }
 
-.registrar-form-group.registrar-actions-menu {
-    flex: 0;
-    min-width: auto;
-    max-width: none;
-    margin-bottom: 8px;
-    position: relative;
-    margin-left: auto;
+.registrar-form-group.button-group button {
+    width: 100%;
+    height: 28px; /* Match input field height */
+    padding: 4px 6px; /* Match input field padding */
+    font-size: 11px; /* Match input field font size */
+    line-height: 16px; /* Match input field line height */
+    box-sizing: border-box;
+    margin-top: 14px; /* Offset for label height to align with input fields */
 }
 
 .registrar-form-type {
@@ -205,63 +207,6 @@ html, body {
 .doc-delivery-input:focus {
     box-shadow: 0 0 8px rgba(0, 123, 255, 0.3);
     outline: none;
-}
-
-.registrar-actions-menu {
-    position: relative;
-    align-self: center;
-    min-width: 120px;
-}
-
-#actionsBtn {
-    background: none;
-    border: none;
-    color: #007bff;
-    cursor: pointer;
-    font-size: 12px;
-    padding: 8px 16px;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-#actionsBtn:hover {
-    color: #0056b3;
-    text-decoration: underline;
-}
-
-.registrar-dropdown-menu {
-    display: none;
-    position: absolute;
-    right: 0;
-    top: 100%;
-    background-color: white;
-    min-width: 200px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-    z-index: 20;
-    border-radius: 4px;
-    overflow: hidden;
-}
-
-.registrar-dropdown-menu a {
-    color: black;
-    padding: 12px 16px;
-    text-decoration: none;
-    display: block;
-    font-size: 12px;
-    white-space: nowrap;
-}
-
-.registrar-dropdown-menu a:hover {
-    background-color: #f1f1f1;
-}
-
-.menu-title {
-    background-color: #f8f9fa;
-    padding: 12px 16px;
-    font-size: 12px;
-    font-weight: bold;
-    border-bottom: 1px solid #ddd;
 }
 
 .registrar-table-container {
@@ -721,7 +666,7 @@ html, body {
         max-width: 100%;
         min-width: 200px;
     }
-    .registrar-form-group.button-group, .registrar-form-group.registrar-actions-menu {
+    .registrar-form-group.button-group {
         margin-left: 0;
         align-self: stretch;
     }
