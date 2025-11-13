@@ -221,10 +221,11 @@ html, body {
 }
 
 .registrar-table {
-    table-layout: fixed; /* CAMBIO CRÍTICO: de auto a fixed */
+    table-layout: fixed;
     border-collapse: collapse;
     font-size: 11px;
-    width: auto; /* CAMBIO: de 100% a auto para permitir ancho dinámico */
+    width: auto; /* Permitir ancho dinámico */
+    min-width: 100%; /* Mínimo el ancho del contenedor */
     box-sizing: border-box;
 }
 
@@ -246,7 +247,7 @@ html, body {
     z-index: 10;
     cursor: default;
     user-select: none;
-    position: relative; /* AÑADIDO: necesario para el resize-handle absoluto */
+    position: relative;
 }
 
 .registrar-table th .resize-handle {
