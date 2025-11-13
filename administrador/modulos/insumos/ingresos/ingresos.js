@@ -350,11 +350,72 @@ function initOtherFields() {
         const input = document.getElementById(field.id);
         if (input) {
             input.addEventListener('input', () => {
-                // No realizar ninguna acción que limpie otros campos
             });
         } else {
             console.warn(`Elemento ${field.name} con ID "${field.id}" no encontrado en el DOM`);
         }
+    });
+}
+
+async function buscarFolioPorFolioRef(folioRef) {
+    try {
+        const q = query(
+            collection(db, 'guias_medtronic'),
+            where('folioRef', '==', folioRef.trim())
+        );
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+            const doc = querySnapshot.docs[0];
+            return doc.data().folio || '';
+        }
+        return null;
+    } catch (error) {
+        console.error('Error al buscar folio por folioRef:', error);
+        showToast('Error al verificar Doc. Delivery: ' + error.message, 'error');
+        return null;
+    }
+}
+
+function debounce(func, wait) {
+    let timeout;
+    return function (...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+    };
+}
+
+function initDocDeliveryField() {
+    const docDeliveryInput = document.getElementById('docDelivery');
+    const guiaStatusSpan = document.getElementById('guiaStatus');
+
+    if (!docDeliveryInput || !guiaStatusSpan) {
+        console.error('Elementos de Doc. Delivery o guiaStatus no encontrados');
+        return;
+    }
+
+    const debouncedBuscarFolio = debounce(async (folioRef) => {
+        if (folioRef === '') {
+            guiaStatusSpan.textContent = '';
+            guiaStatusSpan.style.color = '#999';
+            return;
+        }
+
+        showLoading();
+        const folio = await buscarFolioPorFolioRef(folioRef);
+        hideLoading();
+
+        if (folio) {
+            guiaStatusSpan.textContent = `Folio: ${folio}`;
+            guiaStatusSpan.style.color = 'green';
+        } else {
+            guiaStatusSpan.textContent = 'Documento no registrado';
+            guiaStatusSpan.style.color = '#999';
+        }
+    }, 300);
+
+    docDeliveryInput.addEventListener('input', () => {
+        const folioRef = docDeliveryInput.value.trim();
+        debouncedBuscarFolio(folioRef);
     });
 }
 
@@ -374,6 +435,7 @@ document.addEventListener('DOMContentLoaded', () => {
             initAtributoFilter();
             initTotalItemsCalculation();
             initOtherFields();
+            initDocDeliveryField();
         } catch (error) {
             showToast('Error al inicializar la aplicación: ' + error.message, 'error');
             console.error('Error al inicializar:', error);
