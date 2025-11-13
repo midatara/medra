@@ -416,6 +416,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const downloadPage = document.getElementById('downloadPage');
     const fileUpload = document.getElementById('fileUpload');
     const importBtn = document.getElementById('importBtn');
+    const dropZone = document.getElementById('dropZone');
     const viewModal = document.getElementById('viewModal');
     const closeViewModal = document.getElementById('closeViewModal');
     const closeViewBtn = document.getElementById('closeViewBtn');
@@ -767,57 +768,95 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Función para procesar archivos (usada por fileUpload y dropZone)
+    async function processFiles(files) {
+        if (!files || files.length === 0) {
+            showToast('No se seleccionaron archivos.', 'error');
+            return;
+        }
+
+        if (!db) {
+            showToast('Error: Firebase no está inicializado correctamente.', 'error');
+            return;
+        }
+
+        showLoading();
+        try {
+            let successCount = 0;
+            let errorCount = 0;
+            const totalFiles = files.length;
+
+            for (let i = 0; i < totalFiles; i++) {
+                const file = files[i];
+                if (!file.name.toLowerCase().endsWith('.xml')) {
+                    errorCount++;
+                    continue;
+                }
+                const reader = new FileReader();
+                await new Promise((resolve) => {
+                    reader.onload = async (event) => {
+                        try {
+                            const xmlString = event.target.result;
+                            const parsedData = await parseXML(xmlString);
+                            await db.collection("guias_medtronic").add({
+                                ...parsedData,
+                                createdAt: new Date()
+                            });
+                            successCount++;
+                        } catch (error) {
+                            errorCount++;
+                        }
+                        const progress = ((i + 1) / totalFiles) * 100;
+                        showImportProgress(progress);
+                        resolve();
+                    };
+                    reader.readAsText(file);
+                });
+            }
+
+            hideLoading();
+            hideImportProgress();
+            showToast(`Importación completada: ${successCount} guías exitosas, ${errorCount} errores`, successCount > 0 ? 'success' : 'error');
+            if (fileUpload) fileUpload.value = '';
+            await loadGuias();
+        } catch (error) {
+            hideLoading();
+            hideImportProgress();
+            showToast('Error al importar los archivos: ' + error.message, 'error');
+            if (fileUpload) fileUpload.value = '';
+        }
+    }
+
+    // Manejador para el input fileUpload (selección de archivos por clic)
     if (fileUpload) {
         fileUpload.addEventListener('change', async (e) => {
             const files = e.target.files;
-            if (!files || files.length === 0) return;
+            await processFiles(files);
+        });
+    }
 
-            if (!db) {
-                showToast('Error: Firebase no está inicializado correctamente.', 'error');
-                return;
-            }
+    // Manejadores para el área de arrastre
+    if (dropZone) {
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
 
-            showLoading();
-            try {
-                let successCount = 0;
-                let errorCount = 0;
-                const totalFiles = files.length;
+        dropZone.addEventListener('dragenter', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
 
-                for (let i = 0; i < totalFiles; i++) {
-                    const file = files[i];
-                    const reader = new FileReader();
-                    await new Promise((resolve) => {
-                        reader.onload = async (event) => {
-                            try {
-                                const xmlString = event.target.result;
-                                const parsedData = await parseXML(xmlString);
-                                await db.collection("guias_medtronic").add({
-                                    ...parsedData,
-                                    createdAt: new Date()
-                                });
-                                successCount++;
-                            } catch (error) {
-                                errorCount++;
-                            }
-                            const progress = ((i + 1) / totalFiles) * 100;
-                            showImportProgress(progress);
-                            resolve();
-                        };
-                        reader.readAsText(file);
-                    });
-                }
+        dropZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+        });
 
-                hideLoading();
-                hideImportProgress();
-                showToast(`Importación completada: ${successCount} guías exitosas, ${errorCount} errores`, successCount > 0 ? 'success' : 'error');
-                fileUpload.value = '';
-                await loadGuias();
-            } catch (error) {
-                hideLoading();
-                hideImportProgress();
-                showToast('Error al importar los archivos: ' + error.message, 'error');
-                fileUpload.value = '';
-            }
+        dropZone.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            await processFiles(files);
         });
     }
 
@@ -885,7 +924,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const packDetailsTitle = document.getElementById('packDetailsTitle');
             packDetailsBody.innerHTML = '';
 
-            const kitsEspeciales = ['KITMANGACRL', 'KIT BY PASS CLINICA R LIRCAY'];
+            const kitsEspeciales = ['KITMANGACRL', 'KIT BY PASS CLINICA R LIRCAY','KITBYPASSTCRL'];
             const esKitEspecial = primerItem && kitsEspeciales.includes(primerItem.NmbItem?.trim().toUpperCase());
 
             const inicioTabla = esKitEspecial ? 1 : 0; 

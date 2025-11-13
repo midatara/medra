@@ -29,8 +29,9 @@
             </div>
             <div class="guias-import-group">
                 <label class="guias-label">Importar Guías</label>
-                <div class="guias-import-row">
+                <div class="guias-drop-zone" id="dropZone">
                     <input type="file" id="fileUpload" accept=".xml" multiple style="display: none;">
+                    <p class="guias-drop-text">Arrastra y suelta archivos XML aquí o</p>
                     <button id="importBtn" class="modal-btn modal-btn-primary">
                         <i class="fas fa-upload"></i> Importar XML
                     </button>
@@ -45,6 +46,7 @@
                 </div>
             </div>
         </div>
+        <!-- Resto del HTML sin cambios -->
         <div id="guias-message"></div>
         <div class="guias-table-container">
             <table class="guias-table">
@@ -93,7 +95,6 @@
                 </div>
             </div>
         </div>
-
         <div id="packModal" class="modal">
             <div class="modal-content">
                 <div class="modal-header">
@@ -102,27 +103,25 @@
                 </div>
                 <div class="modal-content-body">
                     <div id="packSubtitle" class="guias-pack-subtitle"></div>
-
                     <div class="guias-guide-section">
-                    <h3 id="packDetailsTitle">Total ítems: 0</h3>
-                    <table class="guias-modal-table">
-                        <thead>
-                            <tr>
-                                <th>Folio</th>
-                                <th>Código</th>
-                                <th>Cantidad</th>
-                                <th>Descripción</th>
-                                <th>Fecha Vencimiento</th>
-                            </tr>
-                        </thead>
-                        <tbody id="packDetailsBody"></tbody>
-                    </table>
-                </div>
-
-                <div class="modal-buttons">
-                    <button id="copyPackBtn" class="modal-btn modal-btn-primary">Copiar Tabla</button>
-                    <button id="closePackBtn" class="modal-btn modal-btn-secondary">Cerrar</button>
-                </div>
+                        <h3 id="packDetailsTitle">Total ítems: 0</h3>
+                        <table class="guias-modal-table">
+                            <thead>
+                                <tr>
+                                    <th>Folio</th>
+                                    <th>Código</th>
+                                    <th>Cantidad</th>
+                                    <th>Descripción</th>
+                                    <th>Fecha Vencimiento</th>
+                                </tr>
+                            </thead>
+                            <tbody id="packDetailsBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="modal-buttons">
+                        <button id="copyPackBtn" class="modal-btn modal-btn-primary">Copiar Tabla</button>
+                        <button id="closePackBtn" class="modal-btn modal-btn-secondary">Cerrar</button>
+                    </div>
                 </div>
             </div>
         </div>
