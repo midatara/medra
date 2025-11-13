@@ -855,6 +855,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const packDetailsBody = document.getElementById('packDetailsBody');
         const closePackModal = document.getElementById('closePackModal');
         const copyPackBtn = document.getElementById('copyPackBtn');
+        const closePackBtn = document.getElementById('closePackBtn');
 
         if (!packModal || !db) {
             showToast('Error: Modal o Firebase no disponible.', 'error');
@@ -937,7 +938,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 navigator.clipboard.writeText(clipboardText).then(() => {
                     showToast('Tabla copiada al portapapeles.', 'success');
-                    packModal.style.display = 'none';
                 }).catch((err) => {
                     showToast('Error al copiar: ' + err.message, 'error');
                 });
@@ -948,6 +948,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             closePackModal.onclick = closeModal;
+            closePackBtn.onclick = closeModal;
             copyPackBtn.onclick = copyTableToClipboard;
 
             window.onclick = (e) => {
@@ -965,5 +966,4 @@ document.addEventListener('DOMContentLoaded', () => {
         const [year, month, day] = isoDate.split('-');
         return `${day}-${month}-${year}`;
     }
-
 });
