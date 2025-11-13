@@ -1,10 +1,7 @@
-// ingresos.js
-
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { getFirestore, collection, getDocs, query, orderBy, where } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
-// Configuración de Firebase
 const firebaseConfig = {
     apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
     authDomain: "datara-salud.firebaseapp.com",
@@ -15,32 +12,26 @@ const firebaseConfig = {
     measurementId: "G-MLYVTZPPLD"
 };
 
-// Inicializar Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// Configurar persistencia de la sesión
 setPersistence(auth, browserSessionPersistence);
 
-// Listas para almacenar los datos
 let medicos = [];
 let referencias = [];
-let atributoFilter = 'CONSIGNACION'; // Valor inicial del filtro de atributo
+let atributoFilter = 'CONSIGNACION';
 
-// Función para mostrar el loading
 function showLoading() {
     const loading = document.getElementById('loading');
     if (loading) loading.classList.add('show');
 }
 
-// Función para ocultar el loading
 function hideLoading() {
     const loading = document.getElementById('loading');
     if (loading) loading.classList.remove('show');
 }
 
-// Función para mostrar notificaciones (toast)
 function showToast(message, type = 'success') {
     const toastContainer = document.getElementById('toastContainer');
     if (!toastContainer) return;
@@ -62,7 +53,6 @@ function showToast(message, type = 'success') {
     }, 5000);
 }
 
-// Cargar médicos desde Firestore
 async function loadMedicos() {
     showLoading();
     try {
@@ -82,7 +72,6 @@ async function loadMedicos() {
     }
 }
 
-// Cargar referencias desde Firestore según el atributo
 async function loadReferencias() {
     showLoading();
     try {
@@ -99,7 +88,11 @@ async function loadReferencias() {
                 referencias.push({
                     id: doc.id,
                     codigo: data.codigo,
-                    descripcion: data.descripcion
+                    descripcion: data.descripcion,
+                    referencia: data.referencia,
+                    proveedor: data.proveedor,
+                    precioUnitario: data.precioUnitario,
+                    atributo: data.atributo
                 });
             }
         });
@@ -111,8 +104,7 @@ async function loadReferencias() {
     }
 }
 
-// Mostrar elementos en un dropdown
-function showDropdown(items, dropdownElement, key) {
+function showDropdown(items, dropdownElement, key, inputId) {
     dropdownElement.innerHTML = '';
     if (items.length === 0) {
         dropdownElement.style.display = 'none';
@@ -124,7 +116,8 @@ function showDropdown(items, dropdownElement, key) {
         div.textContent = item[key];
         div.dataset.id = item.id;
         div.addEventListener('click', () => {
-            document.getElementById(key).value = item[key];
+            document.getElementById(inputId).value = item[key];
+            fillRelatedFields(item);
             dropdownElement.style.display = 'none';
         });
         dropdownElement.appendChild(div);
@@ -133,7 +126,22 @@ function showDropdown(items, dropdownElement, key) {
     dropdownElement.style.display = 'block';
 }
 
-// Filtrar elementos según el texto ingresado
+function fillRelatedFields(item) {
+    const codigoInput = document.getElementById('codigo');
+    const descripcionInput = document.getElementById('descripcion');
+    const referenciaInput = document.getElementById('referencia');
+    const proveedorInput = document.getElementById('proveedor');
+    const precioUnitarioInput = document.getElementById('precioUnitario');
+    const atributoInput = document.getElementById('atributo');
+
+    codigoInput.value = item.codigo || '';
+    descripcionInput.value = item.descripcion || '';
+    referenciaInput.value = item.referencia || '';
+    proveedorInput.value = item.proveedor || '';
+    precioUnitarioInput.value = item.precioUnitario || '';
+    atributoInput.value = item.atributo || '';
+}
+
 function filterItems(searchText, items, key) {
     const searchLower = searchText.toLowerCase().trim();
     return items.filter((item) =>
@@ -141,7 +149,6 @@ function filterItems(searchText, items, key) {
     );
 }
 
-// Inicializar funcionalidad del campo Médico
 function initMedicoField() {
     const medicoInput = document.getElementById('medico');
     const medicoToggle = document.getElementById('medicoToggle');
@@ -155,14 +162,14 @@ function initMedicoField() {
     medicoInput.addEventListener('input', () => {
         const searchText = medicoInput.value;
         const filteredMedicos = filterItems(searchText, medicos, 'nombre');
-        showDropdown(filteredMedicos, medicoDropdown, 'nombre');
+        showDropdown(filteredMedicos, medicoDropdown, 'nombre', 'medico');
     });
 
     medicoToggle.addEventListener('click', () => {
         if (medicoDropdown.style.display === 'block') {
             medicoDropdown.style.display = 'none';
         } else {
-            showDropdown(medicos, medicoDropdown, 'nombre');
+            showDropdown(medicos, medicoDropdown, 'nombre', 'medico');
         }
     });
 
@@ -180,11 +187,10 @@ function initMedicoField() {
         e.stopPropagation();
         const searchText = medicoInput.value;
         const filteredMedicos = filterItems(searchText, medicos, 'nombre');
-        showDropdown(filteredMedicos, medicoDropdown, 'nombre');
+        showDropdown(filteredMedicos, medicoDropdown, 'nombre', 'medico');
     });
 }
 
-// Inicializar funcionalidad del campo Código
 function initCodigoField() {
     const codigoInput = document.getElementById('codigo');
     const codigoToggle = document.getElementById('codigoToggle');
@@ -198,14 +204,14 @@ function initCodigoField() {
     codigoInput.addEventListener('input', () => {
         const searchText = codigoInput.value;
         const filteredReferencias = filterItems(searchText, referencias, 'codigo');
-        showDropdown(filteredReferencias, codigoDropdown, 'codigo');
+        showDropdown(filteredReferencias, codigoDropdown, 'codigo', 'codigo');
     });
 
     codigoToggle.addEventListener('click', () => {
         if (codigoDropdown.style.display === 'block') {
             codigoDropdown.style.display = 'none';
         } else {
-            showDropdown(referencias, codigoDropdown, 'codigo');
+            showDropdown(referencias, codigoDropdown, 'codigo', 'codigo');
         }
     });
 
@@ -223,11 +229,10 @@ function initCodigoField() {
         e.stopPropagation();
         const searchText = codigoInput.value;
         const filteredReferencias = filterItems(searchText, referencias, 'codigo');
-        showDropdown(filteredReferencias, codigoDropdown, 'codigo');
+        showDropdown(filteredReferencias, codigoDropdown, 'codigo', 'codigo');
     });
 }
 
-// Inicializar funcionalidad del campo Descripción
 function initDescripcionField() {
     const descripcionInput = document.getElementById('descripcion');
     const descripcionToggle = document.getElementById('descripcionToggle');
@@ -241,14 +246,14 @@ function initDescripcionField() {
     descripcionInput.addEventListener('input', () => {
         const searchText = descripcionInput.value;
         const filteredReferencias = filterItems(searchText, referencias, 'descripcion');
-        showDropdown(filteredReferencias, descripcionDropdown, 'descripcion');
+        showDropdown(filteredReferencias, descripcionDropdown, 'descripcion', 'descripcion');
     });
 
     descripcionToggle.addEventListener('click', () => {
         if (descripcionDropdown.style.display === 'block') {
             descripcionDropdown.style.display = 'none';
         } else {
-            showDropdown(referencias, descripcionDropdown, 'descripcion');
+            showDropdown(referencias, descripcionDropdown, 'descripcion', 'descripcion');
         }
     });
 
@@ -266,11 +271,10 @@ function initDescripcionField() {
         e.stopPropagation();
         const searchText = descripcionInput.value;
         const filteredReferencias = filterItems(searchText, referencias, 'descripcion');
-        showDropdown(filteredReferencias, descripcionDropdown, 'descripcion');
+        showDropdown(filteredReferencias, descripcionDropdown, 'descripcion', 'descripcion');
     });
 }
 
-// Inicializar funcionalidad de los radios de atributo
 function initAtributoFilter() {
     const atributoRadios = document.querySelectorAll('input[name="atributoFilter"]');
 
@@ -278,20 +282,26 @@ function initAtributoFilter() {
         radio.addEventListener('change', async (e) => {
             atributoFilter = e.target.value;
             await loadReferencias();
-            // Limpiar los inputs y dropdowns al cambiar el filtro
             const codigoInput = document.getElementById('codigo');
             const descripcionInput = document.getElementById('descripcion');
+            const referenciaInput = document.getElementById('referencia');
+            const proveedorInput = document.getElementById('proveedor');
+            const precioUnitarioInput = document.getElementById('precioUnitario');
+            const atributoInput = document.getElementById('atributo');
             const codigoDropdown = document.getElementById('codigoDropdown');
             const descripcionDropdown = document.getElementById('descripcionDropdown');
             if (codigoInput) codigoInput.value = '';
             if (descripcionInput) descripcionInput.value = '';
+            if (referenciaInput) referenciaInput.value = '';
+            if (proveedorInput) proveedorInput.value = '';
+            if (precioUnitarioInput) precioUnitarioInput.value = '';
+            if (atributoInput) atributoInput.value = '';
             if (codigoDropdown) codigoDropdown.style.display = 'none';
             if (descripcionDropdown) descripcionDropdown.style.display = 'none';
         });
     });
 }
 
-// Verificar autenticación y cargar datos
 document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, async (user) => {
         if (!user) {
@@ -300,10 +310,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            // Cargar médicos y referencias
             await loadMedicos();
             await loadReferencias();
-            // Inicializar campos
             initMedicoField();
             initCodigoField();
             initDescripcionField();
