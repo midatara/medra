@@ -31,7 +31,7 @@ html, body {
 .guias-search-import-row {
     display: flex;
     flex-direction: row;
-    align-items: flex-start;
+    align-items: flex-end;
     gap: 10px;
     margin-bottom: 20px;
     flex-wrap: nowrap;
@@ -42,15 +42,7 @@ html, body {
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;
-    min-width: 250px;
-}
-
-.guias-import-row {
-    display: flex;
-    flex-direction: row;
-    gap: 10px;
-    align-items: center;
-    width: 100%;
+    min-width: 150px;
 }
 
 .guias-form-group {
@@ -77,6 +69,7 @@ html, body {
     font-size: 11px;
     box-sizing: border-box;
     text-transform: uppercase;
+    height: 40px;
 }
 
 #fileUpload {
@@ -96,7 +89,11 @@ html, body {
 
 .guias-actions-menu {
     position: relative;
-    align-self: flex-end;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    min-width: 100px;
 }
 
 #actionsBtn {
@@ -633,12 +630,11 @@ html, body {
 
 .guias-drop-zone {
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
     border: 2px dashed #ccc;
     border-radius: 4px;
-    padding: 10px;
+    padding: 0 10px;
     background-color: #f9f9f9;
     height: 40px;
     text-align: center;
@@ -652,35 +648,10 @@ html, body {
     background-color: #e7f3ff;
 }
 
-.guias-drop-text {
-    margin: 0;
-    font-size: 14px;
-    color: #666;
-    margin-bottom: 5px;
-}
-
 .guias-import-group .modal-btn {
     margin: 0;
-    padding: 6px 12px;
-    font-size: 14px;
-}
-
-.guias-import-group {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-}
-
-.guias-search-import-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
-    align-items: flex-end;
-}
-
-.guias-form-group input,
-.guias-form-group select {
-    height: 40px;
-    padding: 8px;
-    font-size: 14px;
+    padding: 8px 16px;
+    font-size: 12px;
+    height: 32px;
+    line-height: 1;
 }
