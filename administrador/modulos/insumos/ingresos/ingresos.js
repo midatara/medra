@@ -2,7 +2,7 @@
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { getFirestore, collection, getDocs, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { getFirestore, collection, getDocs, query, orderBy, where } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 // Configuración de Firebase
 const firebaseConfig = {
@@ -23,8 +23,10 @@ const db = getFirestore(app);
 // Configurar persistencia de la sesión
 setPersistence(auth, browserSessionPersistence);
 
-// Lista para almacenar los médicos
+// Listas para almacenar los datos
 let medicos = [];
+let referencias = [];
+let atributoFilter = 'CONSIGNACION'; // Valor inicial del filtro de atributo
 
 // Función para mostrar el loading
 function showLoading() {
@@ -80,20 +82,49 @@ async function loadMedicos() {
     }
 }
 
-// Mostrar médicos en el dropdown
-function showMedicosDropdown(medicosList, dropdownElement) {
+// Cargar referencias desde Firestore según el atributo
+async function loadReferencias() {
+    showLoading();
+    try {
+        const q = query(
+            collection(db, 'referencias_implantes'),
+            where('atributo', '==', atributoFilter),
+            orderBy('referencia')
+        );
+        const querySnapshot = await getDocs(q);
+        referencias = [];
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            if (data.codigo && data.descripcion) {
+                referencias.push({
+                    id: doc.id,
+                    codigo: data.codigo,
+                    descripcion: data.descripcion
+                });
+            }
+        });
+        hideLoading();
+    } catch (error) {
+        hideLoading();
+        showToast('Error al cargar las referencias: ' + error.message, 'error');
+        console.error('Error al cargar referencias:', error);
+    }
+}
+
+// Mostrar elementos en un dropdown
+function showDropdown(items, dropdownElement, key) {
     dropdownElement.innerHTML = '';
-    if (medicosList.length === 0) {
+    if (items.length === 0) {
         dropdownElement.style.display = 'none';
         return;
     }
 
-    medicosList.forEach((medico) => {
+    items.forEach((item) => {
         const div = document.createElement('div');
-        div.textContent = medico.nombre;
-        div.dataset.id = medico.id;
+        div.textContent = item[key];
+        div.dataset.id = item.id;
         div.addEventListener('click', () => {
-            document.getElementById('medico').value = medico.nombre;
+            document.getElementById(key).value = item[key];
             dropdownElement.style.display = 'none';
         });
         dropdownElement.appendChild(div);
@@ -102,11 +133,11 @@ function showMedicosDropdown(medicosList, dropdownElement) {
     dropdownElement.style.display = 'block';
 }
 
-// Filtrar médicos según el texto ingresado
-function filterMedicos(searchText) {
+// Filtrar elementos según el texto ingresado
+function filterItems(searchText, items, key) {
     const searchLower = searchText.toLowerCase().trim();
-    return medicos.filter((medico) =>
-        medico.nombre.toLowerCase().includes(searchLower)
+    return items.filter((item) =>
+        item[key].toLowerCase().includes(searchLower)
     );
 }
 
@@ -121,23 +152,20 @@ function initMedicoField() {
         return;
     }
 
-    // Evento para filtrar médicos mientras se escribe
     medicoInput.addEventListener('input', () => {
         const searchText = medicoInput.value;
-        const filteredMedicos = filterMedicos(searchText);
-        showMedicosDropdown(filteredMedicos, medicoDropdown);
+        const filteredMedicos = filterItems(searchText, medicos, 'nombre');
+        showDropdown(filteredMedicos, medicoDropdown, 'nombre');
     });
 
-    // Evento para mostrar todos los médicos al hacer clic en el ícono
     medicoToggle.addEventListener('click', () => {
         if (medicoDropdown.style.display === 'block') {
             medicoDropdown.style.display = 'none';
         } else {
-            showMedicosDropdown(medicos, medicoDropdown);
+            showDropdown(medicos, medicoDropdown, 'nombre');
         }
     });
 
-    // Cerrar el dropdown al hacer clic fuera
     document.addEventListener('click', (e) => {
         if (
             !medicoInput.contains(e.target) &&
@@ -148,12 +176,118 @@ function initMedicoField() {
         }
     });
 
-    // Evitar que el dropdown se cierre al hacer clic en el input
     medicoInput.addEventListener('click', (e) => {
         e.stopPropagation();
         const searchText = medicoInput.value;
-        const filteredMedicos = filterMedicos(searchText);
-        showMedicosDropdown(filteredMedicos, medicoDropdown);
+        const filteredMedicos = filterItems(searchText, medicos, 'nombre');
+        showDropdown(filteredMedicos, medicoDropdown, 'nombre');
+    });
+}
+
+// Inicializar funcionalidad del campo Código
+function initCodigoField() {
+    const codigoInput = document.getElementById('codigo');
+    const codigoToggle = document.getElementById('codigoToggle');
+    const codigoDropdown = document.getElementById('codigoDropdown');
+
+    if (!codigoInput || !codigoToggle || !codigoDropdown) {
+        console.error('Elementos del campo Código no encontrados');
+        return;
+    }
+
+    codigoInput.addEventListener('input', () => {
+        const searchText = codigoInput.value;
+        const filteredReferencias = filterItems(searchText, referencias, 'codigo');
+        showDropdown(filteredReferencias, codigoDropdown, 'codigo');
+    });
+
+    codigoToggle.addEventListener('click', () => {
+        if (codigoDropdown.style.display === 'block') {
+            codigoDropdown.style.display = 'none';
+        } else {
+            showDropdown(referencias, codigoDropdown, 'codigo');
+        }
+    });
+
+    document.addEventListener('click', (e) => {
+        if (
+            !codigoInput.contains(e.target) &&
+            !codigoToggle.contains(e.target) &&
+            !codigoDropdown.contains(e.target)
+        ) {
+            codigoDropdown.style.display = 'none';
+        }
+    });
+
+    codigoInput.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const searchText = codigoInput.value;
+        const filteredReferencias = filterItems(searchText, referencias, 'codigo');
+        showDropdown(filteredReferencias, codigoDropdown, 'codigo');
+    });
+}
+
+// Inicializar funcionalidad del campo Descripción
+function initDescripcionField() {
+    const descripcionInput = document.getElementById('descripcion');
+    const descripcionToggle = document.getElementById('descripcionToggle');
+    const descripcionDropdown = document.getElementById('descripcionDropdown');
+
+    if (!descripcionInput || !descripcionToggle || !descripcionDropdown) {
+        console.error('Elementos del campo Descripción no encontrados');
+        return;
+    }
+
+    descripcionInput.addEventListener('input', () => {
+        const searchText = descripcionInput.value;
+        const filteredReferencias = filterItems(searchText, referencias, 'descripcion');
+        showDropdown(filteredReferencias, descripcionDropdown, 'descripcion');
+    });
+
+    descripcionToggle.addEventListener('click', () => {
+        if (descripcionDropdown.style.display === 'block') {
+            descripcionDropdown.style.display = 'none';
+        } else {
+            showDropdown(referencias, descripcionDropdown, 'descripcion');
+        }
+    });
+
+    document.addEventListener('click', (e) => {
+        if (
+            !descripcionInput.contains(e.target) &&
+            !descripcionToggle.contains(e.target) &&
+            !descripcionDropdown.contains(e.target)
+        ) {
+            descripcionDropdown.style.display = 'none';
+        }
+    });
+
+    descripcionInput.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const searchText = descripcionInput.value;
+        const filteredReferencias = filterItems(searchText, referencias, 'descripcion');
+        showDropdown(filteredReferencias, descripcionDropdown, 'descripcion');
+    });
+}
+
+// Inicializar funcionalidad de los radios de atributo
+function initAtributoFilter() {
+    const atributoRadios = document.querySelectorAll('input[name="atributoFilter"]');
+
+    atributoRadios.forEach((radio) => {
+        radio.addEventListener('change', async (e) => {
+            atributoFilter = e.target.value;
+            await loadReferencias();
+            // Limpiar los inputs y dropdowns al cambiar el filtro
+            const codigoInput = document.getElementById('codigo');
+            const descripcionInput = document.getElementById('descripcion');
+            const codigoDropdown = document.getElementById('codigoDropdown');
+            const descripcionDropdown = document.getElementById('descripcionDropdown');
+            if (codigoInput) codigoInput.value = '';
+            if (descripcionInput) descripcionInput.value = '';
+            if (codigoDropdown) codigoDropdown.style.display = 'none';
+            if (descripcionDropdown) descripcionDropdown.style.display = 'none';
+        });
     });
 }
 
@@ -166,10 +300,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            // Cargar médicos
+            // Cargar médicos y referencias
             await loadMedicos();
-            // Inicializar campo Médico
+            await loadReferencias();
+            // Inicializar campos
             initMedicoField();
+            initCodigoField();
+            initDescripcionField();
+            initAtributoFilter();
         } catch (error) {
             showToast('Error al inicializar la aplicación: ' + error.message, 'error');
             console.error('Error al inicializar:', error);
