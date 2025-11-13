@@ -46,15 +46,6 @@ html, body {
     width: 100%;
 }
 
-.registrar-search-row {
-    display: flex;
-    justify-content: flex-start;
-    gap: 10px;
-    align-items: flex-end;
-    flex-wrap: wrap;
-    width: 100%;
-}
-
 .registrar-form-group {
     display: flex;
     flex-direction: column;
@@ -62,10 +53,6 @@ html, body {
     gap: 4px;
     flex: 1;
     min-width: 120px;
-}
-
-.registrar-search-row .registrar-form-group {
-    max-width: 140px;
 }
 
 .registrar-form-group.button-group {
@@ -126,8 +113,6 @@ html, body {
 
 #admision, #paciente, #medico, #fechaCX, #codigo, #descripcion, #cantidad,
 #referencia, #proveedor, #precioUnitario, #atributo, #totalItems,
-#buscarAdmision, #buscarPaciente, #buscarDescripcion, #buscarProveedor, #buscarMedico,
-#fechaDia, #fechaDesde, #fechaHasta, #mesSelect, #anioSelect,
 #editAdmision, #editPaciente, #editMedico, #editFechaCX, #editCodigo, #editDescripcion, #editCantidad,
 #editReferencia, #editProveedor, #editPrecioUnitario, #editAtributo, #editTotalItems {
     width: 100%;
@@ -216,62 +201,10 @@ html, body {
 }
 
 #admision:focus, #paciente:focus, #medico:focus, #fechaCX:focus, #codigo:focus, #descripcion:focus, #cantidad:focus,
-#buscarAdmision:focus, #buscarPaciente:focus, #buscarDescripcion:focus, #buscarProveedor:focus, #buscarMedico:focus,
-#fechaDia:focus, #fechaDesde:focus, #fechaHasta:focus, #mesSelect:focus, #anioSelect:focus,
 #editAdmision:focus, #editPaciente:focus, #editMedico:focus, #editFechaCX:focus, #editCodigo:focus, #editDescripcion:focus, #editCantidad:focus,
 .doc-delivery-input:focus {
     box-shadow: 0 0 8px rgba(0, 123, 255, 0.3);
     outline: none;
-}
-
-.registrar-date-search {
-    min-width: 300px;
-    max-width: 380px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.registrar-date-options {
-    display: flex;
-    flex-wrap: nowrap;
-    gap: 6px;
-    align-items: center;
-}
-
-.registrar-date-options label {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 10px;
-    white-space: nowrap;
-}
-
-.registrar-date-group {
-    display: flex;
-    gap: 6px;
-    align-items: center;
-}
-
-#dateDay, #dateWeek, #dateMonth {
-    width: 14px;
-    height: 14px;
-    margin: 0;
-}
-
-#fechaDia, #fechaDesde, #fechaHasta {
-    width: 100px;
-    min-width: 100px;
-}
-
-#mesSelect {
-    width: 80px;
-    min-width: 80px;
-}
-
-#anioSelect {
-    width: 65px;
-    min-width: 65px;
 }
 
 .registrar-actions-menu {
@@ -781,12 +714,8 @@ html, body {
 }
 
 @media screen and (max-width: 1200px) {
-    .registrar-first-row, .registrar-second-row, .registrar-search-row {
+    .registrar-first-row, .registrar-second-row {
         flex-wrap: wrap;
-    }
-    .registrar-date-search {
-        min-width: 300px;
-        max-width: 380px;
     }
     .registrar-form-group, .registrar-form-type {
         max-width: 100%;
@@ -804,18 +733,6 @@ html, body {
     }
     .registrar-form-group, .registrar-form-type {
         min-width: 100%;
-    }
-    #fechaDia, #fechaDesde, #fechaHasta, #mesSelect, #anioSelect {
-        width: 100%;
-        min-width: 100%;
-    }
-    .registrar-date-options {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    .registrar-date-group {
-        flex-direction: column;
-        width: 100%;
     }
     .modal-form-group {
         min-width: 100%;
