@@ -846,6 +846,7 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.replace('../index.html');
     }
 
+    // === NUEVA LÓGICA DE PAQUETIZACIÓN ===
     window.paquetizarGuia = async function (id, event) {
         event.stopPropagation();
 
@@ -876,6 +877,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const detalles = Array.isArray(doc.Detalle) ? doc.Detalle : [doc.Detalle];
             const primerItem = detalles[0];
 
+            // Título del modal
             packModalTitle.textContent = `Folio: ${data.folio || 'N/A'} | Folio Referencia: ${data.folioRef || 'N/A'}`;
             packSubtitle.textContent = primerItem 
                 ? `Ítem 1 - ${primerItem.NmbItem || 'Sin nombre'}`
@@ -884,15 +886,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const packDetailsTitle = document.getElementById('packDetailsTitle');
             packDetailsBody.innerHTML = '';
 
-            const itemsDesde2 = detalles.length > 1 ? detalles.slice(1) : [];
-            const totalItemsDesde2 = itemsDesde2.length;
+            // === LÓGICA CLAVE ===
+            const kitsEspeciales = ['KITMANGACRL', 'KIT BY PASS CLINICA R LIRCAY'];
+            const esKitEspecial = primerItem && kitsEspeciales.includes(primerItem.NmbItem?.trim().toUpperCase());
+
+            const inicioTabla = esKitEspecial ? 1 : 0; // Salta ítem 1 si es kit especial
+            const itemsParaTabla = detalles.slice(inicioTabla);
+            const totalItemsEnTabla = itemsParaTabla.length;
 
             if (packDetailsTitle) {
-                packDetailsTitle.textContent = `Total ítems: ${totalItemsDesde2}`;
+                packDetailsTitle.textContent = `Total ítems: ${totalItemsEnTabla}`;
             }
 
-            if (totalItemsDesde2 > 0) {
-                itemsDesde2.forEach((detalle, index) => {
+            if (totalItemsEnTabla > 0) {
+                itemsParaTabla.forEach((detalle, index) => {
                     const qty = detalle.QtyItem;
                     const qtyFormatted = qty ? Math.round(parseFloat(qty)) : '';
                     const codigoLimpio = detalle.CdgItem?.VlrCodigo ? detalle.CdgItem.VlrCodigo.split(' ')[0] : '';
@@ -909,7 +916,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     packDetailsBody.appendChild(row);
                 });
             } else {
-                packDetailsBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#999;">No hay ítems adicionales</td></tr>';
+                packDetailsBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#999;">No hay ítems para mostrar</td></tr>';
             }
 
             packModal.style.display = 'block';

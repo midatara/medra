@@ -846,7 +846,6 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.replace('../index.html');
     }
 
-    // === NUEVA LÓGICA DE PAQUETIZACIÓN ===
     window.paquetizarGuia = async function (id, event) {
         event.stopPropagation();
 
@@ -855,7 +854,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const packSubtitle = document.getElementById('packSubtitle');
         const packDetailsBody = document.getElementById('packDetailsBody');
         const closePackModal = document.getElementById('closePackModal');
-        const closePackBtn = document.getElementById('closePackBtn');
+        const copyPackBtn = document.getElementById('copyPackBtn');
 
         if (!packModal || !db) {
             showToast('Error: Modal o Firebase no disponible.', 'error');
@@ -877,7 +876,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const detalles = Array.isArray(doc.Detalle) ? doc.Detalle : [doc.Detalle];
             const primerItem = detalles[0];
 
-            // Título del modal
             packModalTitle.textContent = `Folio: ${data.folio || 'N/A'} | Folio Referencia: ${data.folioRef || 'N/A'}`;
             packSubtitle.textContent = primerItem 
                 ? `Ítem 1 - ${primerItem.NmbItem || 'Sin nombre'}`
@@ -886,11 +884,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const packDetailsTitle = document.getElementById('packDetailsTitle');
             packDetailsBody.innerHTML = '';
 
-            // === LÓGICA CLAVE ===
             const kitsEspeciales = ['KITMANGACRL', 'KIT BY PASS CLINICA R LIRCAY'];
             const esKitEspecial = primerItem && kitsEspeciales.includes(primerItem.NmbItem?.trim().toUpperCase());
 
-            const inicioTabla = esKitEspecial ? 1 : 0; // Salta ítem 1 si es kit especial
+            const inicioTabla = esKitEspecial ? 1 : 0; 
             const itemsParaTabla = detalles.slice(inicioTabla);
             const totalItemsEnTabla = itemsParaTabla.length;
 
@@ -921,19 +918,46 @@ document.addEventListener('DOMContentLoaded', () => {
 
             packModal.style.display = 'block';
 
+            const copyTableToClipboard = () => {
+                const rows = packDetailsBody.querySelectorAll('tr');
+                if (rows.length === 0 || rows[0].textContent.includes('No hay ítems para mostrar')) {
+                    showToast('No hay datos para copiar.', 'error');
+                    return;
+                }
+
+                let clipboardText = '';
+                rows.forEach((row) => {
+                    const cells = row.querySelectorAll('td');
+                    const rowData = Array.from(cells).map(cell => {
+                        const text = cell.textContent.trim();
+                        return `"${text.replace(/"/g, '""')}"`;
+                    }).join('\t');
+                    clipboardText += rowData + '\n';
+                });
+
+                navigator.clipboard.writeText(clipboardText).then(() => {
+                    showToast('Tabla copiada al portapapeles.', 'success');
+                    packModal.style.display = 'none';
+                }).catch((err) => {
+                    showToast('Error al copiar: ' + err.message, 'error');
+                });
+            };
+
+            const closeModal = () => {
+                packModal.style.display = 'none';
+            };
+
+            closePackModal.onclick = closeModal;
+            copyPackBtn.onclick = copyTableToClipboard;
+
+            window.onclick = (e) => {
+                if (e.target === packModal) closeModal();
+            };
+
         } catch (error) {
             hideLoading();
             showToast('Error al cargar datos: ' + error.message, 'error');
         }
-
-        const closeModal = () => {
-            packModal.style.display = 'none';
-        };
-        closePackModal.onclick = closeModal;
-        closePackBtn.onclick = closeModal;
-        window.onclick = (e) => {
-            if (e.target === packModal) closeModal();
-        };
     };
 
     function formatDate(isoDate) {
