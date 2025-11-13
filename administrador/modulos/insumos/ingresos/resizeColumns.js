@@ -3,21 +3,31 @@
 // Función principal para inicializar el redimensionamiento de columnas
 function initColumnResizing() {
     const table = document.querySelector('.registrar-table');
+    if (!table) return;
+
     const headers = table.querySelectorAll('th');
     const resizeHandles = table.querySelectorAll('.resize-handle');
 
     // Variables para manejar el estado del redimensionamiento
     let isResizing = false;
     let currentHeader = null;
+    let currentHandle = null;
     let startX = 0;
     let startWidth = 0;
+
+    // Configurar límites de ancho
+    const MIN_WIDTH = 20;
+    const MAX_WIDTH = 600;
 
     // Iterar sobre cada manija de redimensionamiento
     resizeHandles.forEach((handle, index) => {
         handle.addEventListener('mousedown', (e) => {
             e.preventDefault();
+            e.stopPropagation();
+            
             isResizing = true;
             currentHeader = headers[index];
+            currentHandle = handle;
             startX = e.clientX;
             startWidth = currentHeader.offsetWidth;
 
@@ -26,29 +36,36 @@ function initColumnResizing() {
 
             // Desactivar selección de texto durante el redimensionamiento
             document.body.style.userSelect = 'none';
+            document.body.style.cursor = 'col-resize';
         });
     });
 
     // Manejar el movimiento del ratón para redimensionar
     document.addEventListener('mousemove', (e) => {
-        if (!isResizing) return;
+        if (!isResizing || !currentHeader) return;
 
         const deltaX = e.clientX - startX;
         let newWidth = startWidth + deltaX;
 
-        // Establecer límites fijos para el ancho de la columna
-        const minWidth = 20; // Mínimo 20px
-        const maxWidth = 600; // Máximo 600px
-        newWidth = Math.max(minWidth, Math.min(newWidth, maxWidth));
+        // Aplicar límites
+        newWidth = Math.max(MIN_WIDTH, Math.min(newWidth, MAX_WIDTH));
 
-        // Actualizar el ancho del encabezado
+        // Actualizar el ancho del encabezado usando style inline (sobrescribe CSS)
         currentHeader.style.width = `${newWidth}px`;
+        currentHeader.style.minWidth = `${newWidth}px`;
+        currentHeader.style.maxWidth = `${newWidth}px`;
 
-        // Actualizar el ancho de las celdas correspondientes en el cuerpo de la tabla
+        // Actualizar el ancho de las celdas correspondientes en el tbody
         const colIndex = Array.from(headers).indexOf(currentHeader);
-        const cells = table.querySelectorAll(`td:nth-child(${colIndex + 1})`);
-        cells.forEach((cell) => {
-            cell.style.width = `${newWidth}px`;
+        const rows = table.querySelectorAll('tbody tr');
+        
+        rows.forEach((row) => {
+            const cell = row.cells[colIndex];
+            if (cell) {
+                cell.style.width = `${newWidth}px`;
+                cell.style.minWidth = `${newWidth}px`;
+                cell.style.maxWidth = `${newWidth}px`;
+            }
         });
     });
 
@@ -56,13 +73,18 @@ function initColumnResizing() {
     document.addEventListener('mouseup', () => {
         if (isResizing) {
             isResizing = false;
+            
+            // Remover clase 'active' de la manija actual
+            if (currentHandle) {
+                currentHandle.classList.remove('active');
+            }
+            
             currentHeader = null;
+            currentHandle = null;
 
-            // Remover clase 'active' de todas las manijas
-            resizeHandles.forEach((handle) => handle.classList.remove('active'));
-
-            // Restaurar selección de texto
+            // Restaurar selección de texto y cursor
             document.body.style.userSelect = '';
+            document.body.style.cursor = '';
         }
     });
 
@@ -74,5 +96,50 @@ function initColumnResizing() {
     });
 }
 
+// Función para aplicar anchos guardados (si tienes sistema de persistencia)
+function applySavedColumnWidths() {
+    const savedWidths = localStorage.getItem('registrar-column-widths');
+    if (!savedWidths) return;
+
+    try {
+        const widths = JSON.parse(savedWidths);
+        const table = document.querySelector('.registrar-table');
+        if (!table) return;
+
+        const headers = table.querySelectorAll('th');
+        headers.forEach((header, index) => {
+            if (widths[index]) {
+                header.style.width = `${widths[index]}px`;
+                header.style.minWidth = `${widths[index]}px`;
+                header.style.maxWidth = `${widths[index]}px`;
+            }
+        });
+    } catch (e) {
+        console.error('Error aplicando anchos guardados:', e);
+    }
+}
+
+// Función para guardar anchos de columnas (opcional)
+function saveColumnWidths() {
+    const table = document.querySelector('.registrar-table');
+    if (!table) return;
+
+    const headers = table.querySelectorAll('th');
+    const widths = Array.from(headers).map(h => h.offsetWidth);
+    
+    localStorage.setItem('registrar-column-widths', JSON.stringify(widths));
+}
+
 // Ejecutar la inicialización cuando el DOM esté completamente cargado
-document.addEventListener('DOMContentLoaded', initColumnResizing);
+document.addEventListener('DOMContentLoaded', () => {
+    initColumnResizing();
+    // applySavedColumnWidths(); // Descomentar si quieres persistencia
+});
+
+// Guardar anchos al salir (opcional)
+// window.addEventListener('beforeunload', saveColumnWidths);
+
+// Exportar funciones si usas módulos ES6
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { initColumnResizing, applySavedColumnWidths, saveColumnWidths };
+}

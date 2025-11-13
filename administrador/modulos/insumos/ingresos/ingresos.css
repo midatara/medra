@@ -221,10 +221,10 @@ html, body {
 }
 
 .registrar-table {
-    table-layout: auto; /* Cambiar de fixed a auto */
+    table-layout: fixed; /* CAMBIO CRÍTICO: de auto a fixed */
     border-collapse: collapse;
     font-size: 11px;
-    width: 100%; /* Asegura que la tabla ocupe el contenedor */
+    width: 100%;
     box-sizing: border-box;
 }
 
@@ -246,6 +246,7 @@ html, body {
     z-index: 10;
     cursor: default;
     user-select: none;
+    position: relative; /* AÑADIDO: necesario para el resize-handle absoluto */
 }
 
 .registrar-table th .resize-handle {
@@ -269,20 +270,22 @@ html, body {
     background-color: #f8f9fa;
 }
 
-/* Definir anchos iniciales y límites para cada columna */
-.registrar-table th:nth-child(1), .registrar-table td:nth-child(1) { width: 70px; min-width: 20px; max-width: 600px; }
-.registrar-table th:nth-child(2), .registrar-table td:nth-child(2) { width: 130px; min-width: 20px; max-width: 600px; }
-.registrar-table th:nth-child(3), .registrar-table td:nth-child(3) { width: 200px; min-width: 20px; max-width: 600px; }
-.registrar-table th:nth-child(4), .registrar-table td:nth-child(4) { width: 80px; min-width: 20px; max-width: 600px; }
-.registrar-table th:nth-child(5), .registrar-table td:nth-child(5) { width: 100px; min-width: 20px; max-width: 600px; }
-.registrar-table th:nth-child(6), .registrar-table td:nth-child(6) { width: 300px; min-width: 20px; max-width: 600px; }
-.registrar-table th:nth-child(7), .registrar-table td:nth-child(7) { width: 80px; min-width: 20px; max-width: 600px; }
-.registrar-table th:nth-child(8), .registrar-table td:nth-child(8) { width: 130px; min-width: 20px; max-width: 600px; }
-.registrar-table th:nth-child(9), .registrar-table td:nth-child(9) { width: 150px; min-width: 20px; max-width: 600px; }
-.registrar-table th:nth-child(10), .registrar-table td:nth-child(10) { width: 100px; min-width: 20px; max-width: 600px; }
-.registrar-table th:nth-child(11), .registrar-table td:nth-child(11) { width: 80px; min-width: 20px; max-width: 600px; }
-.registrar-table th:nth-child(12), .registrar-table td:nth-child(12) { width: 100px; min-width: 20px; max-width: 600px; }
-.registrar-table th:nth-child(13), .registrar-table td:nth-child(13) { width: 65px; min-width: 20px; max-width: 600px; }
+/* Definir anchos iniciales para cada columna */
+.registrar-table th:nth-child(1), .registrar-table td:nth-child(1) { width: 70px; }
+.registrar-table th:nth-child(2), .registrar-table td:nth-child(2) { width: 130px; }
+.registrar-table th:nth-child(3), .registrar-table td:nth-child(3) { width: 200px; }
+.registrar-table th:nth-child(4), .registrar-table td:nth-child(4) { width: 80px; }
+.registrar-table th:nth-child(5), .registrar-table td:nth-child(5) { width: 100px; }
+.registrar-table th:nth-child(6), .registrar-table td:nth-child(6) { width: 300px; }
+.registrar-table th:nth-child(7), .registrar-table td:nth-child(7) { width: 80px; }
+.registrar-table th:nth-child(8), .registrar-table td:nth-child(8) { width: 130px; }
+.registrar-table th:nth-child(9), .registrar-table td:nth-child(9) { width: 150px; }
+.registrar-table th:nth-child(10), .registrar-table td:nth-child(10) { width: 100px; }
+.registrar-table th:nth-child(11), .registrar-table td:nth-child(11) { width: 80px; }
+.registrar-table th:nth-child(12), .registrar-table td:nth-child(12) { width: 100px; }
+.registrar-table th:nth-child(13), .registrar-table td:nth-child(13) { width: 65px; }
+.registrar-table th:nth-child(14), .registrar-table td:nth-child(14) { width: 100px; }
+.registrar-table th:nth-child(15), .registrar-table td:nth-child(15) { width: 100px; }
 
 .registrar-actions {
     display: flex;
