@@ -59,6 +59,15 @@ function formatNumberWithThousandsSeparator(number) {
     return Number(number).toLocaleString('es-CL', { minimumFractionDigits: 0 });
 }
 
+function formatDateToDDMMYYYY(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
+}
+
 async function loadMedicos() {
     showLoading();
     try {
@@ -452,7 +461,7 @@ async function registrarIngreso() {
     const atributo = document.getElementById('atributo').value.trim();
     const totalItems = parseFloat(document.getElementById('totalItems').value.replace(/\./g, '')) || 0;
     const docDelivery = document.getElementById('docDelivery').value.trim();
-    const usuario = auth.currentUser ? auth.currentUser.email : 'unknown';
+    const usuario = auth.currentUser ? auth.currentUser.displayName || 'unknown' : 'unknown';
 
     if (!admision || !paciente || !medico || !fechaCX || !codigo || !descripcion || !cantidad || !referencia || !proveedor || !precioUnitario || !atributo) {
         showToast('Por favor, completa todos los campos obligatorios', 'error');
@@ -546,6 +555,7 @@ function renderTable() {
     tbody.innerHTML = '';
     if (registros.length === 0) {
         tbody.innerHTML = '<tr><td colspan="15">No hay registros para mostrar</td></tr>';
+        console.log('No hay registros para mostrar en la tabla');
         return;
     }
 
@@ -555,7 +565,7 @@ function renderTable() {
             <td>${registro.admision || ''}</td>
             <td>${registro.paciente || ''}</td>
             <td>${registro.medico || ''}</td>
-            <td>${registro.fechaCX || ''}</td>
+            <td>${formatDateToDDMMYYYY(registro.fechaCX)}</td>
             <td>${registro.codigo || ''}</td>
             <td>${registro.descripcion || ''}</td>
             <td>${registro.cantidad || ''}</td>
@@ -583,6 +593,7 @@ function initRegistrarButton() {
         return;
     }
     registrarBtn.addEventListener('click', registrarIngreso);
+    console.log('Botón Registrar inicializado');
 }
 
 function initLimpiarButton() {
@@ -592,6 +603,7 @@ function initLimpiarButton() {
         return;
     }
     limpiarBtn.addEventListener('click', limpiarCampos);
+    console.log('Botón Limpiar inicializado');
 }
 
 document.addEventListener('DOMContentLoaded', () => {
