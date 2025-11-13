@@ -379,22 +379,8 @@
 
         <div class="main">
             <div class="content" id="mainContent">
-                <div class="card">
-                    <h3 id="statsTitle">Estadísticas del Año</h3>
-                    <ul class="stats-list" id="statsList">
-                        <li>Cargando datos del año...</li>
-                    </ul>
-                    <button class="refresh-btn" id="refreshStats" style="display: none;">
-                        <i class="fas fa-sync-alt"></i> Actualizar
-                    </button>
-                    <div class="last-update" id="lastUpdate"></div>
-                </div>
-                <div class="card">
-                    <h3>Pacientes Pendientes</h3>
-                    <ul class="stats-list" id="pendingList">
-                        <li>Cargando pacientes pendientes...</li>
-                    </ul>
-                </div>
+                <div class="card"></div>
+                <div class="card"></div>
             </div>
         </div>
     </div>
@@ -510,7 +496,6 @@
                 { text: 'Reportes', path: 'modulos/insumos/reportes/reportes.html', icon: 'fas fa-chart-line' },
                 { text: 'Actividad', path: 'modulos/insumos/actividad/actividad.html', icon: 'fas fa-bolt' }
             ],
-
             'consignacion': [
                 { text: 'Cargas', path: 'modulos/consignacion/cargas/cargas.html', icon: 'fas fa-upload' },
                 { text: 'Pacientes', path: 'modulos/consignacion/pacientes/pacientes.html', icon: 'fas fa-user-injured' },
@@ -672,181 +657,13 @@
             const submenu = document.querySelector('.submenu');
 
             content.innerHTML = `
-            <div class="card">
-                <h3 id="statsTitle">Estadísticas del Año</h3>
-                <ul class="stats-list" id="statsList">
-                    <li>Cargando datos del año...</li>
-                </ul>
-                <button class="refresh-btn" id="refreshStats" style="display: none;">
-                    <i class="fas fa-sync-alt"></i> Actualizar
-                </button>
-                <div class="last-update" id="lastUpdate"></div>
-            </div>
-            <div class="card">
-                <h3>Pacientes Pendientes</h3>
-                <ul class="stats-list" id="pendingList">
-                    <li>Cargando pacientes pendientes...</li>
-                </ul>
-            </div>
-        `;
+                <div class="card"></div>
+                <div class="card"></div>
+            `;
 
             mainMenu.style.display = 'block';
             submenu.style.display = 'none';
-            
-            const cachedStats = window.statsCache;
-            if (cachedStats && (Date.now() - cachedStats.timestamp < 300000)) {
-                displayStats(cachedStats.data);
-            } else {
-                setTimeout(actualizarEstadisticasConsignacion, 100);
-            }
-            
-            setTimeout(() => {
-                const btn = document.getElementById('refreshStats');
-                if (btn) {
-                    btn.onclick = () => actualizarEstadisticasConsignacion(true);
-                }
-            }, 150);
         });
-    </script>
-
-    <script type="module">
-        import { collection, getDocs, query, where, limit, getCountFromServer } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
-
-        const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-
-        window.statsCache = null;
-        let isLoading = false;
-
-        function displayStats(data) {
-            const statsTitle = document.getElementById('statsTitle');
-            const statsList = document.getElementById('statsList');
-            const pendingList = document.getElementById('pendingList');
-            const lastUpdate = document.getElementById('lastUpdate');
-            const refreshBtn = document.getElementById('refreshStats');
-
-            if (!statsTitle || !statsList || !pendingList) return;
-
-            statsTitle.textContent = `Estadísticas del Año ${data.year}`;
-
-            statsList.innerHTML = Object.keys(data.conteoPorMes).length > 0
-                ? Object.entries(data.conteoPorMes)
-                    .sort(([a], [b]) => meses.indexOf(a) - meses.indexOf(b))
-                    .map(([mes, count]) => `<li><span>${mes.charAt(0).toUpperCase() + mes.slice(1)}:</span> <strong>${count} paciente${count !== 1 ? 's' : ''}</strong></li>`)
-                    .join('')
-                : '<li style="color:#999;">Sin registros este año</li>';
-
-            pendingList.innerHTML = Object.keys(data.pendientesPorMes).length > 0
-                ? Object.entries(data.pendientesPorMes)
-                    .sort(([a], [b]) => meses.indexOf(a) - meses.indexOf(b))
-                    .map(([mes, count]) => `<li><span>${mes.charAt(0).toUpperCase() + mes.slice(1)}:</span> <strong>${count} pendiente${count !== 1 ? 's' : ''}</strong></li>`)
-                    .join('')
-                : '<li style="color:#999;">No hay pacientes pendientes</li>';
-
-            if (lastUpdate) {
-                const time = new Date(data.timestamp).toLocaleTimeString('es-ES', { 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                });
-                lastUpdate.textContent = `Última actualización: ${time}`;
-            }
-
-            if (refreshBtn) {
-                refreshBtn.style.display = 'inline-flex';
-            }
-        }
-
-        window.actualizarEstadisticasConsignacion = async function(forceRefresh = false) {
-            const statsTitle = document.getElementById('statsTitle');
-            const statsList = document.getElementById('statsList');
-            const pendingList = document.getElementById('pendingList');
-            const refreshBtn = document.getElementById('refreshStats');
-
-            if (!statsTitle || !statsList || !pendingList) {
-                return;
-            }
-
-            if (isLoading) return;
-
-            if (!forceRefresh && window.statsCache && (Date.now() - window.statsCache.timestamp < 300000)) {
-                displayStats(window.statsCache.data);
-                return;
-            }
-
-            isLoading = true;
-            if (refreshBtn) {
-                refreshBtn.disabled = true;
-                refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Actualizando...';
-            }
-
-            try {
-                const now = new Date();
-                const year = now.getFullYear();
-
-                const startOfYear = new Date(year, 0, 1);
-                const endOfYear = new Date(year, 11, 31, 23, 59, 59, 999);
-
-                const q = query(
-                    collection(window.db, "pacientes_consignaciones"),
-                    where("fechaCX", ">=", startOfYear),
-                    where("fechaCX", "<=", endOfYear)
-                );
-
-                const snapshot = await getDocs(q);
-                
-                const conteoPorMes = {};
-                const pendientesPorMes = {};
-
-                snapshot.docs.forEach(doc => {
-                    const data = doc.data();
-                    const fecha = data.fechaCX?.toDate?.() || new Date(data.fechaCX);
-                    const mes = fecha.getMonth();
-                    const nombreMes = meses[mes];
-                    const estado = (data.estado || '').trim().toUpperCase();
-
-                    conteoPorMes[nombreMes] = (conteoPorMes[nombreMes] || 0) + 1;
-
-                    if (estado !== 'CARGADO') {
-                        pendientesPorMes[nombreMes] = (pendientesPorMes[nombreMes] || 0) + 1;
-                    }
-                });
-
-                const statsData = {
-                    year,
-                    conteoPorMes,
-                    pendientesPorMes,
-                    timestamp: Date.now()
-                };
-
-                window.statsCache = {
-                    data: statsData,
-                    timestamp: Date.now()
-                };
-
-                displayStats(statsData);
-
-            } catch (error) {
-                console.error("Error al cargar estadísticas:", error);
-                if (statsList) statsList.innerHTML = '<li style="color:red;">Error al cargar datos. <a href="#" onclick="actualizarEstadisticasConsignacion(true); return false;" style="color:#3A5795;">Reintentar</a></li>';
-                if (pendingList) pendingList.innerHTML = '<li style="color:red;">Error al cargar datos</li>';
-            } finally {
-                isLoading = false;
-                if (refreshBtn) {
-                    refreshBtn.disabled = false;
-                    refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Actualizar';
-                }
-            }
-        };
-
-        document.addEventListener('DOMContentLoaded', () => {
-            actualizarEstadisticasConsignacion();
-        });
-
-        setTimeout(() => {
-            const btn = document.getElementById('refreshStats');
-            if (btn) {
-                btn.onclick = () => actualizarEstadisticasConsignacion(true);
-            }
-        }, 500);
     </script>
 </body>
 </html>
