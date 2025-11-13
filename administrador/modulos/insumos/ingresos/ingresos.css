@@ -224,7 +224,7 @@ html, body {
     table-layout: fixed; /* CAMBIO CRÍTICO: de auto a fixed */
     border-collapse: collapse;
     font-size: 11px;
-    width: 100%;
+    width: auto; /* CAMBIO: de 100% a auto para permitir ancho dinámico */
     box-sizing: border-box;
 }
 

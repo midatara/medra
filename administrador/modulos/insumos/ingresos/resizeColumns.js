@@ -19,6 +19,19 @@ function initColumnResizing() {
     const MIN_WIDTH = 20;
     const MAX_WIDTH = 600;
 
+    // Función para calcular y actualizar el ancho total de la tabla
+    function updateTableWidth() {
+        let totalWidth = 0;
+        headers.forEach(header => {
+            totalWidth += header.offsetWidth;
+        });
+        // Establecer el ancho de la tabla como la suma de todas las columnas
+        table.style.width = `${totalWidth}px`;
+    }
+
+    // Establecer ancho inicial de la tabla
+    updateTableWidth();
+
     // Iterar sobre cada manija de redimensionamiento
     resizeHandles.forEach((handle, index) => {
         handle.addEventListener('mousedown', (e) => {
@@ -50,7 +63,7 @@ function initColumnResizing() {
         // Aplicar límites
         newWidth = Math.max(MIN_WIDTH, Math.min(newWidth, MAX_WIDTH));
 
-        // Actualizar el ancho del encabezado usando style inline (sobrescribe CSS)
+        // Actualizar el ancho del encabezado usando style inline
         currentHeader.style.width = `${newWidth}px`;
         currentHeader.style.minWidth = `${newWidth}px`;
         currentHeader.style.maxWidth = `${newWidth}px`;
@@ -67,6 +80,9 @@ function initColumnResizing() {
                 cell.style.maxWidth = `${newWidth}px`;
             }
         });
+
+        // CLAVE: Actualizar el ancho total de la tabla
+        updateTableWidth();
     });
 
     // Finalizar el redimensionamiento al soltar el ratón
@@ -85,6 +101,9 @@ function initColumnResizing() {
             // Restaurar selección de texto y cursor
             document.body.style.userSelect = '';
             document.body.style.cursor = '';
+
+            // Actualizar el ancho final de la tabla
+            updateTableWidth();
         }
     });
 
@@ -93,6 +112,16 @@ function initColumnResizing() {
         if (isResizing) {
             e.preventDefault();
         }
+    });
+
+    // Observar cambios en la tabla (cuando se agregan/eliminan filas)
+    const observer = new MutationObserver(() => {
+        updateTableWidth();
+    });
+
+    observer.observe(table.querySelector('tbody'), {
+        childList: true,
+        subtree: true
     });
 }
 
@@ -114,6 +143,11 @@ function applySavedColumnWidths() {
                 header.style.maxWidth = `${widths[index]}px`;
             }
         });
+
+        // Recalcular ancho de tabla después de aplicar anchos guardados
+        let totalWidth = 0;
+        headers.forEach(h => totalWidth += h.offsetWidth);
+        table.style.width = `${totalWidth}px`;
     } catch (e) {
         console.error('Error aplicando anchos guardados:', e);
     }
