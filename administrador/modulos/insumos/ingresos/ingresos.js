@@ -105,7 +105,7 @@ async function loadReferencias() {
             query(collection(db, "referencias_implantes"),
                 where("atributo", "==", normalizedAtributoFilter))
         );
-        referencias = []; // Limpiar referencias antes de recargar
+        referencias = [];
         querySnapshot.forEach(doc => {
             const data = { id: doc.id, ...doc.data() };
             referencias.push(data);
@@ -113,7 +113,6 @@ async function loadReferencias() {
         referencias.sort((a, b) => (a.codigo || '').localeCompare(b.codigo || ''));
         console.log('Referencias cargadas:', referencias.length, referencias.map(r => ({ codigo: r.codigo, descripcion: r.descripcion, atributo: r.atributo })));
 
-        // Recargar todos los autocompletados
         setupAutocomplete('codigo', 'codigoToggle', 'codigoDropdown', referencias, 'codigo');
         setupAutocomplete('descripcion', 'descripcionToggle', 'descripcionDropdown', referencias, 'descripcion');
         setupAutocomplete('editCodigo', 'editCodigoToggle', 'editCodigoDropdown', referencias, 'codigo');
@@ -148,7 +147,6 @@ function attachIconForceLoad(iconId) {
             return;
         }
 
-        // Forzar recarga si el dropdown está vacío o las referencias no están cargadas
         if (!referencias.length || dropdown.children.length === 0) {
             console.log('Recargando referencias por dropdown vacío');
             window.showLoading('forceLoad');
@@ -160,7 +158,6 @@ function attachIconForceLoad(iconId) {
                 window.hideLoading('forceLoad');
             }
         } else {
-            // Mostrar u ocultar el dropdown
             dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
             if (dropdown.style.display === 'block') {
                 populateDropdown(dropdown, iconId.includes('Codigo') ? 'codigo' : 'descripcion');
@@ -285,7 +282,6 @@ function setupAtributoFilter() {
         console.log('Cambiando atributo a:', normalized);
         atributoFilter = normalized;
 
-        // Limpiar campos
         ['codigo', 'descripcion', 'referencia', 'proveedor', 'precioUnitario', 'atributo', 'totalItems',
             'editCodigo', 'editDescripcion', 'editReferencia', 'editProveedor', 'editPrecioUnitario', 'editAtributo', 'editTotalItems']
             .forEach(id => {
@@ -301,7 +297,6 @@ function setupAtributoFilter() {
                 }
             });
 
-        // Recargar referencias
         window.showLoading('atributoChange');
         try {
             await loadReferencias();
@@ -318,7 +313,6 @@ function setupAtributoFilter() {
         });
     });
 
-    // Inicializar con el valor seleccionado
     const checked = document.querySelector('input[name="atributoFilter"]:checked');
     if (checked) {
         console.log('Inicializando con atributo:', checked.value);
@@ -424,13 +418,13 @@ function fillFields(item, inputId) {
         if (referenciaInput) referenciaInput.value = item.referencia || '';
         if (proveedorInput) proveedorInput.value = item.proveedor || '';
         if (precioUnitarioInput) precioUnitarioInput.value = item.precioUnitario ? formatNumberWithThousandsSeparator(item.precioUnitario) : '';
-        if (atributoInput) atributoInput.value = item.atributo || '';
+        if (atributoInput) atributoInput.value = atributoFilter; // Usar atributoFilter
     } else if (inputId.includes('codigo') || inputId.includes('Codigo')) {
         if (descripcionInput) descripcionInput.value = item.descripcion || '';
         if (referenciaInput) referenciaInput.value = item.referencia || '';
         if (proveedorInput) proveedorInput.value = item.proveedor || '';
         if (precioUnitarioInput) precioUnitarioInput.value = item.precioUnitario ? formatNumberWithThousandsSeparator(item.precioUnitario) : '';
-        if (atributoInput) atributoInput.value = item.atributo || '';
+        if (atributoInput) atributoInput.value = atributoFilter; // Usar atributoFilter
     }
     setTimeout(() => updateTotalItems(isEdit), 100);
 }
@@ -597,15 +591,22 @@ function exportToExcel(data, filename) {
 async function getProductoByCodigo(codigo) {
     if (!codigo?.trim()) return null;
     try {
+        const normalizedCodigo = normalizeText(codigo);
+        console.log('Buscando producto con código:', normalizedCodigo, 'y atributo:', atributoFilter);
         const q = query(
             collection(db, "referencias_implantes"),
-            where("codigo", "==", normalizeText(codigo)),
+            where("codigo", "==", normalizedCodigo),
             where("atributo", "==", atributoFilter)
         );
         const querySnapshot = await getDocs(q);
-        if (querySnapshot.empty) return null;
+        if (querySnapshot.empty) {
+            console.log('No se encontró producto para código:', normalizedCodigo, 'y atributo:', atributoFilter);
+            return null;
+        }
         const doc = querySnapshot.docs[0];
-        return { id: doc.id, ...doc.data() };
+        const prod = { id: doc.id, ...doc.data() };
+        console.log('Producto encontrado:', prod);
+        return prod;
     } catch (error) {
         console.error('Error getting product by code:', error);
         return null;
@@ -979,11 +980,32 @@ document.addEventListener('DOMContentLoaded', () => {
             docDelivery: normalizeText(docDeliveryInput?.value) || ''
         };
 
+        console.log('Datos para registrar:', data, 'atributoFilter:', atributoFilter);
+
         if (Object.values(data).some(v => !v && v !== 0)) return showToast('Completa todos los campos', 'error');
         if (isNaN(data.fechaCX)) return showToast('Fecha inválida', 'error');
         if (await validateAdmisionCodigo(data.admision, data.codigo)) return showToast('Duplicado admisión + código', 'error');
+        
         const prod = await getProductoByCodigo(data.codigo);
-        if (!prod || prod.descripcion !== data.descripcion || prod.atributo !== data.atributo) return showToast('Producto no coincide', 'error');
+        if (!prod) {
+            console.log('Validación fallida: Producto no encontrado');
+            return showToast('Producto no encontrado', 'error');
+        }
+        if (normalizeText(prod.descripcion) !== normalizeText(data.descripcion)) {
+            console.log('Validación fallida: Descripción no coincide', {
+                prodDescripcion: prod.descripcion,
+                dataDescripcion: data.descripcion
+            });
+            return showToast('La descripción no coincide con el producto', 'error');
+        }
+        if (normalizeText(prod.atributo) !== normalizeText(data.atributo)) {
+            console.log('Validación fallida: Atributo no coincide', {
+                prodAtributo: prod.atributo,
+                dataAtributo: data.atributo,
+                atributoFilter
+            });
+            return showToast('El atributo no coincide con el producto', 'error');
+        }
 
         window.showLoading('registrar');
         try {
@@ -993,8 +1015,12 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast('Registro creado', 'success');
             [codigoInput, descripcionInput, cantidadInput, referenciaInput, proveedorInput, precioUnitarioInput, atributoInput, totalItemsInput].forEach(i => i.value = '');
             debouncedLoadRegistros();
-        } catch (e) { showToast('Error al registrar', 'error'); }
-        finally { window.hideLoading('registrar'); }
+        } catch (e) {
+            console.error('Error al registrar:', e);
+            showToast('Error al registrar: ' + e.message, 'error');
+        } finally {
+            window.hideLoading('registrar');
+        }
     });
 
     window.openEditModal = (id, r) => {
@@ -1033,11 +1059,32 @@ document.addEventListener('DOMContentLoaded', () => {
             docDelivery: normalizeText(editDocDeliveryInput?.value) || ''
         };
 
+        console.log('Datos para editar:', data, 'atributoFilter:', atributoFilter);
+
         if (Object.values(data).some(v => !v && v !== 0)) return showToast('Completa todos', 'error');
         if (isNaN(data.fechaCX)) return showToast('Fecha inválida', 'error');
         if (await validateAdmisionCodigo(data.admision, data.codigo, currentEditId)) return showToast('Duplicado', 'error');
+        
         const prod = await getProductoByCodigo(data.codigo);
-        if (!prod || prod.descripcion !== data.descripcion || prod.atributo !== data.atributo) return showToast('Producto no coincide', 'error');
+        if (!prod) {
+            console.log('Validación fallida: Producto no encontrado');
+            return showToast('Producto no encontrado', 'error');
+        }
+        if (normalizeText(prod.descripcion) !== normalizeText(data.descripcion)) {
+            console.log('Validación fallida: Descripción no coincide', {
+                prodDescripcion: prod.descripcion,
+                dataDescripcion: data.descripcion
+            });
+            return showToast('La descripción no coincide con el producto', 'error');
+        }
+        if (normalizeText(prod.atributo) !== normalizeText(data.atributo)) {
+            console.log('Validación fallida: Atributo no coincide', {
+                prodAtributo: prod.atributo,
+                dataAtributo: data.atributo,
+                atributoFilter
+            });
+            return showToast('El atributo no coincide con el producto', 'error');
+        }
 
         window.showLoading('edit');
         try {
@@ -1046,8 +1093,12 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast('Actualizado', 'success');
             closeModal(editModal);
             debouncedLoadRegistros();
-        } catch { showToast('Error al editar', 'error'); }
-        finally { window.hideLoading('edit'); }
+        } catch (e) {
+            console.error('Error al editar:', e);
+            showToast('Error al editar: ' + e.message, 'error');
+        } finally {
+            window.hideLoading('edit');
+        }
     });
 
     window.openDeleteModal = (id, adm) => {
@@ -1069,8 +1120,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 closeModal(deleteModal);
                 debouncedLoadRegistros();
             }
-        } catch { showToast('Error al eliminar', 'error'); }
-        finally { window.hideLoading('delete'); }
+        } catch (e) {
+            console.error('Error al eliminar:', e);
+            showToast('Error al eliminar: ' + e.message, 'error');
+        } finally {
+            window.hideLoading('delete');
+        }
     });
 
     window.openHistoryModal = async (id, adm) => {
@@ -1091,8 +1146,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }).join('');
             historyModal.querySelector('.modal-header h2').textContent = `Historial: ${adm}`;
             historyModal.style.display = 'block';
-        } catch { showToast('Error historial', 'error'); }
-        finally { window.hideLoading('history'); }
+        } catch (e) {
+            console.error('Error al cargar historial:', e);
+            showToast('Error historial: ' + e.message, 'error');
+        } finally {
+            window.hideLoading('history');
+        }
     };
 
     setupAtributoFilter();
