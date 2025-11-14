@@ -55,60 +55,150 @@ function initEditFields() {
     initCancelEdit();
 }
 
+// === MÉDICO (EDIT) - CON TOGGLE ===
 function initMedicoEdit() {
     const input = document.getElementById('editMedico');
+    const toggle = document.getElementById('editMedicoToggle');
     const dropdown = document.getElementById('editMedicoDropdown');
-    const show = items => {
+
+    if (!input || !toggle || !dropdown) return;
+
+    const showDropdown = (items) => {
         dropdown.innerHTML = '';
         items.forEach(m => {
             const div = document.createElement('div');
             div.textContent = m.nombre;
-            div.onclick = () => { input.value = m.nombre; dropdown.style.display = 'none'; };
+            div.onclick = () => {
+                input.value = m.nombre;
+                dropdown.style.display = 'none';
+            };
             dropdown.appendChild(div);
         });
         dropdown.style.display = items.length ? 'block' : 'none';
     };
-    input.addEventListener('input', () => show(medicos.filter(m => m.nombre.toLowerCase().includes(input.value.toLowerCase()))));
+
+    // Al escribir
+    input.addEventListener('input', () => {
+        const filtered = medicos.filter(m => m.nombre.toLowerCase().includes(input.value.toLowerCase()));
+        showDropdown(filtered);
+    });
+
+    // Al hacer clic en el ícono (toggle)
+    toggle.addEventListener('click', () => {
+        if (dropdown.style.display === 'block') {
+            dropdown.style.display = 'none';
+        } else {
+            showDropdown(medicos);
+        }
+    });
+
+    // Cerrar al hacer clic fuera
     document.addEventListener('click', e => {
-        if (![input, dropdown].some(el => el?.contains(e.target))) dropdown.style.display = 'none';
+        if (![input, toggle, dropdown].some(el => el?.contains(e.target))) {
+            dropdown.style.display = 'none';
+        }
+    });
+
+    // Abrir al hacer clic en el input
+    input.addEventListener('click', () => {
+        const filtered = medicos.filter(m => m.nombre.toLowerCase().includes(input.value.toLowerCase()));
+        showDropdown(filtered);
     });
 }
 
+// === CÓDIGO (EDIT) - CON TOGGLE ===
 function initCodigoEdit() {
     const input = document.getElementById('editCodigo');
+    const toggle = document.getElementById('editCodigoToggle');
     const dropdown = document.getElementById('editCodigoDropdown');
-    const show = items => {
+
+    if (!input || !toggle || !dropdown) return;
+
+    const showDropdown = (items) => {
         dropdown.innerHTML = '';
         items.forEach(r => {
             const div = document.createElement('div');
             div.textContent = r.codigo;
-            div.onclick = () => { input.value = r.codigo; fillEditRelated(r); dropdown.style.display = 'none'; };
+            div.onclick = () => {
+                input.value = r.codigo;
+                fillEditRelated(r);
+                dropdown.style.display = 'none';
+            };
             dropdown.appendChild(div);
         });
         dropdown.style.display = items.length ? 'block' : 'none';
     };
-    input.addEventListener('input', () => show(referencias.filter(r => r.codigo.toLowerCase().includes(input.value.toLowerCase()))));
+
+    input.addEventListener('input', () => {
+        const filtered = referencias.filter(r => r.codigo.toLowerCase().includes(input.value.toLowerCase()));
+        showDropdown(filtered);
+    });
+
+    toggle.addEventListener('click', () => {
+        if (dropdown.style.display === 'block') {
+            dropdown.style.display = 'none';
+        } else {
+            showDropdown(referencias);
+        }
+    });
+
     document.addEventListener('click', e => {
-        if (![input, dropdown].some(el => el?.contains(e.target))) dropdown.style.display = 'none';
+        if (![input, toggle, dropdown].some(el => el?.contains(e.target))) {
+            dropdown.style.display = 'none';
+        }
+    });
+
+    input.addEventListener('click', () => {
+        const filtered = referencias.filter(r => r.codigo.toLowerCase().includes(input.value.toLowerCase()));
+        showDropdown(filtered);
     });
 }
 
+// === DESCRIPCIÓN (EDIT) - CON TOGGLE ===
 function initDescripcionEdit() {
     const input = document.getElementById('editDescripcion');
+    const toggle = document.getElementById('editDescripcionToggle');
     const dropdown = document.getElementById('editDescripcionDropdown');
-    const show = items => {
+
+    if (!input || !toggle || !dropdown) return;
+
+    const showDropdown = (items) => {
         dropdown.innerHTML = '';
         items.forEach(r => {
             const div = document.createElement('div');
             div.textContent = r.descripcion;
-            div.onclick = () => { input.value = r.descripcion; fillEditRelated(r); dropdown.style.display = 'none'; };
+            div.onclick = () => {
+                input.value = r.descripcion;
+                fillEditRelated(r);
+                dropdown.style.display = 'none';
+            };
             dropdown.appendChild(div);
         });
         dropdown.style.display = items.length ? 'block' : 'none';
     };
-    input.addEventListener('input', () => show(referencias.filter(r => r.descripcion.toLowerCase().includes(input.value.toLowerCase()))));
+
+    input.addEventListener('input', () => {
+        const filtered = referencias.filter(r => r.descripcion.toLowerCase().includes(input.value.toLowerCase()));
+        showDropdown(filtered);
+    });
+
+    toggle.addEventListener('click', () => {
+        if (dropdown.style.display === 'block') {
+            dropdown.style.display = 'none';
+        } else {
+            showDropdown(referencias);
+        }
+    });
+
     document.addEventListener('click', e => {
-        if (![input, dropdown].some(el => el?.contains(e.target))) dropdown.style.display = 'none';
+        if (![input, toggle, dropdown].some(el => el?.contains(e.target))) {
+            dropdown.style.display = 'none';
+        }
+    });
+
+    input.addEventListener('click', () => {
+        const filtered = referencias.filter(r => r.descripcion.toLowerCase().includes(input.value.toLowerCase()));
+        showDropdown(filtered);
     });
 }
 
