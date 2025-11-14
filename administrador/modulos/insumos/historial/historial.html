@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historial de Consignaciones</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="historial.css">
+</head>
+<body>
+    <div class="historial-main-container">
+        <h1 class="historial-title">Historial de Consignaciones</h1>
+        <div id="historial-message"></div>
+        <div class="historial-table-container">
+            <table class="historial-table" id="historialTable">
+                <thead>
+                    <tr>
+                        <th>Admisión<div class="resize-handle"></div></th>
+                        <th>Paciente<div class="resize-handle"></div></th>
+                        <th>Médico<div class="resize-handle"></div></th>
+                        <th>Fecha CX<div class="resize-handle"></div></th>
+                        <th>Código<div class="resize-handle"></div></th>
+                        <th>Descripción<div class="resize-handle"></div></th>
+                        <th>Cantidad<div class="resize-handle"></div></th>
+                        <th>Referencia<div class="resize-handle"></div></th>
+                        <th>Proveedor<div class="resize-handle"></div></th>
+                        <th>Precio Unitario<div class="resize-handle"></div></th>
+                        <th>Atributo<div class="resize-handle"></div></th>
+                        <th>Total Items<div class="resize-handle"></div></th>
+                        <th>Doc. Delivery<div class="resize-handle"></div></th>
+                        <th>Usuario<div class="resize-handle"></div></th>
+                        <th>Fecha Traspaso<div class="resize-handle"></div></th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <div id="loading" class="loading-modal">
+            <div class="spinner"></div>
+            <span class="loading-text">Cargando...</span>
+        </div>
+    </div>
+    <div class="historial-toast-container" id="toastContainer"></div>
+
+    <script type="module" src="historial.js"></script>
+    <script type="module" src="resizeColumns.js"></script>
+</body>
+</html>
