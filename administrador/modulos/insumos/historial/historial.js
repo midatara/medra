@@ -1,6 +1,6 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { getFirestore, collection, getDocs, query, where, orderBy, limit, startAfter, Timestamp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { getFirestore, collection, getDocs, query, where, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const firebaseConfig = {
     apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
@@ -19,10 +19,10 @@ const db = getFirestore(app);
 setPersistence(auth, browserSessionPersistence);
 
 let registros = [];
-let lastVisible = null;
-const PAGE_SIZE = 50;
 let selectedYear = new Date().getFullYear().toString();
 let selectedMonth = (new Date().getMonth() + 1).toString().padStart(2, '0');
+let availableYears = [];
+let availableMonths = [];
 let filters = {
     admision: '',
     paciente: '',
@@ -83,25 +83,86 @@ function formatTimestampToDDMMYYYY(timestamp) {
     return `${day}-${month}-${year}`;
 }
 
+async function getAvailableYearsAndMonths() {
+    showLoading();
+    try {
+        const querySnapshot = await getDocs(collection(db, 'consigna_historial'));
+        const years = new Set();
+        const monthsByYear = {};
+
+        querySnapshot.forEach(doc => {
+            const data = doc.data();
+            if (data.fechaCX) {
+                const [year, month] = data.fechaCX.split('-');
+                years.add(year);
+                if (!monthsByYear[year]) {
+                    monthsByYear[year] = new Set();
+                }
+                monthsByYear[year].add(month);
+            }
+        });
+
+        availableYears = Array.from(years).sort((a, b) => b - a); // Orden descendente
+        availableMonths = monthsByYear;
+
+        // Asegurar que el año y mes seleccionados sean válidos
+        if (!availableYears.includes(selectedYear)) {
+            selectedYear = availableYears[0] || new Date().getFullYear().toString();
+        }
+        if (!availableMonths[selectedYear]?.has(selectedMonth)) {
+            selectedMonth = Array.from(availableMonths[selectedYear] || [])[0] || (new Date().getMonth() + 1).toString().padStart(2, '0');
+        }
+
+        hideLoading();
+    } catch (error) {
+        hideLoading();
+        showToast('Error al cargar años y meses: ' + error.message, 'error');
+        console.error('Error al cargar años y meses:', error);
+    }
+}
+
 function populateYearSelect() {
     const yearSelect = document.getElementById('yearSelect');
     if (!yearSelect) return;
 
-    const currentYear = new Date().getFullYear();
-    yearSelect.innerHTML = '';
-    for (let year = 2024; year <= currentYear; year++) {
+    yearSelect.innerHTML = '<option value="">Seleccione un año</option>';
+    availableYears.forEach(year => {
         const option = document.createElement('option');
-        option.value = year.toString();
+        option.value = year;
         option.textContent = year;
-        if (year.toString() === selectedYear) option.selected = true;
+        if (year === selectedYear) option.selected = true;
         yearSelect.appendChild(option);
-    }
+    });
 }
 
-function setDefaultMonth() {
+function populateMonthSelect() {
     const monthSelect = document.getElementById('monthSelect');
     if (!monthSelect) return;
-    monthSelect.value = selectedMonth;
+
+    const months = availableMonths[selectedYear] || new Set();
+    const monthNames = {
+        '01': 'Enero',
+        '02': 'Febrero',
+        '03': 'Marzo',
+        '04': 'Abril',
+        '05': 'Mayo',
+        '06': 'Junio',
+        '07': 'Julio',
+        '08': 'Agosto',
+        '09': 'Septiembre',
+        '10': 'Octubre',
+        '11': 'Noviembre',
+        '12': 'Diciembre'
+    };
+
+    monthSelect.innerHTML = '<option value="">Seleccione un mes</option>';
+    Array.from(months).sort().forEach(month => {
+        const option = document.createElement('option');
+        option.value = month;
+        option.textContent = monthNames[month] || month;
+        if (month === selectedMonth) option.selected = true;
+        monthSelect.appendChild(option);
+    });
 }
 
 function initControls() {
@@ -115,18 +176,18 @@ function initControls() {
     const filterScopeRadios = document.querySelectorAll('input[name="filterScope"]');
 
     if (yearSelect) {
-        yearSelect.addEventListener('change', () => {
+        yearSelect.addEventListener('change', async () => {
             selectedYear = yearSelect.value;
-            resetPagination();
-            loadRegistros();
+            selectedMonth = Array.from(availableMonths[selectedYear] || [])[0] || '';
+            populateMonthSelect();
+            await loadRegistros();
         });
     }
 
     if (monthSelect) {
-        monthSelect.addEventListener('change', () => {
+        monthSelect.addEventListener('change', async () => {
             selectedMonth = monthSelect.value;
-            resetPagination();
-            loadRegistros();
+            await loadRegistros();
         });
     }
 
@@ -163,79 +224,38 @@ function debounce(func, wait) {
     };
 }
 
-async function loadRegistros(loadMore = false) {
+async function loadRegistros() {
     showLoading();
     try {
         let q;
-        const startOfMonth = Timestamp.fromDate(new Date(parseInt(selectedYear), parseInt(selectedMonth) - 1, 1));
-        const endOfMonth = Timestamp.fromDate(new Date(parseInt(selectedYear), parseInt(selectedMonth), 0, 23, 59, 59));
-
-        if (filterScope === 'currentPage') {
+        if (filterScope === 'currentPage' && selectedYear && selectedMonth) {
             q = query(
                 collection(db, 'consigna_historial'),
-                where('traspasoAt', '>=', startOfMonth),
-                where('traspasoAt', '<=', endOfMonth),
-                orderBy('traspasoAt', 'desc'),
-                limit(PAGE_SIZE)
+                where('fechaCX', '>=', `${selectedYear}-${selectedMonth}-01`),
+                where('fechaCX', '<=', `${selectedYear}-${selectedMonth}-31`),
+                orderBy('fechaCX', 'desc')
             );
-            if (loadMore && lastVisible) {
-                q = query(
-                    collection(db, 'consigna_historial'),
-                    where('traspasoAt', '>=', startOfMonth),
-                    where('traspasoAt', '<=', endOfMonth),
-                    orderBy('traspasoAt', 'desc'),
-                    startAfter(lastVisible),
-                    limit(PAGE_SIZE)
-                );
-            }
-        } else if (filterScope === 'selectedYear') {
-            const startOfYear = Timestamp.fromDate(new Date(parseInt(selectedYear), 0, 1));
-            const endOfYear = Timestamp.fromDate(new Date(parseInt(selectedYear), 11, 31, 23, 59, 59));
+        } else if (filterScope === 'selectedYear' && selectedYear) {
             q = query(
                 collection(db, 'consigna_historial'),
-                where('traspasoAt', '>=', startOfYear),
-                where('traspasoAt', '<=', endOfYear),
-                orderBy('traspasoAt', 'desc'),
-                limit(PAGE_SIZE)
+                where('fechaCX', '>=', `${selectedYear}-01-01`),
+                where('fechaCX', '<=', `${selectedYear}-12-31`),
+                orderBy('fechaCX', 'desc')
             );
-            if (loadMore && lastVisible) {
-                q = query(
-                    collection(db, 'consigna_historial'),
-                    where('traspasoAt', '>=', startOfYear),
-                    where('traspasoAt', '<=', endOfYear),
-                    orderBy('traspasoAt', 'desc'),
-                    startAfter(lastVisible),
-                    limit(PAGE_SIZE)
-                );
-            }
         } else {
             q = query(
                 collection(db, 'consigna_historial'),
-                orderBy('traspasoAt', 'desc'),
-                limit(PAGE_SIZE)
+                orderBy('fechaCX', 'desc')
             );
-            if (loadMore && lastVisible) {
-                q = query(
-                    collection(db, 'consigna_historial'),
-                    orderBy('traspasoAt', 'desc'),
-                    startAfter(lastVisible),
-                    limit(PAGE_SIZE)
-                );
-            }
         }
 
         const querySnapshot = await getDocs(q);
-        if (!loadMore) {
-            registros = [];
-        }
-
+        registros = [];
         querySnapshot.forEach((doc) => {
             registros.push({ id: doc.id, ...doc.data() });
         });
 
-        lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
         renderTable();
-        updatePagination(querySnapshot.size);
         hideLoading();
     } catch (error) {
         hideLoading();
@@ -296,37 +316,6 @@ function renderTable(data = registros) {
     });
 }
 
-function resetPagination() {
-    lastVisible = null;
-    registros = [];
-    const loadMoreContainer = document.getElementById('loadMoreContainer');
-    if (loadMoreContainer) {
-        loadMoreContainer.style.display = 'none';
-    }
-}
-
-function updatePagination(size) {
-    const loadMoreContainer = document.getElementById('loadMoreContainer');
-    if (!loadMoreContainer) return;
-
-    if (size < PAGE_SIZE) {
-        loadMoreContainer.style.display = 'none';
-        return;
-    }
-
-    loadMoreContainer.style.display = 'block';
-    loadMoreContainer.innerHTML = `
-        <button id="loadMoreBtn">Cargar más</button>
-    `;
-
-    const loadMoreBtn = document.getElementById('loadMoreBtn');
-    if (loadMoreBtn) {
-        loadMoreBtn.addEventListener('click', () => {
-            loadRegistros(true);
-        });
-    }
-}
-
 document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, async (user) => {
         if (!user) {
@@ -336,8 +325,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
+            await getAvailableYearsAndMonths();
             populateYearSelect();
-            setDefaultMonth();
+            populateMonthSelect();
             initControls();
             await loadRegistros();
             console.log('Inicialización completada');
