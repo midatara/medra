@@ -1,7 +1,8 @@
 import { getFirestore, doc, updateDoc, deleteDoc, getDocs, query, where, collection } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-import { showLoading, hideLoading, showToast, medicos, referencias, registros, db } from './ingresos.js';
+import { showLoading, hideLoading, showToast, medicos, referencias, registros, db, atributoFilter as globalAtributoFilter, reloadReferenciasForEdit } from './ingresos.js';
 
 let currentEditId = null;
+let atributoFilter = globalAtributoFilter; // Sincroniza con el global
 
 function formatNumber(num) {
     return num ? Number(num).toLocaleString('es-CL') : '';
@@ -77,29 +78,22 @@ function initMedicoEdit() {
         dropdown.style.display = items.length ? 'block' : 'none';
     };
 
-    // Al escribir
     input.addEventListener('input', () => {
         const filtered = medicos.filter(m => m.nombre.toLowerCase().includes(input.value.toLowerCase()));
         showDropdown(filtered);
     });
 
-    // Al hacer clic en el ícono (toggle)
     toggle.addEventListener('click', () => {
-        if (dropdown.style.display === 'block') {
-            dropdown.style.display = 'none';
-        } else {
-            showDropdown(medicos);
-        }
+        dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+        showDropdown(medicos);
     });
 
-    // Cerrar al hacer clic fuera
     document.addEventListener('click', e => {
         if (![input, toggle, dropdown].some(el => el?.contains(e.target))) {
             dropdown.style.display = 'none';
         }
     });
 
-    // Abrir al hacer clic en el input
     input.addEventListener('click', () => {
         const filtered = medicos.filter(m => m.nombre.toLowerCase().includes(input.value.toLowerCase()));
         showDropdown(filtered);
@@ -135,11 +129,8 @@ function initCodigoEdit() {
     });
 
     toggle.addEventListener('click', () => {
-        if (dropdown.style.display === 'block') {
-            dropdown.style.display = 'none';
-        } else {
-            showDropdown(referencias);
-        }
+        dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+        showDropdown(referencias);
     });
 
     document.addEventListener('click', e => {
@@ -183,11 +174,8 @@ function initDescripcionEdit() {
     });
 
     toggle.addEventListener('click', () => {
-        if (dropdown.style.display === 'block') {
-            dropdown.style.display = 'none';
-        } else {
-            showDropdown(referencias);
-        }
+        dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+        showDropdown(referencias);
     });
 
     document.addEventListener('click', e => {
@@ -217,16 +205,20 @@ function updateEditTotal() {
 }
 
 function initTotalEdit() {
-    document.getElementById('editCantidad').addEventListener('input', updateEditTotal);
+    const cantidadInput = document.getElementById('editCantidad');
+    if (cantidadInput) cantidadInput.addEventListener('input', updateEditTotal);
 }
 
 function initDocDeliveryEdit() {
     const input = document.getElementById('editDocDelivery');
     const status = document.getElementById('editGuiaStatus');
+    if (!input || !status) return;
+
     const debounce = (fn, wait) => {
         let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), wait); };
     };
-    const check = debounce(async ref => {
+
+    const check = debounce(async (ref) => {
         if (!ref) { status.textContent = ''; return; }
         showLoading();
         try {
@@ -240,18 +232,16 @@ function initDocDeliveryEdit() {
             status.textContent = 'Error'; status.style.color = 'red';
         }
     }, 300);
+
     input.addEventListener('input', () => check(input.value.trim()));
 }
 
-// === REEMPLAZA initAtributoFilterEdit() EN acciones.js ===
-
-import { reloadReferenciasForEdit } from './ingresos.js';
-
+// === FILTRO DE ATRIBUTO EN MODAL ===
 function initAtributoFilterEdit() {
     document.querySelectorAll('input[name="editAtributoFilter"]').forEach(radio => {
         radio.addEventListener('change', async (e) => {
-            atributoFilter = e.target.value; // Actualiza variable global
-            await reloadReferenciasForEdit(); // ← Recarga referencias + limpia
+            atributoFilter = e.target.value;
+            await reloadReferenciasForEdit();
         });
     });
 }
@@ -261,7 +251,7 @@ function initSaveEdit() {
         const data = {
             admision: document.getElementById('editAdmision').value.trim(),
             paciente: document.getElementById('editPaciente').value.trim(),
-            medico: document.getElementById('editMedico').value.trim(),
+            medico: document.getElementHTMLElementById('editMedico').value.trim(),
             fechaCX: document.getElementById('editFechaCX').value,
             codigo: document.getElementById('editCodigo').value.trim(),
             descripcion: document.getElementById('editDescripcion').value.trim(),

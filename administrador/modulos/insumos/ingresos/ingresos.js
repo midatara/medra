@@ -19,10 +19,11 @@ const db = getFirestore(app);
 
 setPersistence(auth, browserSessionPersistence);
 
-let medicos = [];
-let referencias = [];
-let atributoFilter = 'CONSIGNACION';
-let registros = [];
+// === VARIABLES GLOBALES (EXPORTADAS) ===
+export let medicos = [];
+export let referencias = [];
+export let atributoFilter = 'CONSIGNACION';  // ← AHORA ES EXPORTADA
+export let registros = [];
 
 // === EXPORTADAS ===
 export function showLoading() {
@@ -50,7 +51,8 @@ export function showToast(message, type = 'success') {
     }, 5000);
 }
 
-export { medicos, referencias, registros, db };
+export { db };  // ← db también exportado
+
 // === FIN EXPORTACIONES ===
 
 function formatNumberWithThousandsSeparator(number) {
@@ -308,7 +310,10 @@ function initDocDeliveryField() {
 async function getUserFullName(uid) {
     try {
         const snap = await getDoc(doc(db, 'users', uid));
-        return snap.exists() ? snap.data().fullName || 'unknown' : 'unknown';
+        if (snap.exists()) {
+            return snap.data().fullName || 'unknown';
+        }
+        return 'unknown';
     } catch {
         return 'unknown';
     }
@@ -363,9 +368,13 @@ function limpiarCampos() {
         const el = document.getElementById(id);
         if (el) el.value = '';
     });
-    document.getElementById('guiaStatus').textContent = '';
-    document.getElementById('guiaStatus').style.color = '#999';
-    document.getElementById('medicoDropdown').style.display = 'none';
+    const status = document.getElementById('guiaStatus');
+    if (status) {
+        status.textContent = '';
+        status.style.color = '#999';
+    }
+    const dropdown = document.getElementById('medicoDropdown');
+    if (dropdown) dropdown.style.display = 'none';
 }
 
 // === TABLA ===
@@ -406,7 +415,7 @@ function renderTable() {
         tbody.appendChild(row);
     });
 
-    initActionButtons(); // ← AQUÍ SE INICIALIZAN EDITAR/ELIMINAR
+    initActionButtons();
 }
 
 function updateTraspasarButton() {
@@ -424,16 +433,15 @@ function initLimpiarButton() {
     if (btn) btn.addEventListener('click', limpiarCampos);
 }
 
-// === AL FINAL DE ingresos.js (antes del DOMContentLoaded) ===
-
+// === FUNCIÓN PARA EL MODAL DE EDICIÓN ===
 export async function reloadReferenciasForEdit() {
     await loadReferencias();
-    // Limpiar campos relacionados
+    // Limpiar campos del modal
     ['editCodigo', 'editDescripcion', 'editReferencia', 'editProveedor', 'editPrecioUnitario', 'editAtributo', 'editTotalItems'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
     });
-    ['editCodigoDropdown', 'editDescripcionDropdown'].forEach(id => {
+    ['editCodigoDropdown', 'editDescripcionDropdown', 'editMedicoDropdown'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
     });
