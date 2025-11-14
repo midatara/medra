@@ -703,7 +703,7 @@ html, body {
     background: rgba(255, 255, 255, 0.95);
     border-radius: 8px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-    z-index: 2000; /* Aumentado para estar por encima de los modales */
+    z-index: 2000;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -766,9 +766,8 @@ html, body {
     color: #999;
 }
 
-/* Estilos específicos para editModal */
 #editModal .modal-content {
-    max-width: 900px; /* Más ancho para 4 columnas */
+    max-width: 900px; 
     border-top-left-radius: 0;
     border-top-right-radius: 0;
     border-bottom-left-radius: 8px;
