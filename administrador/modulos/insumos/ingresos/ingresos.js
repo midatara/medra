@@ -142,7 +142,13 @@ function showDropdown(items, dropdownElement, key, inputId) {
         div.addEventListener('click', () => {
             document.getElementById(inputId).value = item[key];
             if (inputId === 'codigo' || inputId === 'descripcion' || inputId === 'editCodigo' || inputId === 'editDescripcion') {
-                fillRelatedFields(item, inputId.startsWith('edit'));
+                // Verificar si el modal está visible cuando se usan campos de edición
+                const isEditModal = inputId.startsWith('edit');
+                if (isEditModal && document.getElementById('editModal').style.display !== 'block') {
+                    console.warn('Intento de llenar campos de edición pero el modal no está visible');
+                    return;
+                }
+                fillRelatedFields(item, isEditModal);
             }
             dropdownElement.style.display = 'none';
         });
@@ -161,12 +167,29 @@ function fillRelatedFields(item, isEditModal = false) {
     const precioUnitarioInput = document.getElementById(`${prefix}PrecioUnitario`);
     const atributoInput = document.getElementById(`${prefix}Atributo`);
 
+    console.log('Elementos encontrados:', {
+        codigoInput,
+        descripcionInput,
+        referenciaInput,
+        proveedorInput,
+        precioUnitarioInput,
+        atributoInput,
+        prefix
+    });
+
+    if (!codigoInput || !descripcionInput || !referenciaInput || !proveedorInput || !precioUnitarioInput || !atributoInput) {
+        console.error(`Uno o más elementos no se encontraron en el DOM. Prefijo: ${prefix}`);
+        showToast('Error: No se encontraron todos los campos necesarios', 'error');
+        return;
+    }
+
     codigoInput.value = item.codigo || '';
     descripcionInput.value = item.descripcion || '';
     referenciaInput.value = item.referencia || '';
     proveedorInput.value = item.proveedor || '';
     precioUnitarioInput.value = item.precioUnitario ? formatNumberWithThousandsSeparator(item.precioUnitario) : '';
     atributoInput.value = item.atributo || '';
+
     if (isEditModal) {
         updateEditTotalItems();
     } else {
@@ -789,6 +812,7 @@ function showEditModal(id) {
         return;
     }
 
+    // Llenar campos
     document.getElementById('editAdmision').value = registro.admision || '';
     document.getElementById('editPaciente').value = registro.paciente || '';
     document.getElementById('editMedico').value = registro.medico || '';
@@ -808,7 +832,12 @@ function showEditModal(id) {
         radio.checked = radio.value === registro.atributo;
     });
 
+    // Asegurarse de que el modal esté visible antes de inicializar dropdowns
     modal.style.display = 'block';
+    setTimeout(() => {
+        initEditCodigoField();
+        initEditDescripcionField();
+    }, 0); // Ejecutar después de que el modal esté en el DOM
 
     const closeBtn = modal.querySelector('.close');
     const saveBtn = document.getElementById('saveEditBtn');
