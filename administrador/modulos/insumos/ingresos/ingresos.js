@@ -1,6 +1,6 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { getFirestore, collection, getDocs, query, orderBy, where, addDoc, serverTimestamp, doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { getFirestore, collection, getDocs, query, orderBy, where, addDoc, serverTimestamp, doc, getDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const firebaseConfig = {
     apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
@@ -588,12 +588,62 @@ function renderTable() {
             <td>${registro.usuario || ''}</td>
             <td class="registrar-actions">
                 <button class="registrar-btn-edit" title="Editar"><i class="fas fa-edit"></i></button>
-                <button class="registrar-btn-delete" title="Eliminar"><i class="fas fa-trash"></i></button>
-                <button class="registrar-btn-history" title="Historial"><i class="fas fa-history"></i></button>
+                <button class="registrar-btn-delete" title="Eliminar" data-id="${registro.id}"><i class="fas fa-trash"></i></button>
             </td>
         `;
         tbody.appendChild(row);
     });
+
+    document.querySelectorAll('.registrar-btn-delete').forEach(button => {
+        button.addEventListener('click', () => {
+            const id = button.dataset.id;
+            showDeleteModal(id);
+        });
+    });
+}
+
+function showDeleteModal(id) {
+    const modal = document.getElementById('deleteModal');
+    if (!modal) {
+        console.error('Modal de eliminación no encontrado');
+        return;
+    }
+
+    modal.style.display = 'block';
+
+    const closeBtn = modal.querySelector('.close');
+    const confirmBtn = document.getElementById('confirmDeleteBtn');
+    const cancelBtn = document.getElementById('cancelDeleteBtn');
+
+    closeBtn.onclick = () => {
+        modal.style.display = 'none';
+    };
+
+    cancelBtn.onclick = () => {
+        modal.style.display = 'none';
+    };
+
+    confirmBtn.onclick = async () => {
+        showLoading();
+        try {
+            await deleteDoc(doc(db, 'consigna_ingresos', id));
+            registros = registros.filter(registro => registro.id !== id);
+            renderTable();
+            modal.style.display = 'none';
+            showToast('Registro eliminado exitosamente', 'success');
+        } catch (error) {
+            showToast('Error al eliminar el registro: ' + error.message, 'error');
+            console.error('Error al eliminar:', error);
+        } finally {
+            hideLoading();
+        }
+    };
+
+    window.onclick = (event) => {
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    };
 }
 
 function initRegistrarButton() {
