@@ -566,7 +566,10 @@ function renderTable() {
     }
 
     registros.forEach((registro) => {
-        const fechaCX = registro.fechaCX ? new Date(registro.fechaCX).toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' }).split('/').join('-') : '';
+        const fechaCX = registro.fechaCX ? (() => {
+            const [year, month, day] = registro.fechaCX.split('-');
+            return `${day.padStart(2, '0')}-${month.padStart(2, '0')}-${year}`;
+        })() : '';
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${registro.admision || ''}</td>
