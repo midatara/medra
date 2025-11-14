@@ -23,17 +23,18 @@ let referencias = [];
 let atributoFilter = 'CONSIGNACION';
 let registros = [];
 
-function showLoading() {
+// === FUNCIONES EXPORTADAS (para traspaso.js) ===
+export function showLoading() {
     const loading = document.getElementById('loading');
     if (loading) loading.classList.add('show');
 }
 
-function hideLoading() {
+export function hideLoading() {
     const loading = document.getElementById('loading');
     if (loading) loading.classList.remove('show');
 }
 
-function showToast(message, type = 'success') {
+export function showToast(message, type = 'success') {
     const toastContainer = document.getElementById('toastContainer');
     if (!toastContainer) return;
 
@@ -53,6 +54,7 @@ function showToast(message, type = 'success') {
         }, 300);
     }, 5000);
 }
+// === FIN DE EXPORTACIONES ===
 
 function formatNumberWithThousandsSeparator(number) {
     if (!number || isNaN(number)) return '';
