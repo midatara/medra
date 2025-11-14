@@ -1,6 +1,6 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { getFirestore, collection, getDocs, query, orderBy, where, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { getFirestore, collection, getDocs, query, orderBy, where, addDoc, serverTimestamp, doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const firebaseConfig = {
     apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
@@ -437,6 +437,22 @@ function initDocDeliveryField() {
     });
 }
 
+async function getUserFullName(uid) {
+    try {
+        const userDocRef = doc(db, 'users', uid);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+            return userDoc.data().fullName || 'unknown';
+        } else {
+            console.warn(`No se encontró el documento del usuario con UID: ${uid}`);
+            return 'unknown';
+        }
+    } catch (error) {
+        console.error('Error al obtener el fullName del usuario:', error);
+        return 'unknown';
+    }
+}
+
 async function registrarIngreso() {
     console.log('Función registrarIngreso ejecutada');
     const admision = document.getElementById('admision').value.trim();
@@ -452,7 +468,7 @@ async function registrarIngreso() {
     const atributo = document.getElementById('atributo').value.trim();
     const totalItems = parseFloat(document.getElementById('totalItems').value.replace(/\./g, '')) || 0;
     const docDelivery = document.getElementById('docDelivery').value.trim();
-    const usuario = auth.currentUser ? auth.currentUser.email : 'unknown';
+    const usuario = auth.currentUser ? await getUserFullName(auth.currentUser.uid) : 'unknown';
 
     if (!admision || !paciente || !medico || !fechaCX || !codigo || !descripcion || !cantidad || !referencia || !proveedor || !precioUnitario || !atributo) {
         showToast('Por favor, completa todos los campos obligatorios', 'error');
