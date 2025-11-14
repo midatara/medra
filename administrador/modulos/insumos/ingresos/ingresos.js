@@ -162,6 +162,15 @@ function fillRelatedFields(item, isEditModal = false) {
     const atributoInput = document.getElementById(`${prefix}Atributo`);
 
     if (!codigoInput || !descripcionInput || !referenciaInput || !proveedorInput || !precioUnitarioInput || !atributoInput) {
+        const missingElements = {
+            codigo: !codigoInput,
+            descripcion: !descripcionInput,
+            referencia: !referenciaInput,
+            proveedor: !proveedorInput,
+            precioUnitario: !precioUnitarioInput,
+            atributo: !atributoInput
+        };
+        console.error('Elementos no encontrados en fillRelatedFields:', missingElements, `Prefijo: ${prefix}`);
         showToast('Error: No se encontraron todos los campos necesarios', 'error');
         return;
     }
@@ -1064,9 +1073,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (checkFormElements()) {
                     initializeApp(user);
                 } else {
-                    showToast('Error: No se encontraron los elementos del formulario', 'error');
+                    setTimeout(() => {
+                        if (checkFormElements()) {
+                            initializeApp(user);
+                        } else {
+                            showToast('Error: No se encontraron los elementos del formulario', 'error');
+                        }
+                    }, 2000);
                 }
-            }, 1000);
+            }, 2000);
         }
     });
 });
