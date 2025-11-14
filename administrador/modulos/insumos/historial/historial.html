@@ -11,6 +11,58 @@
     <div class="historial-main-container">
         <h1 class="historial-title">Historial de Consignaciones</h1>
         <div id="historial-message"></div>
+        <div class="historial-controls-container">
+            <div class="historial-period-selector">
+                <div class="historial-form-group">
+                    <label class="historial-label" for="yearSelect">Año:</label>
+                    <select id="yearSelect"></select>
+                </div>
+                <div class="historial-form-group">
+                    <label class="historial-label" for="monthSelect">Mes:</label>
+                    <select id="monthSelect">
+                        <option value="01">Enero</option>
+                        <option value="02">Febrero</option>
+                        <option value="03">Marzo</option>
+                        <option value="04">Abril</option>
+                        <option value="05">Mayo</option>
+                        <option value="06">Junio</option>
+                        <option value="07">Julio</option>
+                        <option value="08">Agosto</option>
+                        <option value="09">Septiembre</option>
+                        <option value="10">Octubre</option>
+                        <option value="11">Noviembre</option>
+                        <option value="12">Diciembre</option>
+                    </select>
+                </div>
+            </div>
+            <div class="historial-filters-container">
+                <div class="historial-form-group">
+                    <label class="historial-label" for="filterAdmision">Admisión:</label>
+                    <input type="text" id="filterAdmision" placeholder="Filtrar por Admisión" autocomplete="off">
+                </div>
+                <div class="historial-form-group">
+                    <label class="historial-label" for="filterPaciente">Paciente:</label>
+                    <input type="text" id="filterPaciente" placeholder="Filtrar por Paciente" autocomplete="off">
+                </div>
+                <div class="historial-form-group">
+                    <label class="historial-label" for="filterCodigo">Código:</label>
+                    <input type="text" id="filterCodigo" placeholder="Filtrar por Código" autocomplete="off">
+                </div>
+                <div class="historial-form-group">
+                    <label class="historial-label" for="filterDescripcion">Descripción:</label>
+                    <input type="text" id="filterDescripcion" placeholder="Filtrar por Descripción" autocomplete="off">
+                </div>
+                <div class="historial-form-group">
+                    <label class="historial-label" for="filterOC">OC:</label>
+                    <input type="text" id="filterOC" placeholder="Filtrar por OC" autocomplete="off">
+                </div>
+            </div>
+            <div class="historial-filter-scope">
+                <label><input type="radio" name="filterScope" value="currentPage" checked> Filtrar en página actual</label>
+                <label><input type="radio" name="filterScope" value="selectedYear"> Filtrar en año seleccionado</label>
+                <label><input type="radio" name="filterScope" value="allRecords"> Filtrar todos los registros</label>
+            </div>
+        </div>
         <div class="historial-table-container">
             <table class="historial-table" id="historialTable">
                 <thead>
@@ -28,12 +80,16 @@
                         <th>Atributo<div class="resize-handle"></div></th>
                         <th>Total Items<div class="resize-handle"></div></th>
                         <th>Doc. Delivery<div class="resize-handle"></div></th>
+                        <th>OC<div class="resize-handle"></div></th>
                         <th>Usuario<div class="resize-handle"></div></th>
                         <th>Fecha Traspaso<div class="resize-handle"></div></th>
                     </tr>
                 </thead>
                 <tbody></tbody>
             </table>
+        </div>
+        <div class="historial-pagination">
+            <div id="loadMoreContainer" style="display: none;"></div>
         </div>
         <div id="loading" class="loading-modal">
             <div class="spinner"></div>
