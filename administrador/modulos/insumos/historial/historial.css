@@ -167,56 +167,27 @@ html, body {
     background-color: #f8f9fa;
 }
 
-.historial-table th:nth-child(1), .historial-table td:nth-child(1) { width: 70px; }
-.historial-table th:nth-child(2), .historial-table td:nth-child(2) { width: 200px; }
-.historial-table th:nth-child(3), .historial-table td:nth-child(3) { width: 200px; }
-.historial-table th:nth-child(4), .historial-table td:nth-child(4) { width: 80px; }
-.historial-table th:nth-child(5), .historial-table td:nth-child(5) { width: 100px; }
-.historial-table th:nth-child(6), .historial-table td:nth-child(6) { width: 300px; }
-.historial-table th:nth-child(7), .historial-table td:nth-child(7) { width: 80px; }
-.historial-table th:nth-child(8), .historial-table td:nth-child(8) { width: 130px; }
-.historial-table th:nth-child(9), .historial-table td:nth-child(9) { width: 200px; }
-.historial-table th:nth-child(10), .historial-table td:nth-child(10) { width: 100px; }
-.historial-table th:nth-child(11), .historial-table td:nth-child(11) { width: 120px; }
-.historial-table th:nth-child(12), .historial-table td:nth-child(12) { width: 100px; }
-.historial-table th:nth-child(13), .historial-table td:nth-child(13) { width: 65px; }
-.historial-table th:nth-child(14), .historial-table td:nth-child(14) { width: 100px; }
-.historial-table th:nth-child(15), .historial-table td:nth-child(15) { width: 150px; }
-.historial-table th:nth-child(16), .historial-table td:nth-child(16) { width: 100px; }
+.historial-table th:nth-child(1), .historial-table td:nth-child(1) { width: 100px; } /* Estado */
+.historial-table th:nth-child(2), .historial-table td:nth-child(2) { width: 100px; } /* Previsión */
+.historial-table th:nth-child(3), .historial-table td:nth-child(3) { width: 100px; } /* Convenio */
+.historial-table th:nth-child(4), .historial-table td:nth-child(4) { width: 70px; } /* Admisión */
+.historial-table th:nth-child(5), .historial-table td:nth-child(5) { width: 200px; } /* Paciente */
+.historial-table th:nth-child(6), .historial-table td:nth-child(6) { width: 200px; } /* Médico */
+.historial-table th:nth-child(7), .historial-table td:nth-child(7) { width: 80px; } /* Fecha CX */
+.historial-table th:nth-child(8), .historial-table td:nth-child(8) { width: 100px; } /* Código */
+.historial-table th:nth-child(9), .historial-table td:nth-child(9) { width: 300px; } /* Descripción */
+.historial-table th:nth-child(10), .historial-table td:nth-child(10) { width: 80px; } /* Cantidad */
+.historial-table th:nth-child(11), .historial-table td:nth-child(11) { width: 130px; } /* Referencia */
+.historial-table th:nth-child(12), .historial-table td:nth-child(12) { width: 200px; } /* Proveedor */
+.historial-table th:nth-child(13), .historial-table td:nth-child(13) { width: 100px; } /* Precio Unitario */
+.historial-table th:nth-child(14), .historial-table td:nth-child(14) { width: 120px; } /* Atributo */
+.historial-table th:nth-child(15), .historial-table td:nth-child(15) { width: 100px; } /* Total Items */
+.historial-table th:nth-child(16), .historial-table td:nth-child(16) { width: 65px; } /* Doc. Delivery */
+.historial-table th:nth-child(17), .historial-table td:nth-child(17) { width: 100px; } /* OC */
+.historial-table th:nth-child(18), .historial-table td:nth-child(18) { width: 150px; } /* Usuario */
+.historial-table th:nth-child(19), .historial-table td:nth-child(19) { width: 100px; } /* Fecha Traspaso */
 
-.historial-pagination {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 10px;
-    background: #f8f9fa;
-    border-radius: 4px;
-    position: sticky;
-    bottom: 0;
-    z-index: 10;
-}
-
-.historial-pagination button {
-    padding: 6px 10px;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 11px;
-    margin: 0 5px;
-}
-
-.historial-pagination button:hover:not(:disabled) {
-    background-color: #0056b3;
-}
-
-.historial-pagination button:disabled {
-    background-color: #ccc;
-    cursor: not-allowed;
-}
-
-#historial-message {
+.historial-message {
     margin-bottom: 10px;
     padding: 8px;
     border-radius: 4px;

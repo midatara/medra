@@ -102,10 +102,9 @@ async function getAvailableYearsAndMonths() {
             }
         });
 
-        availableYears = Array.from(years).sort((a, b) => b - a); // Orden descendente
+        availableYears = Array.from(years).sort((a, b) => b - a);
         availableMonths = monthsByYear;
 
-        // Asegurar que el año y mes seleccionados sean válidos
         if (!availableYears.includes(selectedYear)) {
             selectedYear = availableYears[0] || new Date().getFullYear().toString();
         }
@@ -286,7 +285,7 @@ function renderTable(data = registros) {
 
     tbody.innerHTML = '';
     if (data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="16">No hay registros para mostrar</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="19">No hay registros para mostrar</td></tr>';
         return;
     }
 
@@ -295,6 +294,9 @@ function renderTable(data = registros) {
         const fechaTraspaso = formatTimestampToDDMMYYYY(registro.traspasoAt);
         const row = document.createElement('tr');
         row.innerHTML = `
+            <td>${registro.estado || ''}</td>
+            <td>${registro.prevision || ''}</td>
+            <td>${registro.convenio || ''}</td>
             <td>${registro.admision || ''}</td>
             <td>${registro.paciente || ''}</td>
             <td>${registro.medico || ''}</td>
