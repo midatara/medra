@@ -23,7 +23,6 @@ let medicos = [];
 let referencias = [];
 let atributoFilter = 'CONSIGNACION';
 
-// Exportar funciones para traspaso.js
 export function showLoading() {
     const loading = document.getElementById('loading');
     if (loading) loading.classList.add('show');
@@ -75,7 +74,6 @@ async function loadMedicos() {
     } catch (error) {
         hideLoading();
         showToast('Error al cargar los médicos: ' + error.message, 'error');
-        console.error('Error al cargar médicos:', error);
     }
 }
 
@@ -107,7 +105,6 @@ async function loadReferencias() {
     } catch (error) {
         hideLoading();
         showToast('Error al cargar las referencias: ' + error.message, 'error');
-        console.error('Error al cargar referencias:', error);
     }
 }
 
@@ -124,7 +121,6 @@ async function loadRegistros() {
     } catch (error) {
         hideLoading();
         showToast('Error al cargar los registros: ' + error.message, 'error');
-        console.error('Error al cargar registros:', error);
     }
 }
 
@@ -142,10 +138,8 @@ function showDropdown(items, dropdownElement, key, inputId) {
         div.addEventListener('click', () => {
             document.getElementById(inputId).value = item[key];
             if (inputId === 'codigo' || inputId === 'descripcion' || inputId === 'editCodigo' || inputId === 'editDescripcion') {
-                // Verificar si el modal está visible cuando se usan campos de edición
                 const isEditModal = inputId.startsWith('edit');
                 if (isEditModal && document.getElementById('editModal').style.display !== 'block') {
-                    console.warn('Intento de llenar campos de edición pero el modal no está visible');
                     return;
                 }
                 fillRelatedFields(item, isEditModal);
@@ -167,18 +161,7 @@ function fillRelatedFields(item, isEditModal = false) {
     const precioUnitarioInput = document.getElementById(`${prefix}PrecioUnitario`);
     const atributoInput = document.getElementById(`${prefix}Atributo`);
 
-    console.log('Elementos encontrados:', {
-        codigoInput,
-        descripcionInput,
-        referenciaInput,
-        proveedorInput,
-        precioUnitarioInput,
-        atributoInput,
-        prefix
-    });
-
     if (!codigoInput || !descripcionInput || !referenciaInput || !proveedorInput || !precioUnitarioInput || !atributoInput) {
-        console.error(`Uno o más elementos no se encontraron en el DOM. Prefijo: ${prefix}`);
         showToast('Error: No se encontraron todos los campos necesarios', 'error');
         return;
     }
@@ -242,7 +225,6 @@ function initMedicoField() {
     const medicoDropdown = document.getElementById('medicoDropdown');
 
     if (!medicoInput || !medicoToggle || !medicoDropdown) {
-        console.error('Elementos del campo Médico no encontrados');
         return;
     }
 
@@ -284,7 +266,6 @@ function initEditMedicoField() {
     const medicoDropdown = document.getElementById('editMedicoDropdown');
 
     if (!medicoInput || !medicoToggle || !medicoDropdown) {
-        console.error('Elementos del campo Médico (edit) no encontrados');
         return;
     }
 
@@ -326,7 +307,6 @@ function initCodigoField() {
     const codigoDropdown = document.getElementById('codigoDropdown');
 
     if (!codigoInput || !codigoToggle || !codigoDropdown) {
-        console.error('Elementos del campo Código no encontrados');
         return;
     }
 
@@ -368,7 +348,6 @@ function initEditCodigoField() {
     const codigoDropdown = document.getElementById('editCodigoDropdown');
 
     if (!codigoInput || !codigoToggle || !codigoDropdown) {
-        console.error('Elementos del campo Código (edit) no encontrados');
         return;
     }
 
@@ -410,7 +389,6 @@ function initDescripcionField() {
     const descripcionDropdown = document.getElementById('descripcionDropdown');
 
     if (!descripcionInput || !descripcionToggle || !descripcionDropdown) {
-        console.error('Elementos del campo Descripción no encontrados');
         return;
     }
 
@@ -452,7 +430,6 @@ function initEditDescripcionField() {
     const descripcionDropdown = document.getElementById('editDescripcionDropdown');
 
     if (!descripcionInput || !descripcionToggle || !descripcionDropdown) {
-        console.error('Elementos del campo Descripción (edit) no encontrados');
         return;
     }
 
@@ -551,7 +528,6 @@ function initTotalItemsCalculation() {
     const precioUnitarioInput = document.getElementById('precioUnitario');
 
     if (!cantidadInput || !precioUnitarioInput) {
-        console.error('Elementos de cantidad o precio unitario no encontrados');
         return;
     }
 
@@ -563,7 +539,6 @@ function initEditTotalItemsCalculation() {
     const precioUnitarioInput = document.getElementById('editPrecioUnitario');
 
     if (!cantidadInput || !precioUnitarioInput) {
-        console.error('Elementos de cantidad o precio unitario (edit) no encontrados');
         return;
     }
 
@@ -579,10 +554,7 @@ function initOtherFields() {
     fields.forEach(field => {
         const input = document.getElementById(field.id);
         if (input) {
-            input.addEventListener('input', () => {
-            });
-        } else {
-            console.warn(`Elemento ${field.name} con ID "${field.id}" no encontrado en el DOM`);
+            input.addEventListener('input', () => {});
         }
     });
 }
@@ -600,7 +572,6 @@ async function buscarFolioPorFolioRef(folioRef) {
         }
         return null;
     } catch (error) {
-        console.error('Error al buscar folio por folioRef:', error);
         showToast('Error al verificar Doc. Delivery: ' + error.message, 'error');
         return null;
     }
@@ -619,7 +590,6 @@ function initDocDeliveryField() {
     const guiaStatusSpan = document.getElementById('guiaStatus');
 
     if (!docDeliveryInput || !guiaStatusSpan) {
-        console.error('Elementos de Doc. Delivery o guiaStatus no encontrados');
         return;
     }
 
@@ -654,7 +624,6 @@ function initEditDocDeliveryField() {
     const guiaStatusSpan = document.getElementById('editGuiaStatus');
 
     if (!docDeliveryInput || !guiaStatusSpan) {
-        console.error('Elementos de Doc. Delivery o guiaStatus (edit) no encontrados');
         return;
     }
 
@@ -690,18 +659,14 @@ async function getUserFullName(uid) {
         const userDoc = await getDoc(userDocRef);
         if (userDoc.exists()) {
             return userDoc.data().fullName || 'unknown';
-        } else {
-            console.warn(`No se encontró el documento del usuario con UID: ${uid}`);
-            return 'unknown';
         }
+        return 'unknown';
     } catch (error) {
-        console.error('Error al obtener el fullName del usuario:', error);
         return 'unknown';
     }
 }
 
 async function registrarIngreso() {
-    console.log('Función registrarIngreso ejecutada');
     const admision = document.getElementById('admision').value.trim();
     const paciente = document.getElementById('paciente').value.trim();
     const medico = document.getElementById('medico').value.trim();
@@ -719,7 +684,6 @@ async function registrarIngreso() {
 
     if (!admision || !paciente || !medico || !fechaCX || !codigo || !descripcion || !cantidad || !referencia || !proveedor || !precioUnitario || !atributo) {
         showToast('Por favor, completa todos los campos obligatorios', 'error');
-        console.error('Campos obligatorios vacíos');
         return;
     }
 
@@ -778,17 +742,14 @@ async function registrarIngreso() {
         document.getElementById('descripcionDropdown').style.display = 'none';
 
         showToast('Registro guardado exitosamente', 'success');
-        console.log('Registro guardado:', nuevoRegistro);
     } catch (error) {
         showToast('Error al guardar el registro: ' + error.message, 'error');
-        console.error('Error al registrar:', error);
     } finally {
         hideLoading();
     }
 }
 
 function limpiarCampos() {
-    console.log('Función limpiarCampos ejecutada');
     document.getElementById('admision').value = '';
     document.getElementById('paciente').value = '';
     document.getElementById('medico').value = '';
@@ -802,7 +763,6 @@ function limpiarCampos() {
 function showEditModal(id) {
     const modal = document.getElementById('editModal');
     if (!modal) {
-        console.error('Modal de edición no encontrado');
         return;
     }
 
@@ -812,7 +772,6 @@ function showEditModal(id) {
         return;
     }
 
-    // Llenar campos
     document.getElementById('editAdmision').value = registro.admision || '';
     document.getElementById('editPaciente').value = registro.paciente || '';
     document.getElementById('editMedico').value = registro.medico || '';
@@ -832,12 +791,11 @@ function showEditModal(id) {
         radio.checked = radio.value === registro.atributo;
     });
 
-    // Asegurarse de que el modal esté visible antes de inicializar dropdowns
     modal.style.display = 'block';
     setTimeout(() => {
         initEditCodigoField();
         initEditDescripcionField();
-    }, 0); // Ejecutar después de que el modal esté en el DOM
+    }, 0);
 
     const closeBtn = modal.querySelector('.close');
     const saveBtn = document.getElementById('saveEditBtn');
@@ -930,17 +888,14 @@ async function updateRegistro(id) {
         showToast('Registro actualizado exitosamente', 'success');
     } catch (error) {
         showToast('Error al actualizar el registro: ' + error.message, 'error');
-        console.error('Error al actualizar:', error);
     } finally {
         hideLoading();
     }
 }
 
 function renderTable() {
-    console.log('Función renderTable ejecutada');
     const tbody = document.querySelector('#registrarTable tbody');
     if (!tbody) {
-        console.error('Cuerpo de la tabla registrarTable no encontrado');
         return;
     }
 
@@ -1005,7 +960,6 @@ function updateTraspasarButtonState() {
 function showDeleteModal(id) {
     const modal = document.getElementById('deleteModal');
     if (!modal) {
-        console.error('Modal de eliminación no encontrado');
         return;
     }
 
@@ -1034,7 +988,6 @@ function showDeleteModal(id) {
             showToast('Registro eliminado exitosamente', 'success');
         } catch (error) {
             showToast('Error al eliminar el registro: ' + error.message, 'error');
-            console.error('Error al eliminar:', error);
         } finally {
             hideLoading();
         }
@@ -1050,7 +1003,6 @@ function showDeleteModal(id) {
 function initRegistrarButton() {
     const registrarBtn = document.getElementById('registrarBtn');
     if (!registrarBtn) {
-        console.error('Botón Registrar con ID "registrarBtn" no encontrado');
         return;
     }
     registrarBtn.addEventListener('click', registrarIngreso);
@@ -1059,7 +1011,6 @@ function initRegistrarButton() {
 function initLimpiarButton() {
     const limpiarBtn = document.getElementById('limpiarBtn');
     if (!limpiarBtn) {
-        console.error('Botón Limpiar con ID "limpiarBtn" no encontrado');
         return;
     }
     limpiarBtn.addEventListener('click', limpiarCampos);
@@ -1075,10 +1026,13 @@ function initEditModalFields() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOMContentLoaded ejecutado');
-    onAuthStateChanged(auth, async (user) => {
+    function checkFormElements() {
+        const requiredIds = ['codigo', 'descripcion', 'referencia', 'proveedor', 'precioUnitario', 'atributo'];
+        return requiredIds.every(id => document.getElementById(id) !== null);
+    }
+
+    async function initializeApp(user) {
         if (!user) {
-            console.log('Usuario no autenticado, redirigiendo...');
             window.location.replace('../../../index.html');
             return;
         }
@@ -1097,10 +1051,22 @@ document.addEventListener('DOMContentLoaded', () => {
             initRegistrarButton();
             initLimpiarButton();
             initEditModalFields();
-            console.log('Inicialización completada');
         } catch (error) {
             showToast('Error al inicializar la aplicación: ' + error.message, 'error');
-            console.error('Error al inicializar:', error);
+        }
+    }
+
+    onAuthStateChanged(auth, (user) => {
+        if (checkFormElements()) {
+            initializeApp(user);
+        } else {
+            setTimeout(() => {
+                if (checkFormElements()) {
+                    initializeApp(user);
+                } else {
+                    showToast('Error: No se encontraron los elementos del formulario', 'error');
+                }
+            }, 1000);
         }
     });
 });
