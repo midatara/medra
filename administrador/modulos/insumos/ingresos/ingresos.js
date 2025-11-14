@@ -652,7 +652,6 @@ function showDeleteModal(id) {
     };
 }
 
-// === FUNCIÓN NUEVA: Habilitar/Deshabilitar botón TRASPASAR ===
 function updateTraspasarButton() {
     const traspasarBtn = document.getElementById('traspasarBtn');
     if (traspasarBtn) {
