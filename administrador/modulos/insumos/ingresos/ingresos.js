@@ -1,6 +1,6 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { getFirestore, collection, getDocs, query, orderBy, where, addDoc, serverTimestamp, doc, getDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { getFirestore, collection, getDocs, query, orderBy, where, addDoc, serverTimestamp, doc, getDoc, deleteDoc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const firebaseConfig = {
     apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
@@ -140,8 +140,8 @@ function showDropdown(items, dropdownElement, key, inputId) {
         div.dataset.id = item.id;
         div.addEventListener('click', () => {
             document.getElementById(inputId).value = item[key];
-            if (inputId === 'codigo' || inputId === 'descripcion') {
-                fillRelatedFields(item);
+            if (inputId === 'codigo' || inputId === 'descripcion' || inputId === 'editCodigo' || inputId === 'editDescripcion') {
+                fillRelatedFields(item, inputId.startsWith('edit'));
             }
             dropdownElement.style.display = 'none';
         });
@@ -151,13 +151,14 @@ function showDropdown(items, dropdownElement, key, inputId) {
     dropdownElement.style.display = 'block';
 }
 
-function fillRelatedFields(item) {
-    const codigoInput = document.getElementById('codigo');
-    const descripcionInput = document.getElementById('descripcion');
-    const referenciaInput = document.getElementById('referencia');
-    const proveedorInput = document.getElementById('proveedor');
-    const precioUnitarioInput = document.getElementById('precioUnitario');
-    const atributoInput = document.getElementById('atributo');
+function fillRelatedFields(item, isEditModal = false) {
+    const prefix = isEditModal ? 'edit' : '';
+    const codigoInput = document.getElementById(`${prefix}Codigo`);
+    const descripcionInput = document.getElementById(`${prefix}Descripcion`);
+    const referenciaInput = document.getElementById(`${prefix}Referencia`);
+    const proveedorInput = document.getElementById(`${prefix}Proveedor`);
+    const precioUnitarioInput = document.getElementById(`${prefix}PrecioUnitario`);
+    const atributoInput = document.getElementById(`${prefix}Atributo`);
 
     codigoInput.value = item.codigo || '';
     descripcionInput.value = item.descripcion || '';
@@ -165,13 +166,33 @@ function fillRelatedFields(item) {
     proveedorInput.value = item.proveedor || '';
     precioUnitarioInput.value = item.precioUnitario ? formatNumberWithThousandsSeparator(item.precioUnitario) : '';
     atributoInput.value = item.atributo || '';
-    updateTotalItems();
+    if (isEditModal) {
+        updateEditTotalItems();
+    } else {
+        updateTotalItems();
+    }
 }
 
 function updateTotalItems() {
     const cantidadInput = document.getElementById('cantidad');
     const precioUnitarioInput = document.getElementById('precioUnitario');
     const totalItemsInput = document.getElementById('totalItems');
+
+    const cantidad = parseFloat(cantidadInput.value) || 0;
+    const precioUnitario = parseFloat(precioUnitarioInput.value.replace(/\./g, '')) || 0;
+
+    if (cantidad > 0 && precioUnitario > 0) {
+        const total = cantidad * precioUnitario;
+        totalItemsInput.value = formatNumberWithThousandsSeparator(total);
+    } else {
+        totalItemsInput.value = '';
+    }
+}
+
+function updateEditTotalItems() {
+    const cantidadInput = document.getElementById('editCantidad');
+    const precioUnitarioInput = document.getElementById('editPrecioUnitario');
+    const totalItemsInput = document.getElementById('editTotalItems');
 
     const cantidad = parseFloat(cantidadInput.value) || 0;
     const precioUnitario = parseFloat(precioUnitarioInput.value.replace(/\./g, '')) || 0;
@@ -233,6 +254,48 @@ function initMedicoField() {
     });
 }
 
+function initEditMedicoField() {
+    const medicoInput = document.getElementById('editMedico');
+    const medicoToggle = document.getElementById('editMedicoToggle');
+    const medicoDropdown = document.getElementById('editMedicoDropdown');
+
+    if (!medicoInput || !medicoToggle || !medicoDropdown) {
+        console.error('Elementos del campo Médico (edit) no encontrados');
+        return;
+    }
+
+    medicoInput.addEventListener('input', () => {
+        const searchText = medicoInput.value;
+        const filteredMedicos = filterItems(searchText, medicos, 'nombre');
+        showDropdown(filteredMedicos, medicoDropdown, 'nombre', 'editMedico');
+    });
+
+    medicoToggle.addEventListener('click', () => {
+        if (medicoDropdown.style.display === 'block') {
+            medicoDropdown.style.display = 'none';
+        } else {
+            showDropdown(medicos, medicoDropdown, 'nombre', 'editMedico');
+        }
+    });
+
+    document.addEventListener('click', (e) => {
+        if (
+            !medicoInput.contains(e.target) &&
+            !medicoToggle.contains(e.target) &&
+            !medicoDropdown.contains(e.target)
+        ) {
+            medicoDropdown.style.display = 'none';
+        }
+    });
+
+    medicoInput.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const searchText = medicoInput.value;
+        const filteredMedicos = filterItems(searchText, medicos, 'nombre');
+        showDropdown(filteredMedicos, medicoDropdown, 'nombre', 'editMedico');
+    });
+}
+
 function initCodigoField() {
     const codigoInput = document.getElementById('codigo');
     const codigoToggle = document.getElementById('codigoToggle');
@@ -272,6 +335,48 @@ function initCodigoField() {
         const searchText = codigoInput.value;
         const filteredReferencias = filterItems(searchText, referencias, 'codigo');
         showDropdown(filteredReferencias, codigoDropdown, 'codigo', 'codigo');
+    });
+}
+
+function initEditCodigoField() {
+    const codigoInput = document.getElementById('editCodigo');
+    const codigoToggle = document.getElementById('editCodigoToggle');
+    const codigoDropdown = document.getElementById('editCodigoDropdown');
+
+    if (!codigoInput || !codigoToggle || !codigoDropdown) {
+        console.error('Elementos del campo Código (edit) no encontrados');
+        return;
+    }
+
+    codigoInput.addEventListener('input', () => {
+        const searchText = codigoInput.value;
+        const filteredReferencias = filterItems(searchText, referencias, 'codigo');
+        showDropdown(filteredReferencias, codigoDropdown, 'codigo', 'editCodigo');
+    });
+
+    codigoToggle.addEventListener('click', () => {
+        if (codigoDropdown.style.display === 'block') {
+            codigoDropdown.style.display = 'none';
+        } else {
+            showDropdown(referencias, codigoDropdown, 'codigo', 'editCodigo');
+        }
+    });
+
+    document.addEventListener('click', (e) => {
+        if (
+            !codigoInput.contains(e.target) &&
+            !codigoToggle.contains(e.target) &&
+            !codigoDropdown.contains(e.target)
+        ) {
+            codigoDropdown.style.display = 'none';
+        }
+    });
+
+    codigoInput.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const searchText = codigoInput.value;
+        const filteredReferencias = filterItems(searchText, referencias, 'codigo');
+        showDropdown(filteredReferencias, codigoDropdown, 'codigo', 'editCodigo');
     });
 }
 
@@ -317,6 +422,48 @@ function initDescripcionField() {
     });
 }
 
+function initEditDescripcionField() {
+    const descripcionInput = document.getElementById('editDescripcion');
+    const descripcionToggle = document.getElementById('editDescripcionToggle');
+    const descripcionDropdown = document.getElementById('editDescripcionDropdown');
+
+    if (!descripcionInput || !descripcionToggle || !descripcionDropdown) {
+        console.error('Elementos del campo Descripción (edit) no encontrados');
+        return;
+    }
+
+    descripcionInput.addEventListener('input', () => {
+        const searchText = descripcionInput.value;
+        const filteredReferencias = filterItems(searchText, referencias, 'descripcion');
+        showDropdown(filteredReferencias, descripcionDropdown, 'descripcion', 'editDescripcion');
+    });
+
+    descripcionToggle.addEventListener('click', () => {
+        if (descripcionDropdown.style.display === 'block') {
+            descripcionDropdown.style.display = 'none';
+        } else {
+            showDropdown(referencias, descripcionDropdown, 'descripcion', 'editDescripcion');
+        }
+    });
+
+    document.addEventListener('click', (e) => {
+        if (
+            !descripcionInput.contains(e.target) &&
+            !descripcionToggle.contains(e.target) &&
+            !descripcionDropdown.contains(e.target)
+        ) {
+            descripcionDropdown.style.display = 'none';
+        }
+    });
+
+    descripcionInput.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const searchText = descripcionInput.value;
+        const filteredReferencias = filterItems(searchText, referencias, 'descripcion');
+        showDropdown(filteredReferencias, descripcionDropdown, 'descripcion', 'editDescripcion');
+    });
+}
+
 function initAtributoFilter() {
     const atributoRadios = document.querySelectorAll('input[name="atributoFilter"]');
 
@@ -346,6 +493,35 @@ function initAtributoFilter() {
     });
 }
 
+function initEditAtributoFilter() {
+    const atributoRadios = document.querySelectorAll('input[name="editAtributoFilter"]');
+
+    atributoRadios.forEach((radio) => {
+        radio.addEventListener('change', async (e) => {
+            atributoFilter = e.target.value;
+            await loadReferencias();
+            const codigoInput = document.getElementById('editCodigo');
+            const descripcionInput = document.getElementById('editDescripcion');
+            const referenciaInput = document.getElementById('editReferencia');
+            const proveedorInput = document.getElementById('editProveedor');
+            const precioUnitarioInput = document.getElementById('editPrecioUnitario');
+            const atributoInput = document.getElementById('editAtributo');
+            const totalItemsInput = document.getElementById('editTotalItems');
+            const codigoDropdown = document.getElementById('editCodigoDropdown');
+            const descripcionDropdown = document.getElementById('editDescripcionDropdown');
+            if (codigoInput) codigoInput.value = '';
+            if (descripcionInput) descripcionInput.value = '';
+            if (referenciaInput) referenciaInput.value = '';
+            if (proveedorInput) proveedorInput.value = '';
+            if (precioUnitarioInput) precioUnitarioInput.value = '';
+            if (atributoInput) atributoInput.value = '';
+            if (totalItemsInput) totalItemsInput.value = '';
+            if (codigoDropdown) codigoDropdown.style.display = 'none';
+            if (descripcionDropdown) descripcionDropdown.style.display = 'none';
+        });
+    });
+}
+
 function initTotalItemsCalculation() {
     const cantidadInput = document.getElementById('cantidad');
     const precioUnitarioInput = document.getElementById('precioUnitario');
@@ -356,6 +532,18 @@ function initTotalItemsCalculation() {
     }
 
     cantidadInput.addEventListener('input', updateTotalItems);
+}
+
+function initEditTotalItemsCalculation() {
+    const cantidadInput = document.getElementById('editCantidad');
+    const precioUnitarioInput = document.getElementById('editPrecioUnitario');
+
+    if (!cantidadInput || !precioUnitarioInput) {
+        console.error('Elementos de cantidad o precio unitario (edit) no encontrados');
+        return;
+    }
+
+    cantidadInput.addEventListener('input', updateEditTotalItems);
 }
 
 function initOtherFields() {
@@ -408,6 +596,41 @@ function initDocDeliveryField() {
 
     if (!docDeliveryInput || !guiaStatusSpan) {
         console.error('Elementos de Doc. Delivery o guiaStatus no encontrados');
+        return;
+    }
+
+    const debouncedBuscarFolio = debounce(async (folioRef) => {
+        if (folioRef === '') {
+            guiaStatusSpan.textContent = '';
+            guiaStatusSpan.style.color = '#999';
+            return;
+        }
+
+        showLoading();
+        const folio = await buscarFolioPorFolioRef(folioRef);
+        hideLoading();
+
+        if (folio) {
+            guiaStatusSpan.textContent = `Folio: ${folio}`;
+            guiaStatusSpan.style.color = 'green';
+        } else {
+            guiaStatusSpan.textContent = 'Documento no registrado';
+            guiaStatusSpan.style.color = '#999';
+        }
+    }, 300);
+
+    docDeliveryInput.addEventListener('input', () => {
+        const folioRef = docDeliveryInput.value.trim();
+        debouncedBuscarFolio(folioRef);
+    });
+}
+
+function initEditDocDeliveryField() {
+    const docDeliveryInput = document.getElementById('editDocDelivery');
+    const guiaStatusSpan = document.getElementById('editGuiaStatus');
+
+    if (!docDeliveryInput || !guiaStatusSpan) {
+        console.error('Elementos de Doc. Delivery o guiaStatus (edit) no encontrados');
         return;
     }
 
@@ -551,6 +774,136 @@ function limpiarCampos() {
     document.getElementById('medicoDropdown').style.display = 'none';
 }
 
+function showEditModal(id) {
+    const modal = document.getElementById('editModal');
+    if (!modal) {
+        console.error('Modal de edición no encontrado');
+        return;
+    }
+
+    const registro = registros.find(reg => reg.id === id);
+    if (!registro) {
+        showToast('Registro no encontrado', 'error');
+        return;
+    }
+
+    document.getElementById('editAdmision').value = registro.admision || '';
+    document.getElementById('editPaciente').value = registro.paciente || '';
+    document.getElementById('editMedico').value = registro.medico || '';
+    document.getElementById('editFechaCX').value = registro.fechaCX || '';
+    document.getElementById('editCodigo').value = registro.codigo || '';
+    document.getElementById('editDescripcion').value = registro.descripcion || '';
+    document.getElementById('editCantidad').value = registro.cantidad || '';
+    document.getElementById('editReferencia').value = registro.referencia || '';
+    document.getElementById('editProveedor').value = registro.proveedor || '';
+    document.getElementById('editPrecioUnitario').value = registro.precioUnitario ? formatNumberWithThousandsSeparator(registro.precioUnitario) : '';
+    document.getElementById('editAtributo').value = registro.atributo || '';
+    document.getElementById('editTotalItems').value = registro.totalItems ? formatNumberWithThousandsSeparator(registro.totalItems) : '';
+    document.getElementById('editDocDelivery').value = registro.docDelivery || '';
+
+    const editAtributoRadios = document.querySelectorAll('input[name="editAtributoFilter"]');
+    editAtributoRadios.forEach(radio => {
+        radio.checked = radio.value === registro.atributo;
+    });
+
+    modal.style.display = 'block';
+
+    const closeBtn = modal.querySelector('.close');
+    const saveBtn = document.getElementById('saveEditBtn');
+    const cancelBtn = document.getElementById('cancelEditBtn');
+
+    closeBtn.onclick = () => {
+        modal.style.display = 'none';
+    };
+
+    cancelBtn.onclick = () => {
+        modal.style.display = 'none';
+    };
+
+    saveBtn.onclick = () => updateRegistro(id);
+
+    window.onclick = (event) => {
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    };
+}
+
+async function updateRegistro(id) {
+    const admision = document.getElementById('editAdmision').value.trim();
+    const paciente = document.getElementById('editPaciente').value.trim();
+    const medico = document.getElementById('editMedico').value.trim();
+    const fechaCX = document.getElementById('editFechaCX').value;
+    const codigo = document.getElementById('editCodigo').value.trim();
+    const descripcion = document.getElementById('editDescripcion').value.trim();
+    const cantidad = parseInt(document.getElementById('editCantidad').value) || 0;
+    const referencia = document.getElementById('editReferencia').value.trim();
+    const proveedor = document.getElementById('editProveedor').value.trim();
+    const precioUnitario = parseFloat(document.getElementById('editPrecioUnitario').value.replace(/\./g, '')) || 0;
+    const atributo = document.getElementById('editAtributo').value.trim();
+    const totalItems = parseFloat(document.getElementById('editTotalItems').value.replace(/\./g, '')) || 0;
+    const docDelivery = document.getElementById('editDocDelivery').value.trim();
+    const usuario = auth.currentUser ? await getUserFullName(auth.currentUser.uid) : 'unknown';
+
+    if (!admision || !paciente || !medico || !fechaCX || !codigo || !descripcion || !cantidad || !referencia || !proveedor || !precioUnitario || !atributo) {
+        showToast('Por favor, completa todos los campos obligatorios', 'error');
+        return;
+    }
+
+    showLoading();
+    try {
+        const docRef = doc(db, 'consigna_ingresos', id);
+        await updateDoc(docRef, {
+            admision,
+            paciente,
+            medico,
+            fechaCX,
+            codigo,
+            descripcion,
+            cantidad,
+            referencia,
+            proveedor,
+            precioUnitario,
+            atributo,
+            totalItems,
+            docDelivery,
+            usuario,
+            updatedAt: serverTimestamp()
+        });
+
+        const index = registros.findIndex(reg => reg.id === id);
+        if (index !== -1) {
+            registros[index] = {
+                id,
+                admision,
+                paciente,
+                medico,
+                fechaCX,
+                codigo,
+                descripcion,
+                cantidad,
+                referencia,
+                proveedor,
+                precioUnitario,
+                atributo,
+                totalItems,
+                docDelivery,
+                usuario,
+                updatedAt: new Date()
+            };
+        }
+
+        renderTable();
+        document.getElementById('editModal').style.display = 'none';
+        showToast('Registro actualizado exitosamente', 'success');
+    } catch (error) {
+        showToast('Error al actualizar el registro: ' + error.message, 'error');
+        console.error('Error al actualizar:', error);
+    } finally {
+        hideLoading();
+    }
+}
+
 function renderTable() {
     console.log('Función renderTable ejecutada');
     const tbody = document.querySelector('#registrarTable tbody');
@@ -587,11 +940,18 @@ function renderTable() {
             <td>${registro.docDelivery || ''}</td>
             <td>${registro.usuario || ''}</td>
             <td class="registrar-actions">
-                <button class="registrar-btn-edit" title="Editar"><i class="fas fa-edit"></i></button>
+                <button class="registrar-btn-edit" title="Editar" data-id="${registro.id}"><i class="fas fa-edit"></i></button>
                 <button class="registrar-btn-delete" title="Eliminar" data-id="${registro.id}"><i class="fas fa-trash"></i></button>
             </td>
         `;
         tbody.appendChild(row);
+    });
+
+    document.querySelectorAll('.registrar-btn-edit').forEach(button => {
+        button.addEventListener('click', () => {
+            const id = button.dataset.id;
+            showEditModal(id);
+        });
     });
 
     document.querySelectorAll('.registrar-btn-delete').forEach(button => {
@@ -664,6 +1024,15 @@ function initLimpiarButton() {
     limpiarBtn.addEventListener('click', limpiarCampos);
 }
 
+function initEditModalFields() {
+    initEditMedicoField();
+    initEditCodigoField();
+    initEditDescripcionField();
+    initEditAtributoFilter();
+    initEditTotalItemsCalculation();
+    initEditDocDeliveryField();
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     console.log('DOMContentLoaded ejecutado');
     onAuthStateChanged(auth, async (user) => {
@@ -686,6 +1055,7 @@ document.addEventListener('DOMContentLoaded', () => {
             initDocDeliveryField();
             initRegistrarButton();
             initLimpiarButton();
+            initEditModalFields();
             console.log('Inicialización completada');
         } catch (error) {
             showToast('Error al inicializar la aplicación: ' + error.message, 'error');
