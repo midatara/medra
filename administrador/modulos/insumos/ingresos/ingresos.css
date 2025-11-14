@@ -272,19 +272,19 @@ html, body {
 }
 
 .registrar-table th:nth-child(1), .registrar-table td:nth-child(1) { width: 70px; }
-.registrar-table th:nth-child(2), .registrar-table td:nth-child(2) { width: 130px; }
+.registrar-table th:nth-child(2), .registrar-table td:nth-child(2) { width: 200px; }
 .registrar-table th:nth-child(3), .registrar-table td:nth-child(3) { width: 200px; }
 .registrar-table th:nth-child(4), .registrar-table td:nth-child(4) { width: 80px; }
 .registrar-table th:nth-child(5), .registrar-table td:nth-child(5) { width: 100px; }
 .registrar-table th:nth-child(6), .registrar-table td:nth-child(6) { width: 300px; }
 .registrar-table th:nth-child(7), .registrar-table td:nth-child(7) { width: 80px; }
 .registrar-table th:nth-child(8), .registrar-table td:nth-child(8) { width: 130px; }
-.registrar-table th:nth-child(9), .registrar-table td:nth-child(9) { width: 150px; }
+.registrar-table th:nth-child(9), .registrar-table td:nth-child(9) { width: 200px; }
 .registrar-table th:nth-child(10), .registrar-table td:nth-child(10) { width: 100px; }
-.registrar-table th:nth-child(11), .registrar-table td:nth-child(11) { width: 80px; }
+.registrar-table th:nth-child(11), .registrar-table td:nth-child(11) { width: 120px; }
 .registrar-table th:nth-child(12), .registrar-table td:nth-child(12) { width: 100px; }
 .registrar-table th:nth-child(13), .registrar-table td:nth-child(13) { width: 65px; }
-.registrar-table th:nth-child(14), .registrar-table td:nth-child(14) { width: 100px; }
+.registrar-table th:nth-child(14), .registrar-table td:nth-child(14) { width: 150px; }
 .registrar-table th:nth-child(15), .registrar-table td:nth-child(15) { width: 100px; }
 
 .registrar-actions {
