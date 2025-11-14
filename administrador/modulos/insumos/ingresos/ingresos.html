@@ -135,92 +135,101 @@
 
     <div id="editModal" class="modal">
         <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Editar Registro</h2>
-            <div class="edit-form-grid">
-                <!-- Fila 1 -->
-                <div class="form-group">
-                    <label for="editAdmision">Admisión</label>
-                    <input type="text" id="editAdmision" placeholder="Ingrese Admisión">
-                </div>
-                <div class="form-group">
-                    <label for="editPaciente">Paciente</label>
-                    <input type="text" id="editPaciente" placeholder="Ingrese Paciente">
-                </div>
-                <div class="form-group">
-                    <label for="editMedico">Médico</label>
-                    <div class="input-with-icon">
-                        <input type="text" id="editMedico" placeholder="Seleccione Médico">
-                        <span id="editMedicoToggle" class="toggle-icon"><i class="fas fa-chevron-down"></i></span>
-                        <div id="editMedicoDropdown" class="dropdown"></div>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="editFechaCX">Fecha Cx</label>
-                    <input type="date" id="editFechaCX">
-                </div>
-
-                <!-- Fila 2 -->
-                <div class="form-group">
-                    <label for="editCodigo">Código</label>
-                    <div class="input-with-icon">
-                        <input type="text" id="editCodigo" placeholder="Ingrese Código">
-                        <span id="editCodigoToggle" class="toggle-icon"><i class="fas fa-chevron-down"></i></span>
-                        <div id="editCodigoDropdown" class="dropdown"></div>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="editDescripcion">Descripción</label>
-                    <div class="input-with-icon">
-                        <input type="text" id="editDescripcion" placeholder="Ingrese Descripción">
-                        <span id="editDescripcionToggle" class="toggle-icon"><i class="fas fa-chevron-down"></i></span>
-                        <div id="editDescripcionDropdown" class="dropdown"></div>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="editCantidad">Cantidad</label>
-                    <input type="number" id="editCantidad" placeholder="Ingrese Cantidad">
-                </div>
-
-                <!-- Fila 3 -->
-                <div class="form-group">
-                    <label for="editReferencia">Referencia</label>
-                    <input type="text" id="editReferencia" placeholder="Referencia" readonly>
-                </div>
-                <div class="form-group">
-                    <label for="editProveedor">Proveedor</label>
-                    <input type="text" id="editProveedor" placeholder="Proveedor" readonly>
-                </div>
-                <div class="form-group">
-                    <label for="editPrecioUnitario">Precio Unitario</label>
-                    <input type="text" id="editPrecioUnitario" placeholder="Precio Unitario" readonly>
-                </div>
-
-                <!-- Fila 4 -->
-                <div class="form-group">
-                    <label for="editAtributo">Atributo</label>
-                    <input type="text" id="editAtributo" placeholder="Atributo" readonly>
-                </div>
-                <div class="form-group">
-                    <label for="editTotalItems">Total Items</label>
-                    <input type="text" id="editTotalItems" placeholder="Total" readonly>
-                </div>
-                <div class="form-group">
-                    <label for="editDocDelivery">Doc. Delivery</label>
-                    <input type="text" id="editDocDelivery" placeholder="Ingrese Doc. Delivery">
-                    <span id="editGuiaStatus" class="guia-status"></span>
-                </div>
-                <div class="form-group">
-                    <label>Atributo Filtro</label>
-                    <div class="radio-group">
-                        <label><input type="radio" name="editAtributoFilter" value="CONSIGNACION" checked> Consignación</label>
-                        <label><input type="radio" name="editAtributoFilter" value="VENTA"> Venta</label>
-                    </div>
-                </div>
+            <div class="modal-header">
+                <h2>Editar Registro</h2>
+                <span class="close">&times;</span>
             </div>
-            <div class="modal-actions">
-                <button id="saveEditBtn" class="btn btn-primary">Guardar</button>
-                <button id="cancelEditBtn" class="btn btn-secondary">Cancelar</button>
+            <div class="modal-content-body">
+                <div class="edit-form-grid">
+                    <!-- Fila 1 -->
+                    <div class="modal-form-group">
+                        <label for="editAdmision">Admisión</label>
+                        <input type="text" id="editAdmision" placeholder="Ingrese Admisión">
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="editPaciente">Paciente</label>
+                        <input type="text" id="editPaciente" placeholder="Ingrese Paciente">
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="editMedico">Médico</label>
+                        <div class="medico-input-container">
+                            <div class="medico-input-wrapper">
+                                <input type="text" id="editMedico" placeholder="Seleccione Médico">
+                                <span id="editMedicoToggle" class="medico-icon"><i class="fas fa-chevron-down"></i></span>
+                            </div>
+                            <div id="editMedicoDropdown" class="medico-dropdown"></div>
+                        </div>
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="editFechaCX">Fecha Cx</label>
+                        <input type="date" id="editFechaCX">
+                    </div>
+                    <!-- Fila 2 -->
+                    <div class="modal-form-group">
+                        <label for="editCodigo">Código</label>
+                        <div class="codigo-input-container">
+                            <div class="codigo-input-wrapper">
+                                <input type="text" id="editCodigo" placeholder="Ingrese Código">
+                                <span id="editCodigoToggle" class="codigo-icon"><i class="fas fa-chevron-down"></i></span>
+                            </div>
+                            <div id="editCodigoDropdown" class="codigo-dropdown"></div>
+                        </div>
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="editDescripcion">Descripción</label>
+                        <div class="descripcion-input-container">
+                            <div class="descripcion-input-wrapper">
+                                <input type="text" id="editDescripcion" placeholder="Ingrese Descripción">
+                                <span id="editDescripcionToggle" class="descripcion-icon"><i class="fas fa-chevron-down"></i></span>
+                            </div>
+                            <div id="editDescripcionDropdown" class="descripcion-dropdown"></div>
+                        </div>
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="editCantidad">Cantidad</label>
+                        <input type="number" id="editCantidad" placeholder="Ingrese Cantidad">
+                    </div>
+                    <!-- Fila 3 -->
+                    <div class="modal-form-group">
+                        <label for="editReferencia">Referencia</label>
+                        <input type="text" id="editReferencia" placeholder="Referencia" readonly>
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="editProveedor">Proveedor</label>
+                        <input type="text" id="editProveedor" placeholder="Proveedor" readonly>
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="editPrecioUnitario">Precio Unitario</label>
+                        <input type="text" id="editPrecioUnitario" placeholder="Precio Unitario" readonly>
+                    </div>
+                    <!-- Fila 4 -->
+                    <div class="modal-form-group">
+                        <label for="editAtributo">Atributo</label>
+                        <input type="text" id="editAtributo" placeholder="Atributo" readonly>
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="editTotalItems">Total Items</label>
+                        <input type="text" id="editTotalItems" placeholder="Total" readonly>
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="editDocDelivery">Doc. Delivery</label>
+                        <div class="doc-delivery-wrapper">
+                            <input type="text" id="editDocDelivery" class="doc-delivery-input" placeholder="Ingrese Doc. Delivery">
+                            <span id="editGuiaStatus" class="doc-delivery-status"></span>
+                        </div>
+                    </div>
+                    <div class="modal-form-group">
+                        <label>Atributo Filtro</label>
+                        <div class="radio-group">
+                            <label><input type="radio" name="editAtributoFilter" value="CONSIGNACION" checked> Consignación</label>
+                            <label><input type="radio" name="editAtributoFilter" value="VENTA"> Venta</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-buttons">
+                    <button id="saveEditBtn" class="modal-btn modal-btn-primary">Guardar</button>
+                    <button id="cancelEditBtn" class="modal-btn modal-btn-secondary">Cancelar</button>
+                </div>
             </div>
         </div>
     </div>
