@@ -765,3 +765,167 @@ html, body {
     min-width: 130px;
     color: #999;
 }
+
+/* Estilos específicos para editModal */
+#editModal .modal-content {
+    max-width: 900px; /* Ancho más amplio para 4 columnas */
+    padding: 20px;
+}
+
+#editModal .edit-form-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+#editModal .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+#editModal .form-group label {
+    font-size: 10px;
+    font-weight: bold;
+    color: #333;
+}
+
+#editModal .form-group input {
+    width: 100%;
+    padding: 4px 6px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 11px;
+    box-sizing: border-box;
+    height: 28px;
+    line-height: 16px;
+}
+
+#editModal .input-with-icon {
+    position: relative;
+    width: 100%;
+}
+
+#editModal .toggle-icon {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #007bff;
+    cursor: pointer;
+    font-size: 12px;
+    z-index: 10;
+    height: 100%;
+    display: flex;
+    align-items: center;
+}
+
+#editModal .toggle-icon:hover {
+    color: #0056b3;
+}
+
+#editModal .dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 100;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+#editModal .dropdown div {
+    padding: 8px;
+    font-size: 11px;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#editModal .dropdown div:hover {
+    background-color: #f1f1f1;
+}
+
+#editModal .guia-status {
+    margin-top: 5px;
+    font-size: 11px;
+    color: #999;
+    white-space: nowrap;
+}
+
+#editModal .radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+#editModal .radio-group label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    font-weight: normal;
+}
+
+#editModal .radio-group input[type="radio"] {
+    width: 14px;
+    height: 14px;
+    margin: 0;
+    cursor: pointer;
+}
+
+#editModal .radio-group input[type="radio"]:focus {
+    outline: none;
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
+
+#editModal .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+#editModal .btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    min-width: 100px;
+}
+
+#editModal .btn-primary {
+    background-color: #007bff;
+    color: white;
+}
+
+#editModal .btn-primary:hover {
+    background-color: #0056b3;
+}
+
+#editModal .btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+#editModal .btn-secondary:hover {
+    background-color: #5a6268;
+}
+
+@media (max-width: 768px) {
+    #editModal .edit-form-grid {
+        grid-template-columns: 1fr;
+    }
+    #editModal .modal-content {
+        max-width: 90%;
+    }
+}
