@@ -424,6 +424,21 @@ function initLimpiarButton() {
     if (btn) btn.addEventListener('click', limpiarCampos);
 }
 
+// === AL FINAL DE ingresos.js (antes del DOMContentLoaded) ===
+
+export async function reloadReferenciasForEdit() {
+    await loadReferencias();
+    // Limpiar campos relacionados
+    ['editCodigo', 'editDescripcion', 'editReferencia', 'editProveedor', 'editPrecioUnitario', 'editAtributo', 'editTotalItems'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    ['editCodigoDropdown', 'editDescripcionDropdown'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+}
+
 // === INICIO ===
 document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, async user => {

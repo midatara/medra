@@ -243,13 +243,15 @@ function initDocDeliveryEdit() {
     input.addEventListener('input', () => check(input.value.trim()));
 }
 
+// === REEMPLAZA initAtributoFilterEdit() EN acciones.js ===
+
+import { reloadReferenciasForEdit } from './ingresos.js';
+
 function initAtributoFilterEdit() {
-    document.querySelectorAll('input[name="editAtributoFilter"]').forEach(r => {
-        r.addEventListener('change', () => {
-            ['editCodigo', 'editDescripcion', 'editReferencia', 'editProveedor', 'editPrecioUnitario', 'editAtributo', 'editTotalItems'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.value = '';
-            });
+    document.querySelectorAll('input[name="editAtributoFilter"]').forEach(radio => {
+        radio.addEventListener('change', async (e) => {
+            atributoFilter = e.target.value; // Actualiza variable global
+            await reloadReferenciasForEdit(); // ← Recarga referencias + limpia
         });
     });
 }
