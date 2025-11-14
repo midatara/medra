@@ -566,12 +566,13 @@ function renderTable() {
     }
 
     registros.forEach((registro) => {
+        const fechaCX = registro.fechaCX ? new Date(registro.fechaCX).toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' }).split('/').join('-') : '';
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${registro.admision || ''}</td>
             <td>${registro.paciente || ''}</td>
             <td>${registro.medico || ''}</td>
-            <td>${registro.fechaCX || ''}</td>
+            <td>${fechaCX}</td>
             <td>${registro.codigo || ''}</td>
             <td>${registro.descripcion || ''}</td>
             <td>${registro.cantidad || ''}</td>
