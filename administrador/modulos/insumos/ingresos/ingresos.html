@@ -245,9 +245,29 @@
             </div>
         </div>
     </div>
+
+    <div id="traspasoModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Confirmar Traspaso</h2>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-content-body" id="traspasoBody">
+                <p>¿Desea traspasar <strong>Todos los registros</strong> a <code>pacientes_consignaciones</code> y <code>cargas_consignaciones</code>?</p>
+                <p style="color:#856404;background:#fff3cd;padding:10px;border-radius:4px;font-size:11px;">
+                    <strong>Advertencia:</strong> Los registros se eliminarán de <code>consigna_ingresos</code>.
+                </p>
+                <div class="modal-buttons">
+                    <button id="confirmTraspasarBtn" class="modal-btn modal-btn-danger">Traspasar</button>
+                    <button id="cancelTraspasarBtn" class="modal-btn modal-btn-secondary">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="registrar-toast-container" id="toastContainer"></div>
 
     <script type="module" src="ingresos.js"></script>
     <script type="module" src="resizeColumns.js"></script>
+    <script type="module" src="traspaso.js"></script>
 </body>
 </html>
