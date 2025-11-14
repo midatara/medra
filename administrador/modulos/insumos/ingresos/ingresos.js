@@ -18,23 +18,22 @@ const db = getFirestore(app);
 
 setPersistence(auth, browserSessionPersistence);
 
-export let registros = [];
 let medicos = [];
 let referencias = [];
 let atributoFilter = 'CONSIGNACION';
+let registros = [];
 
-// Exportar funciones para traspaso.js
-export function showLoading() {
+function showLoading() {
     const loading = document.getElementById('loading');
     if (loading) loading.classList.add('show');
 }
 
-export function hideLoading() {
+function hideLoading() {
     const loading = document.getElementById('loading');
     if (loading) loading.classList.remove('show');
 }
 
-export function showToast(message, type = 'success') {
+function showToast(message, type = 'success') {
     const toastContainer = document.getElementById('toastContainer');
     if (!toastContainer) return;
 
@@ -741,7 +740,6 @@ async function registrarIngreso() {
 
         registros.unshift(nuevoRegistro);
         renderTable();
-        updateTraspasarButtonState();
 
         document.getElementById('codigo').value = '';
         document.getElementById('descripcion').value = '';
@@ -896,7 +894,6 @@ async function updateRegistro(id) {
         }
 
         renderTable();
-        updateTraspasarButtonState();
         document.getElementById('editModal').style.display = 'none';
         showToast('Registro actualizado exitosamente', 'success');
     } catch (error) {
@@ -918,6 +915,7 @@ function renderTable() {
     tbody.innerHTML = '';
     if (registros.length === 0) {
         tbody.innerHTML = '<tr><td colspan="15">No hay registros para mostrar</td></tr>';
+        return;
     }
 
     registros.forEach((registro) => {
@@ -962,15 +960,6 @@ function renderTable() {
             showDeleteModal(id);
         });
     });
-
-    updateTraspasarButtonState();
-}
-
-function updateTraspasarButtonState() {
-    const traspasarBtn = document.getElementById('traspasarBtn');
-    if (traspasarBtn) {
-        traspasarBtn.disabled = registros.length === 0;
-    }
 }
 
 function showDeleteModal(id) {
@@ -1000,7 +989,6 @@ function showDeleteModal(id) {
             await deleteDoc(doc(db, 'consigna_ingresos', id));
             registros = registros.filter(registro => registro.id !== id);
             renderTable();
-            updateTraspasarButtonState();
             modal.style.display = 'none';
             showToast('Registro eliminado exitosamente', 'success');
         } catch (error) {
