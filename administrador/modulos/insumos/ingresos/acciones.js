@@ -1,8 +1,7 @@
 import { getFirestore, doc, updateDoc, deleteDoc, getDocs, query, where, collection } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-import { showLoading, hideLoading, showToast, medicos, referencias, registros, db, atributoFilter as globalAtributoFilter, reloadReferenciasForEdit } from './ingresos.js';
+import { showLoading, hideLoading, showToast, medicos, referencias, registros, db, reloadReferenciasForEdit } from './ingresos.js';
 
 let currentEditId = null;
-let atributoFilter = globalAtributoFilter; // Sincroniza con el global
 
 function formatNumber(num) {
     return num ? Number(num).toLocaleString('es-CL') : '';
@@ -56,7 +55,7 @@ function initEditFields() {
     initCancelEdit();
 }
 
-// === MÉDICO (EDIT) - CON TOGGLE ===
+// === MÉDICO (EDIT) ===
 function initMedicoEdit() {
     const input = document.getElementById('editMedico');
     const toggle = document.getElementById('editMedicoToggle');
@@ -100,7 +99,7 @@ function initMedicoEdit() {
     });
 }
 
-// === CÓDIGO (EDIT) - CON TOGGLE ===
+// === CÓDIGO (EDIT) ===
 function initCodigoEdit() {
     const input = document.getElementById('editCodigo');
     const toggle = document.getElementById('editCodigoToggle');
@@ -145,7 +144,7 @@ function initCodigoEdit() {
     });
 }
 
-// === DESCRIPCIÓN (EDIT) - CON TOGGLE ===
+// === DESCRIPCIÓN (EDIT) ===
 function initDescripcionEdit() {
     const input = document.getElementById('editDescripcion');
     const toggle = document.getElementById('editDescripcionToggle');
@@ -159,7 +158,7 @@ function initDescripcionEdit() {
             const div = document.createElement('div');
             div.textContent = r.descripcion;
             div.onclick = () => {
-                input.value = r.descripcion;
+                input.value = r.deserna;
                 fillEditRelated(r);
                 dropdown.style.display = 'none';
             };
@@ -236,11 +235,11 @@ function initDocDeliveryEdit() {
     input.addEventListener('input', () => check(input.value.trim()));
 }
 
-// === FILTRO DE ATRIBUTO EN MODAL ===
+// === FILTRO EN MODAL (SIN IMPORTAR atributoFilter) ===
 function initAtributoFilterEdit() {
     document.querySelectorAll('input[name="editAtributoFilter"]').forEach(radio => {
         radio.addEventListener('change', async (e) => {
-            atributoFilter = e.target.value;
+            // Solo actualizamos el filtro en ingresos.js a través de la función
             await reloadReferenciasForEdit();
         });
     });
@@ -251,7 +250,7 @@ function initSaveEdit() {
         const data = {
             admision: document.getElementById('editAdmision').value.trim(),
             paciente: document.getElementById('editPaciente').value.trim(),
-            medico: document.getElementHTMLElementById('editMedico').value.trim(),
+            medico: document.getElementById('editMedico').value.trim(),
             fechaCX: document.getElementById('editFechaCX').value,
             codigo: document.getElementById('editCodigo').value.trim(),
             descripcion: document.getElementById('editDescripcion').value.trim(),
