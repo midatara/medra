@@ -1,6 +1,6 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { getFirestore, collection, getDocs, query, orderBy, where, addDoc, serverTimestamp, doc, getDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { getFirestore, collection, getDocs, query, orderBy, where, addDoc, serverTimestamp, doc, getDoc, deleteDoc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const firebaseConfig = {
     apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
@@ -140,8 +140,8 @@ function showDropdown(items, dropdownElement, key, inputId) {
         div.dataset.id = item.id;
         div.addEventListener('click', () => {
             document.getElementById(inputId).value = item[key];
-            if (inputId === 'codigo' || inputId === 'descripcion') {
-                fillRelatedFields(item);
+            if (inputId === 'codigo' || inputId === 'descripcion' || inputId === 'editCodigo' || inputId === 'editDescripcion') {
+                fillRelatedFields(item, inputId.startsWith('edit'));
             }
             dropdownElement.style.display = 'none';
         });
@@ -151,13 +151,14 @@ function showDropdown(items, dropdownElement, key, inputId) {
     dropdownElement.style.display = 'block';
 }
 
-function fillRelatedFields(item) {
-    const codigoInput = document.getElementById('codigo');
-    const descripcionInput = document.getElementById('descripcion');
-    const referenciaInput = document.getElementById('referencia');
-    const proveedorInput = document.getElementById('proveedor');
-    const precioUnitarioInput = document.getElementById('precioUnitario');
-    const atributoInput = document.getElementById('atributo');
+function fillRelatedFields(item, isEditModal = false) {
+    const prefix = isEditModal ? 'edit' : '';
+    const codigoInput = document.getElementById(`${prefix}Codigo`);
+    const descripcionInput = document.getElementById(`${prefix}Descripcion`);
+    const referenciaInput = document.getElementById(`${prefix}Referencia`);
+    const proveedorInput = document.getElementById(`${prefix}Proveedor`);
+    const precioUnitarioInput = document.getElementById(`${prefix}PrecioUnitario`);
+    const atributoInput = document.getElementById(`${prefix}Atributo`);
 
     codigoInput.value = item.codigo || '';
     descripcionInput.value = item.descripcion || '';
@@ -165,13 +166,14 @@ function fillRelatedFields(item) {
     proveedorInput.value = item.proveedor || '';
     precioUnitarioInput.value = item.precioUnitario ? formatNumberWithThousandsSeparator(item.precioUnitario) : '';
     atributoInput.value = item.atributo || '';
-    updateTotalItems();
+    updateTotalItems(isEditModal);
 }
 
-function updateTotalItems() {
-    const cantidadInput = document.getElementById('cantidad');
-    const precioUnitarioInput = document.getElementById('precioUnitario');
-    const totalItemsInput = document.getElementById('totalItems');
+function updateTotalItems(isEditModal = false) {
+    const prefix = isEditModal ? 'edit' : '';
+    const cantidadInput = document.getElementById(`${prefix}Cantidad`);
+    const precioUnitarioInput = document.getElementById(`${prefix}PrecioUnitario`);
+    const totalItemsInput = document.getElementById(`${prefix}TotalItems`);
 
     const cantidad = parseFloat(cantidadInput.value) || 0;
     const precioUnitario = parseFloat(precioUnitarioInput.value.replace(/\./g, '')) || 0;
@@ -191,27 +193,28 @@ function filterItems(searchText, items, key) {
     );
 }
 
-function initMedicoField() {
-    const medicoInput = document.getElementById('medico');
-    const medicoToggle = document.getElementById('medicoToggle');
-    const medicoDropdown = document.getElementById('medicoDropdown');
+function initMedicoField(isEditModal = false) {
+    const prefix = isEditModal ? 'edit' : '';
+    const medicoInput = document.getElementById(`${prefix}Medico`);
+    const medicoToggle = document.getElementById(`${prefix}MedicoToggle`);
+    const medicoDropdown = document.getElementById(`${prefix}MedicoDropdown`);
 
     if (!medicoInput || !medicoToggle || !medicoDropdown) {
-        console.error('Elementos del campo Médico no encontrados');
+        console.error(`Elementos del campo Médico (${prefix}) no encontrados`);
         return;
     }
 
     medicoInput.addEventListener('input', () => {
         const searchText = medicoInput.value;
         const filteredMedicos = filterItems(searchText, medicos, 'nombre');
-        showDropdown(filteredMedicos, medicoDropdown, 'nombre', 'medico');
+        showDropdown(filteredMedicos, medicoDropdown, 'nombre', `${prefix}Medico`);
     });
 
     medicoToggle.addEventListener('click', () => {
         if (medicoDropdown.style.display === 'block') {
             medicoDropdown.style.display = 'none';
         } else {
-            showDropdown(medicos, medicoDropdown, 'nombre', 'medico');
+            showDropdown(medicos, medicoDropdown, 'nombre', `${prefix}Medico`);
         }
     });
 
@@ -229,31 +232,32 @@ function initMedicoField() {
         e.stopPropagation();
         const searchText = medicoInput.value;
         const filteredMedicos = filterItems(searchText, medicos, 'nombre');
-        showDropdown(filteredMedicos, medicoDropdown, 'nombre', 'medico');
+        showDropdown(filteredMedicos, medicoDropdown, 'nombre', `${prefix}Medico`);
     });
 }
 
-function initCodigoField() {
-    const codigoInput = document.getElementById('codigo');
-    const codigoToggle = document.getElementById('codigoToggle');
-    const codigoDropdown = document.getElementById('codigoDropdown');
+function initCodigoField(isEditModal = false) {
+    const prefix = isEditModal ? 'edit' : '';
+    const codigoInput = document.getElementById(`${prefix}Codigo`);
+    const codigoToggle = document.getElementById(`${prefix}CodigoToggle`);
+    const codigoDropdown = document.getElementById(`${prefix}CodigoDropdown`);
 
     if (!codigoInput || !codigoToggle || !codigoDropdown) {
-        console.error('Elementos del campo Código no encontrados');
+        console.error(`Elementos del campo Código (${prefix}) no encontrados`);
         return;
     }
 
     codigoInput.addEventListener('input', () => {
         const searchText = codigoInput.value;
         const filteredReferencias = filterItems(searchText, referencias, 'codigo');
-        showDropdown(filteredReferencias, codigoDropdown, 'codigo', 'codigo');
+        showDropdown(filteredReferencias, codigoDropdown, 'codigo', `${prefix}Codigo`);
     });
 
     codigoToggle.addEventListener('click', () => {
         if (codigoDropdown.style.display === 'block') {
             codigoDropdown.style.display = 'none';
         } else {
-            showDropdown(referencias, codigoDropdown, 'codigo', 'codigo');
+            showDropdown(referencias, codigoDropdown, 'codigo', `${prefix}Codigo`);
         }
     });
 
@@ -271,31 +275,32 @@ function initCodigoField() {
         e.stopPropagation();
         const searchText = codigoInput.value;
         const filteredReferencias = filterItems(searchText, referencias, 'codigo');
-        showDropdown(filteredReferencias, codigoDropdown, 'codigo', 'codigo');
+        showDropdown(filteredReferencias, codigoDropdown, 'codigo', `${prefix}Codigo`);
     });
 }
 
-function initDescripcionField() {
-    const descripcionInput = document.getElementById('descripcion');
-    const descripcionToggle = document.getElementById('descripcionToggle');
-    const descripcionDropdown = document.getElementById('descripcionDropdown');
+function initDescripcionField(isEditModal = false) {
+    const prefix = isEditModal ? 'edit' : '';
+    const descripcionInput = document.getElementById(`${prefix}Descripcion`);
+    const descripcionToggle = document.getElementById(`${prefix}DescripcionToggle`);
+    const descripcionDropdown = document.getElementById(`${prefix}DescripcionDropdown`);
 
     if (!descripcionInput || !descripcionToggle || !descripcionDropdown) {
-        console.error('Elementos del campo Descripción no encontrados');
+        console.error(`Elementos del campo Descripción (${prefix}) no encontrados`);
         return;
     }
 
     descripcionInput.addEventListener('input', () => {
         const searchText = descripcionInput.value;
         const filteredReferencias = filterItems(searchText, referencias, 'descripcion');
-        showDropdown(filteredReferencias, descripcionDropdown, 'descripcion', 'descripcion');
+        showDropdown(filteredReferencias, descripcionDropdown, 'descripcion', `${prefix}Descripcion`);
     });
 
     descripcionToggle.addEventListener('click', () => {
         if (descripcionDropdown.style.display === 'block') {
             descripcionDropdown.style.display = 'none';
         } else {
-            showDropdown(referencias, descripcionDropdown, 'descripcion', 'descripcion');
+            showDropdown(referencias, descripcionDropdown, 'descripcion', `${prefix}Descripcion`);
         }
     });
 
@@ -313,26 +318,27 @@ function initDescripcionField() {
         e.stopPropagation();
         const searchText = descripcionInput.value;
         const filteredReferencias = filterItems(searchText, referencias, 'descripcion');
-        showDropdown(filteredReferencias, descripcionDropdown, 'descripcion', 'descripcion');
+        showDropdown(filteredReferencias, descripcionDropdown, 'descripcion', `${prefix}Descripcion`);
     });
 }
 
-function initAtributoFilter() {
-    const atributoRadios = document.querySelectorAll('input[name="atributoFilter"]');
+function initAtributoFilter(isEditModal = false) {
+    const prefix = isEditModal ? 'edit' : '';
+    const atributoRadios = document.querySelectorAll(`input[name="${prefix}AtributoFilter"]`);
 
     atributoRadios.forEach((radio) => {
         radio.addEventListener('change', async (e) => {
             atributoFilter = e.target.value;
             await loadReferencias();
-            const codigoInput = document.getElementById('codigo');
-            const descripcionInput = document.getElementById('descripcion');
-            const referenciaInput = document.getElementById('referencia');
-            const proveedorInput = document.getElementById('proveedor');
-            const precioUnitarioInput = document.getElementById('precioUnitario');
-            const atributoInput = document.getElementById('atributo');
-            const totalItemsInput = document.getElementById('totalItems');
-            const codigoDropdown = document.getElementById('codigoDropdown');
-            const descripcionDropdown = document.getElementById('descripcionDropdown');
+            const codigoInput = document.getElementById(`${prefix}Codigo`);
+            const descripcionInput = document.getElementById(`${prefix}Descripcion`);
+            const referenciaInput = document.getElementById(`${prefix}Referencia`);
+            const proveedorInput = document.getElementById(`${prefix}Proveedor`);
+            const precioUnitarioInput = document.getElementById(`${prefix}PrecioUnitario`);
+            const atributoInput = document.getElementById(`${prefix}Atributo`);
+            const totalItemsInput = document.getElementById(`${prefix}TotalItems`);
+            const codigoDropdown = document.getElementById(`${prefix}CodigoDropdown`);
+            const descripcionDropdown = document.getElementById(`${prefix}DescripcionDropdown`);
             if (codigoInput) codigoInput.value = '';
             if (descripcionInput) descripcionInput.value = '';
             if (referenciaInput) referenciaInput.value = '';
@@ -346,33 +352,17 @@ function initAtributoFilter() {
     });
 }
 
-function initTotalItemsCalculation() {
-    const cantidadInput = document.getElementById('cantidad');
-    const precioUnitarioInput = document.getElementById('precioUnitario');
+function initTotalItemsCalculation(isEditModal = false) {
+    const prefix = isEditModal ? 'edit' : '';
+    const cantidadInput = document.getElementById(`${prefix}Cantidad`);
+    const precioUnitarioInput = document.getElementById(`${prefix}PrecioUnitario`);
 
     if (!cantidadInput || !precioUnitarioInput) {
-        console.error('Elementos de cantidad o precio unitario no encontrados');
+        console.error(`Elementos de cantidad o precio unitario (${prefix}) no encontrados`);
         return;
     }
 
-    cantidadInput.addEventListener('input', updateTotalItems);
-}
-
-function initOtherFields() {
-    const fields = [
-        { id: 'admision', name: 'Admisión' },
-        { id: 'paciente', name: 'Paciente' }
-    ];
-
-    fields.forEach(field => {
-        const input = document.getElementById(field.id);
-        if (input) {
-            input.addEventListener('input', () => {
-            });
-        } else {
-            console.warn(`Elemento ${field.name} con ID "${field.id}" no encontrado en el DOM`);
-        }
-    });
+    cantidadInput.addEventListener('input', () => updateTotalItems(isEditModal));
 }
 
 async function buscarFolioPorFolioRef(folioRef) {
@@ -402,12 +392,13 @@ function debounce(func, wait) {
     };
 }
 
-function initDocDeliveryField() {
-    const docDeliveryInput = document.getElementById('docDelivery');
-    const guiaStatusSpan = document.getElementById('guiaStatus');
+function initDocDeliveryField(isEditModal = false) {
+    const prefix = isEditModal ? 'edit' : '';
+    const docDeliveryInput = document.getElementById(`${prefix}DocDelivery`);
+    const guiaStatusSpan = document.getElementById(`${prefix}GuiaStatus`);
 
     if (!docDeliveryInput || !guiaStatusSpan) {
-        console.error('Elementos de Doc. Delivery o guiaStatus no encontrados');
+        console.error(`Elementos de Doc. Delivery o guiaStatus (${prefix}) no encontrados`);
         return;
     }
 
@@ -587,11 +578,18 @@ function renderTable() {
             <td>${registro.docDelivery || ''}</td>
             <td>${registro.usuario || ''}</td>
             <td class="registrar-actions">
-                <button class="registrar-btn-edit" title="Editar"><i class="fas fa-edit"></i></button>
+                <button class="registrar-btn-edit" title="Editar" data-id="${registro.id}"><i class="fas fa-edit"></i></button>
                 <button class="registrar-btn-delete" title="Eliminar" data-id="${registro.id}"><i class="fas fa-trash"></i></button>
             </td>
         `;
         tbody.appendChild(row);
+    });
+
+    document.querySelectorAll('.registrar-btn-edit').forEach(button => {
+        button.addEventListener('click', () => {
+            const id = button.dataset.id;
+            showEditModal(id);
+        });
     });
 
     document.querySelectorAll('.registrar-btn-delete').forEach(button => {
@@ -600,6 +598,142 @@ function renderTable() {
             showDeleteModal(id);
         });
     });
+}
+
+function showEditModal(id) {
+    const modal = document.getElementById('editModal');
+    if (!modal) {
+        console.error('Modal de edición no encontrado');
+        return;
+    }
+
+    const registro = registros.find(r => r.id === id);
+    if (!registro) {
+        showToast('Registro no encontrado', 'error');
+        return;
+    }
+
+    document.getElementById('editAdmision').value = registro.admision || '';
+    document.getElementById('editPaciente').value = registro.paciente || '';
+    document.getElementById('editMedico').value = registro.medico || '';
+    document.getElementById('editFechaCX').value = registro.fechaCX || '';
+    document.getElementById('editCodigo').value = registro.codigo || '';
+    document.getElementById('editDescripcion').value = registro.descripcion || '';
+    document.getElementById('editCantidad').value = registro.cantidad || '';
+    document.getElementById('editReferencia').value = registro.referencia || '';
+    document.getElementById('editProveedor').value = registro.proveedor || '';
+    document.getElementById('editPrecioUnitario').value = registro.precioUnitario ? formatNumberWithThousandsSeparator(registro.precioUnitario) : '';
+    document.getElementById('editAtributo').value = registro.atributo || '';
+    document.getElementById('editTotalItems').value = registro.totalItems ? formatNumberWithThousandsSeparator(registro.totalItems) : '';
+    document.getElementById('editDocDelivery').value = registro.docDelivery || '';
+    document.getElementById('editGuiaStatus').textContent = registro.docDelivery ? 'Verificando...' : '';
+    document.getElementById('editGuiaStatus').style.color = '#999';
+
+    const atributoRadios = document.querySelectorAll('input[name="editAtributoFilter"]');
+    atributoRadios.forEach(radio => {
+        radio.checked = radio.value === registro.atributo;
+    });
+
+    modal.style.display = 'block';
+
+    initMedicoField(true);
+    initCodigoField(true);
+    initDescripcionField(true);
+    initAtributoFilter(true);
+    initTotalItemsCalculation(true);
+    initDocDeliveryField(true);
+
+    const closeBtn = modal.querySelector('.close');
+    const saveBtn = document.getElementById('saveEditBtn');
+    const cancelBtn = document.getElementById('cancelEditBtn');
+
+    closeBtn.onclick = () => {
+        modal.style.display = 'none';
+    };
+
+    cancelBtn.onclick = () => {
+        modal.style.display = 'none';
+    };
+
+    saveBtn.onclick = async () => {
+        const admision = document.getElementById('editAdmision').value.trim();
+        const paciente = document.getElementById('editPaciente').value.trim();
+        const medico = document.getElementById('editMedico').value.trim();
+        const fechaCX = document.getElementById('editFechaCX').value;
+        const codigo = document.getElementById('editCodigo').value.trim();
+        const descripcion = document.getElementById('editDescripcion').value.trim();
+        const cantidad = parseInt(document.getElementById('editCantidad').value) || 0;
+        const referencia = document.getElementById('editReferencia').value.trim();
+        const proveedor = document.getElementById('editProveedor').value.trim();
+        const precioUnitario = parseFloat(document.getElementById('editPrecioUnitario').value.replace(/\./g, '')) || 0;
+        const atributo = document.getElementById('editAtributo').value.trim();
+        const totalItems = parseFloat(document.getElementById('editTotalItems').value.replace(/\./g, '')) || 0;
+        const docDelivery = document.getElementById('editDocDelivery').value.trim();
+        const usuario = auth.currentUser ? await getUserFullName(auth.currentUser.uid) : 'unknown';
+
+        if (!admision || !paciente || !medico || !fechaCX || !codigo || !descripcion || !cantidad || !referencia || !proveedor || !precioUnitario || !atributo) {
+            showToast('Por favor, completa todos los campos obligatorios', 'error');
+            return;
+        }
+
+        showLoading();
+        try {
+            const docRef = doc(db, 'consigna_ingresos', id);
+            await updateDoc(docRef, {
+                admision,
+                paciente,
+                medico,
+                fechaCX,
+                codigo,
+                descripcion,
+                cantidad,
+                referencia,
+                proveedor,
+                precioUnitario,
+                atributo,
+                totalItems,
+                docDelivery,
+                usuario,
+                updatedAt: serverTimestamp()
+            });
+
+            const index = registros.findIndex(r => r.id === id);
+            registros[index] = {
+                id,
+                admision,
+                paciente,
+                medico,
+                fechaCX,
+                codigo,
+                descripcion,
+                cantidad,
+                referencia,
+                proveedor,
+                precioUnitario,
+                atributo,
+                totalItems,
+                docDelivery,
+                usuario,
+                createdAt: registro.createdAt,
+                updatedAt: new Date()
+            };
+
+            renderTable();
+            modal.style.display = 'none';
+            showToast('Registro actualizado exitosamente', 'success');
+        } catch (error) {
+            showToast('Error al actualizar el registro: ' + error.message, 'error');
+            console.error('Error al actualizar:', error);
+        } finally {
+            hideLoading();
+        }
+    };
+
+    window.onclick = (event) => {
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    };
 }
 
 function showDeleteModal(id) {
@@ -682,7 +816,6 @@ document.addEventListener('DOMContentLoaded', () => {
             initDescripcionField();
             initAtributoFilter();
             initTotalItemsCalculation();
-            initOtherFields();
             initDocDeliveryField();
             initRegistrarButton();
             initLimpiarButton();
