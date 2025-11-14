@@ -121,6 +121,7 @@ async function loadRegistros() {
             registros.push({ id: doc.id, ...doc.data() });
         });
         renderTable();
+        updateTraspasarButton(); // AÑADIDO: Habilitar botón si hay registros
         hideLoading();
     } catch (error) {
         hideLoading();
@@ -519,6 +520,7 @@ async function registrarIngreso() {
 
         registros.unshift(nuevoRegistro);
         renderTable();
+        updateTraspasarButton(); // AÑADIDO: Habilitar botón
 
         document.getElementById('codigo').value = '';
         document.getElementById('descripcion').value = '';
@@ -564,6 +566,7 @@ function renderTable() {
     tbody.innerHTML = '';
     if (registros.length === 0) {
         tbody.innerHTML = '<tr><td colspan="15">No hay registros para mostrar</td></tr>';
+        updateTraspasarButton(); // AÑADIDO
         return;
     }
 
@@ -631,6 +634,7 @@ function showDeleteModal(id) {
             await deleteDoc(doc(db, 'consigna_ingresos', id));
             registros = registros.filter(registro => registro.id !== id);
             renderTable();
+            updateTraspasarButton(); // AÑADIDO: Actualizar botón tras eliminar
             modal.style.display = 'none';
             showToast('Registro eliminado exitosamente', 'success');
         } catch (error) {
@@ -646,6 +650,14 @@ function showDeleteModal(id) {
             modal.style.display = 'none';
         }
     };
+}
+
+// === FUNCIÓN NUEVA: Habilitar/Deshabilitar botón TRASPASAR ===
+function updateTraspasarButton() {
+    const traspasarBtn = document.getElementById('traspasarBtn');
+    if (traspasarBtn) {
+        traspasarBtn.disabled = registros.length === 0;
+    }
 }
 
 function initRegistrarButton() {
