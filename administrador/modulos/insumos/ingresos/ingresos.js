@@ -131,23 +131,26 @@ function showDropdown(items, dropdownElement, key, inputId) {
         return;
     }
 
+    const isEditModal = inputId.startsWith('edit');
+
     items.forEach((item) => {
         const div = document.createElement('div');
         div.textContent = item[key];
         div.dataset.id = item.id;
+
         div.addEventListener('click', () => {
             const input = document.getElementById(inputId);
-            if (input) input.value = item[key];
-
-            if (['codigo', 'descripcion', 'editCodigo', 'editDescripcion'].includes(inputId)) {
-                const isEditModal = inputId.startsWith('edit');
-                if (isEditModal && document.getElementById('editModal')?.style.display !== 'block') {
-                    return;
-                }
-                fillRelatedFields(item, isEditModal);
+            if (input) {
+                input.value = item[key];
             }
+
+            // Rellenar TODOS los campos relacionados (código, descripción, referencia, etc.)
+            fillRelatedFields(item, isEditModal);
+
+            // Ocultar dropdown
             dropdownElement.style.display = 'none';
         });
+
         dropdownElement.appendChild(div);
     });
 
@@ -164,13 +167,12 @@ function fillRelatedFields(item, isEditModal = false) {
     const precioUnitarioInput = document.getElementById(`${prefix}PrecioUnitario`);
     const atributoInput = document.getElementById(`${prefix}Atributo`);
 
+    // Si no están todos los campos, salir sin error
     if (!codigoInput || !descripcionInput || !referenciaInput || !proveedorInput || !precioUnitarioInput || !atributoInput) {
-        if (isEditModal && document.getElementById('editModal')?.style.display === 'block') {
-            console.warn('fillRelatedFields: Campos no disponibles aún (modal edición)', { prefix });
-        }
         return;
     }
 
+    // Rellenar todos
     codigoInput.value = item.codigo || '';
     descripcionInput.value = item.descripcion || '';
     referenciaInput.value = item.referencia || '';
@@ -178,6 +180,7 @@ function fillRelatedFields(item, isEditModal = false) {
     precioUnitarioInput.value = item.precioUnitario ? formatNumberWithThousandsSeparator(item.precioUnitario) : '';
     atributoInput.value = item.atributo || '';
 
+    // Actualizar total
     if (isEditModal) {
         updateEditTotalItems();
     } else {
