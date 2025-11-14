@@ -19,13 +19,11 @@ const db = getFirestore(app);
 
 setPersistence(auth, browserSessionPersistence);
 
-// === VARIABLES GLOBALES (EXPORTADAS) ===
 export let medicos = [];
 export let referencias = [];
-export let atributoFilter = 'CONSIGNACION';  // ← AHORA ES EXPORTADA
+export let atributoFilter = 'CONSIGNACION';  
 export let registros = [];
 
-// === EXPORTADAS ===
 export function showLoading() {
     const loading = document.getElementById('loading');
     if (loading) loading.classList.add('show');
@@ -51,16 +49,13 @@ export function showToast(message, type = 'success') {
     }, 5000);
 }
 
-export { db };  // ← db también exportado
-
-// === FIN EXPORTACIONES ===
+export { db };  
 
 function formatNumberWithThousandsSeparator(number) {
     if (!number || isNaN(number)) return '';
     return Number(number).toLocaleString('es-CL', { minimumFractionDigits: 0 });
 }
 
-// === CARGA DE DATOS ===
 async function loadMedicos() {
     showLoading();
     try {
@@ -125,7 +120,6 @@ async function loadRegistros() {
     }
 }
 
-// === DROPDOWN Y AUTOCOMPLETADO ===
 function showDropdown(items, dropdownElement, key, inputId) {
     dropdownElement.innerHTML = '';
     if (items.length === 0) {
@@ -319,7 +313,6 @@ async function getUserFullName(uid) {
     }
 }
 
-// === REGISTRAR INGRESO ===
 async function registrarIngreso() {
     const fields = {
         admision: document.getElementById('admision').value.trim(),
@@ -377,7 +370,6 @@ function limpiarCampos() {
     if (dropdown) dropdown.style.display = 'none';
 }
 
-// === TABLA ===
 function renderTable() {
     const tbody = document.querySelector('#registrarTable tbody');
     if (!tbody) return;
@@ -433,10 +425,8 @@ function initLimpiarButton() {
     if (btn) btn.addEventListener('click', limpiarCampos);
 }
 
-// === FUNCIÓN PARA EL MODAL DE EDICIÓN ===
 export async function reloadReferenciasForEdit() {
     await loadReferencias();
-    // Limpiar campos del modal
     ['editCodigo', 'editDescripcion', 'editReferencia', 'editProveedor', 'editPrecioUnitario', 'editAtributo', 'editTotalItems'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
@@ -447,7 +437,6 @@ export async function reloadReferenciasForEdit() {
     });
 }
 
-// === INICIO ===
 document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, async user => {
         if (!user) return window.location.replace('../../../index.html');

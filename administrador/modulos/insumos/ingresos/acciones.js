@@ -11,7 +11,6 @@ function parseNumber(str) {
     return parseFloat(str.replace(/\./g, '')) || 0;
 }
 
-// === EDICIÓN ===
 export function showEditModal(registro) {
     currentEditId = registro.id;
     const modal = document.getElementById('editModal');
@@ -55,7 +54,6 @@ function initEditFields() {
     initCancelEdit();
 }
 
-// === MÉDICO (EDIT) ===
 function initMedicoEdit() {
     const input = document.getElementById('editMedico');
     const toggle = document.getElementById('editMedicoToggle');
@@ -99,7 +97,6 @@ function initMedicoEdit() {
     });
 }
 
-// === CÓDIGO (EDIT) ===
 function initCodigoEdit() {
     const input = document.getElementById('editCodigo');
     const toggle = document.getElementById('editCodigoToggle');
@@ -144,7 +141,6 @@ function initCodigoEdit() {
     });
 }
 
-// === DESCRIPCIÓN (EDIT) ===
 function initDescripcionEdit() {
     const input = document.getElementById('editDescripcion');
     const toggle = document.getElementById('editDescripcionToggle');
@@ -235,11 +231,9 @@ function initDocDeliveryEdit() {
     input.addEventListener('input', () => check(input.value.trim()));
 }
 
-// === FILTRO EN MODAL (SIN IMPORTAR atributoFilter) ===
 function initAtributoFilterEdit() {
     document.querySelectorAll('input[name="editAtributoFilter"]').forEach(radio => {
         radio.addEventListener('change', async (e) => {
-            // Solo actualizamos el filtro en ingresos.js a través de la función
             await reloadReferenciasForEdit();
         });
     });
@@ -289,7 +283,6 @@ function initCancelEdit() {
     document.querySelector('#editModal .close').onclick = closeEditModal;
 }
 
-// === ELIMINAR ===
 export function showDeleteModal(id) {
     const modal = document.getElementById('deleteModal');
     if (!modal) return;
@@ -327,7 +320,6 @@ export function showDeleteModal(id) {
     window.onclick = e => { if (e.target === modal) cleanup(); };
 }
 
-// === INICIALIZAR BOTONES ===
 export function initActionButtons() {
     document.querySelectorAll('.registrar-btn-edit').forEach(btn => {
         btn.onclick = e => {
@@ -359,7 +351,6 @@ export function initActionButtons() {
     });
 }
 
-// === RENDER DESDE ACCIONES ===
 function renderTableFromAcciones() {
     const tbody = document.querySelector('#registrarTable tbody');
     if (!tbody) return;
