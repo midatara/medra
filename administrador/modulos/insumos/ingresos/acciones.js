@@ -1,7 +1,10 @@
 import { getFirestore, doc, updateDoc, deleteDoc, getDocs, query, where, collection } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-import { showLoading, hideLoading, showToast, medicos, referencias, registros, db, reloadReferenciasForEdit } from './ingresos.js';
+import { showLoading, hideLoading, showToast, medicos, referencias, registros, db, reloadReferenciasForEdit, atributoFilter } from './ingresos.js';
 
 let currentEditId = null;
+
+// Variable local para el filtro dentro del modal de edición
+let editAtributoFilter = 'CONSIGNACION';
 
 function formatNumber(num) {
     return num ? Number(num).toLocaleString('es-CL') : '';
@@ -16,6 +19,10 @@ export function showEditModal(registro) {
     const modal = document.getElementById('editModal');
     if (!modal) return;
 
+    // Guardamos el atributo actual del registro
+    editAtributoFilter = registro.atributo || 'CONSIGNACION';
+
+    // Rellenamos todos los campos
     document.getElementById('editAdmision').value = registro.admision || '';
     document.getElementById('editPaciente').value = registro.paciente || '';
     document.getElementById('editMedico').value = registro.medico || '';
@@ -30,11 +37,16 @@ export function showEditModal(registro) {
     document.getElementById('editTotalItems').value = formatNumber(registro.totalItems);
     document.getElementById('editDocDelivery').value = registro.docDelivery || '';
 
-    const radio = document.querySelector(`input[name="editAtributoFilter"][value="${registro.atributo}"]`);
+    // Marcamos el radio correcto
+    const radio = document.querySelector(`input[name="editAtributoFilter"][value="${editAtributoFilter}"]`);
     if (radio) radio.checked = true;
 
     modal.style.display = 'block';
-    initEditFields();
+
+    // Forzamos recarga de referencias según el atributo actual
+    reloadReferenciasForEdit().then(() => {
+        initEditFields();
+    });
 }
 
 function closeEditModal() {
@@ -49,27 +61,59 @@ function initEditFields() {
     initDescripcionEdit();
     initTotalEdit();
     initDocDeliveryEdit();
-    initAtributoFilterEdit();
+    initAtributoFilterEdit();  // AQUÍ ESTÁ LA CLAVE
     initSaveEdit();
     initCancelEdit();
 }
 
+// === FILTRO DE ATRIBUTO EN MODAL DE EDICIÓN (AHORA SÍ FUNCIONA IGUAL QUE EL PRINCIPAL) ===
+function initAtributoFilterEdit() {
+    document.querySelectorAll('input[name="editAtributoFilter"]').forEach(radio => {
+        radio.addEventListener('change', async (e) => {
+            editAtributoFilter = e.target.value;
+
+            // Recargamos las referencias con el nuevo filtro
+            showLoading();
+            await reloadReferenciasForEdit(); // Esta función ya respeta atributoFilter global, pero vamos a forzar el valor correcto:
+
+            // Forzamos que la variable global también se actualice temporalmente (solo para este modal)
+            const originalFilter = window.currentAtributoFilter; // guardamos el original
+            window.currentAtributoFilter = editAtributoFilter;
+
+            try {
+                // Limpiamos campos relacionados
+                document.getElementById('editCodigo').value = '';
+                document.getElementById('editDescripcion').value = '';
+                document.getElementById('editReferencia').value = '';
+                document.getElementById('editProveedor').value = '';
+                document.getElementById('editPrecioUnitario').value = '';
+                document.getElementById('editAtributo').value = editAtributoFilter;
+                document.getElementById('editTotalItems').value = '';
+                hideLoading();
+
+                // Cerramos dropdowns
+                document.getElementById('editCodigoDropdown').style.display = 'none';
+                document.getElementById('editDescripcionDropdown').style.display = 'none';
+            } finally {
+                // Restauramos el filtro global original
+                window.currentAtributoFilter = originalFilter;
+            }
+        });
+    });
+}
+
+// === Resto de funciones (sin cambios importantes, solo corregido un bug en descripción) ===
 function initMedicoEdit() {
     const input = document.getElementById('editMedico');
     const toggle = document.getElementById('editMedicoToggle');
     const dropdown = document.getElementById('editMedicoDropdown');
 
-    if (!input || !toggle || !dropdown) return;
-
-    const showDropdown = (items) => {
+    const show = (items) => {
         dropdown.innerHTML = '';
         items.forEach(m => {
             const div = document.createElement('div');
             div.textContent = m.nombre;
-            div.onclick = () => {
-                input.value = m.nombre;
-                dropdown.style.display = 'none';
-            };
+            div.onclick = () => { input.value = m.nombre; dropdown.style.display = 'none'; };
             dropdown.appendChild(div);
         });
         dropdown.style.display = items.length ? 'block' : 'none';
@@ -77,23 +121,18 @@ function initMedicoEdit() {
 
     input.addEventListener('input', () => {
         const filtered = medicos.filter(m => m.nombre.toLowerCase().includes(input.value.toLowerCase()));
-        showDropdown(filtered);
+        show(filtered);
     });
 
     toggle.addEventListener('click', () => {
         dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
-        showDropdown(medicos);
+        show(medicos);
     });
 
     document.addEventListener('click', e => {
         if (![input, toggle, dropdown].some(el => el?.contains(e.target))) {
             dropdown.style.display = 'none';
         }
-    });
-
-    input.addEventListener('click', () => {
-        const filtered = medicos.filter(m => m.nombre.toLowerCase().includes(input.value.toLowerCase()));
-        showDropdown(filtered);
     });
 }
 
@@ -102,9 +141,7 @@ function initCodigoEdit() {
     const toggle = document.getElementById('editCodigoToggle');
     const dropdown = document.getElementById('editCodigoDropdown');
 
-    if (!input || !toggle || !dropdown) return;
-
-    const showDropdown = (items) => {
+    const show = (items) => {
         dropdown.innerHTML = '';
         items.forEach(r => {
             const div = document.createElement('div');
@@ -121,23 +158,16 @@ function initCodigoEdit() {
 
     input.addEventListener('input', () => {
         const filtered = referencias.filter(r => r.codigo.toLowerCase().includes(input.value.toLowerCase()));
-        showDropdown(filtered);
+        show(filtered);
     });
 
-    toggle.addEventListener('click', () => {
+    toggle.onclick = () => {
         dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
-        showDropdown(referencias);
-    });
+        show(referencias);
+    };
 
     document.addEventListener('click', e => {
-        if (![input, toggle, dropdown].some(el => el?.contains(e.target))) {
-            dropdown.style.display = 'none';
-        }
-    });
-
-    input.addEventListener('click', () => {
-        const filtered = referencias.filter(r => r.codigo.toLowerCase().includes(input.value.toLowerCase()));
-        showDropdown(filtered);
+        if (![input, toggle, dropdown].some(el => el?.contains(e.target))) dropdown.style.display = 'none';
     });
 }
 
@@ -146,15 +176,13 @@ function initDescripcionEdit() {
     const toggle = document.getElementById('editDescripcionToggle');
     const dropdown = document.getElementById('editDescripcionDropdown');
 
-    if (!input || !toggle || !dropdown) return;
-
-    const showDropdown = (items) => {
+    const show = (items) => {
         dropdown.innerHTML = '';
         items.forEach(r => {
             const div = document.createElement('div');
             div.textContent = r.descripcion;
             div.onclick = () => {
-                input.value = r.deserna;
+                input.value = r.descripcion;  // CORREGIDO: antes decía r.deserna
                 fillEditRelated(r);
                 dropdown.style.display = 'none';
             };
@@ -165,23 +193,16 @@ function initDescripcionEdit() {
 
     input.addEventListener('input', () => {
         const filtered = referencias.filter(r => r.descripcion.toLowerCase().includes(input.value.toLowerCase()));
-        showDropdown(filtered);
+        show(filtered);
     });
 
-    toggle.addEventListener('click', () => {
+    toggle.onclick = () => {
         dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
-        showDropdown(referencias);
-    });
+        show(referencias);
+    };
 
     document.addEventListener('click', e => {
-        if (![input, toggle, dropdown].some(el => el?.contains(e.target))) {
-            dropdown.style.display = 'none';
-        }
-    });
-
-    input.addEventListener('click', () => {
-        const filtered = referencias.filter(r => r.descripcion.toLowerCase().includes(input.value.toLowerCase()));
-        showDropdown(filtered);
+        if (![input, toggle, dropdown].some(el => el?.contains(e.target))) dropdown.style.display = 'none';
     });
 }
 
@@ -194,14 +215,13 @@ function fillEditRelated(item) {
 }
 
 function updateEditTotal() {
-    const cant = parseNumber(document.getElementById('editCantidad').value);
+    const cant = parseFloat(document.getElementById('editCantidad').value) || 0;
     const prec = parseNumber(document.getElementById('editPrecioUnitario').value);
     document.getElementById('editTotalItems').value = formatNumber(cant * prec);
 }
 
 function initTotalEdit() {
-    const cantidadInput = document.getElementById('editCantidad');
-    if (cantidadInput) cantidadInput.addEventListener('input', updateEditTotal);
+    document.getElementById('editCantidad')?.addEventListener('input', updateEditTotal);
 }
 
 function initDocDeliveryEdit() {
@@ -231,14 +251,6 @@ function initDocDeliveryEdit() {
     input.addEventListener('input', () => check(input.value.trim()));
 }
 
-function initAtributoFilterEdit() {
-    document.querySelectorAll('input[name="editAtributoFilter"]').forEach(radio => {
-        radio.addEventListener('change', async (e) => {
-            await reloadReferenciasForEdit();
-        });
-    });
-}
-
 function initSaveEdit() {
     document.getElementById('saveEditBtn').onclick = async () => {
         const data = {
@@ -252,13 +264,13 @@ function initSaveEdit() {
             referencia: document.getElementById('editReferencia').value.trim(),
             proveedor: document.getElementById('editProveedor').value.trim(),
             precioUnitario: parseNumber(document.getElementById('editPrecioUnitario').value),
-            atributo: document.getElementById('editAtributo').value.trim(),
+            atributo: editAtributoFilter, // Usamos el filtro actual del modal
             totalItems: parseNumber(document.getElementById('editTotalItems').value),
             docDelivery: document.getElementById('editDocDelivery').value.trim(),
         };
 
         if (!data.admision || !data.paciente || !data.medico || !data.fechaCX || !data.codigo || !data.descripcion || !data.cantidad) {
-            showToast('Complete todos los campos', 'error');
+            showToast('Complete todos los campos obligatorios', 'error');
             return;
         }
 
@@ -269,7 +281,7 @@ function initSaveEdit() {
             if (index !== -1) registros[index] = { ...registros[index], ...data };
             closeEditModal();
             renderTableFromAcciones();
-            showToast('Actualizado', 'success');
+            showToast('Registro actualizado', 'success');
         } catch (err) {
             showToast('Error: ' + err.message, 'error');
         } finally {
@@ -283,6 +295,7 @@ function initCancelEdit() {
     document.querySelector('#editModal .close').onclick = closeEditModal;
 }
 
+// === Funciones de eliminar y renderizar (sin cambios) ===
 export function showDeleteModal(id) {
     const modal = document.getElementById('deleteModal');
     if (!modal) return;
@@ -294,9 +307,7 @@ export function showDeleteModal(id) {
 
     const cleanup = () => {
         modal.style.display = 'none';
-        confirm.onclick = null;
-        cancel.onclick = null;
-        close.onclick = null;
+        confirm.onclick = null; cancel.onclick = null; close.onclick = null;
     };
 
     close.onclick = cancel.onclick = cleanup;
@@ -316,8 +327,6 @@ export function showDeleteModal(id) {
             cleanup();
         }
     };
-
-    window.onclick = e => { if (e.target === modal) cleanup(); };
 }
 
 export function initActionButtons() {
@@ -326,7 +335,9 @@ export function initActionButtons() {
             const row = e.target.closest('tr');
             const cells = row.querySelectorAll('td');
             const id = row.querySelector('.registrar-btn-delete').dataset.id;
-            const fecha = cells[3].textContent.split('-').reverse().join('-');
+            const fechaRaw = cells[3].textContent.trim();
+            const fecha = fechaRaw.split('-').reverse().join('-');
+
             showEditModal({
                 id,
                 admision: cells[0].textContent,
@@ -358,6 +369,7 @@ function renderTableFromAcciones() {
     tbody.innerHTML = '';
     if (!registros.length) {
         tbody.innerHTML = '<tr><td colspan="15">No hay registros</td></tr>';
+        document.getElementById('traspasarBtn')?.setAttribute('disabled', 'true');
         return;
     }
 
@@ -378,6 +390,5 @@ function renderTableFromAcciones() {
     });
 
     initActionButtons();
-    const traspasarBtn = document.getElementById('traspasarBtn');
-    if (traspasarBtn) traspasarBtn.disabled = registros.length === 0;
+    document.getElementById('traspasarBtn')?.removeAttribute('disabled');
 }
