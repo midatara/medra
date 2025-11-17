@@ -769,7 +769,7 @@ html, body {
 #editModal .modal-content {
     max-width: 1000px;
     width: 95%;
-    max-height: 92vh;    
+    max-height: 93vh;    
     margin: 2vh auto;
     display: flex;
     flex-direction: column;
