@@ -1,6 +1,6 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { getFirestore, collection, getDocs, query, where, orderBy, doc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { getFirestore, collection, getDocs, query, where, orderBy, doc, updateDoc, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const firebaseConfig = {
     apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
@@ -101,36 +101,21 @@ async function getAvailableYearsAndMonths() {
     } catch (error) {
         hideLoading();
         showToast('Error al cargar años y meses: ' + error.message, 'error');
-        console.error('Error al cargar años y meses:', error);
     }
 }
 
 async function completarPrevisionYConvenioDesdeReportes() {
     try {
-        const historialSnapshot = await getDocs(query(
-            collection(db, 'consigna_historial'),
-            where('prevision', 'in', ['', null]),
-            where('convenio', 'in', ['', null])
-        ));
-
-        if (historialSnapshot.empty) return;
-
-        const admisionesFaltantes = [];
-        historialSnapshot.forEach(doc => {
-            const data = doc.data();
-            if (data.admision) {
-                admisionesFaltantes.push({ id: doc.id, admision: data.admision.trim() });
-            }
-        });
-
-        if (admisionesFaltantes.length === 0) return;
-
+        showLoading();
+        const historialSnapshot = await getDocs(collection(db, 'consigna_historial'));
         const reportesSnapshot = await getDocs(collection(db, 'reportes'));
+
         const mapaReportes = new Map();
         reportesSnapshot.forEach(doc => {
             const data = doc.data();
             if (data.admision) {
-                mapaReportes.set(data.admision.trim(), {
+                const key = data.admision.trim();
+                mapaReportes.set(key, {
                     prevision: (data.isapre || '').trim(),
                     convenio: (data.convenio || '').trim()
                 });
@@ -138,24 +123,48 @@ async function completarPrevisionYConvenioDesdeReportes() {
         });
 
         let actualizados = 0;
-        for (const item of admisionesFaltantes) {
-            const match = mapaReportes.get(item.admision);
-            if (match && (match.prevision || match.convenio)) {
-                const updateData = {};
-                if (!match.prevision) updateData.prevision = match.prevision;
-                if (!match.convenio) updateData.convenio = match.convenio;
-                if (Object.keys(updateData).length > 0) {
-                    await updateDoc(doc(db, 'consigna_historial', item.id), updateData);
-                    actualizados++;
-                }
+        const batchSize = 400;
+        const updates = [];
+
+        for (const doc of historialSnapshot.docs) {
+            const data = doc.data();
+            const admision = data.admision?.trim();
+            if (!admision) continue;
+
+            const previsionActual = data.prevision?.trim() || '';
+            const convenioActual = data.convenio?.trim() || '';
+
+            const match = mapaReportes.get(admision);
+            if (!match) continue;
+
+            const nuevaPrevision = match.prevision;
+            const nuevoConvenio = match.convenio;
+
+            if (previsionActual === nuevaPrevision && convenioActual === nuevoConvenio) continue;
+
+            const updateData = {};
+            if (previsionActual !== nuevaPrevision) updateData.prevision = nuevaPrevision || '';
+            if (convenioActual !== nuevoConvenio) updateData.convenio = nuevoConvenio || '';
+
+            if (Object.keys(updateData).length > 0) {
+                updates.push({ id: doc.id, data: updateData });
+                actualizados++;
             }
         }
 
+        for (let i = 0; i < updates.length; i += batchSize) {
+            const batch = updates.slice(i, i + batchSize);
+            await Promise.all(batch.map(u => updateDoc(doc(db, 'consigna_historial', u.id), u.data)));
+        }
+
+        hideLoading();
         if (actualizados > 0) {
             showToast(`Se completaron Previsión y Convenio en ${actualizados} registros`, 'success');
         }
     } catch (error) {
-        console.error('Error completando Previsión/Convenio:', error);
+        hideLoading();
+        console.error('Error completando datos:', error);
+        showToast('Error al completar Previsión/Convenio: ' + error.message, 'error');
     }
 }
 
@@ -184,7 +193,6 @@ function populateMonthSelect() {
     };
 
     monthSelect.innerHTML = '';
-
     const allOption = document.createElement('option');
     allOption.value = '';
     allOption.textContent = 'Todo el año';
@@ -302,8 +310,7 @@ async function loadRegistros() {
         hideLoading();
     } catch (error) {
         hideLoading();
-        showToast('Error al cargar los registros: ' + error.message, 'error');
-        console.error('Error al cargar registros:', error);
+        showToast('Error al cargar registros: ' + error.message, 'error');
     }
 }
 
@@ -376,7 +383,7 @@ document.addEventListener('DOMContentLoaded', () => {
             await loadRegistros();
         } catch (error) {
             showToast('Error al inicializar: ' + error.message, 'error');
-            console.error('Error al inicializar:', error);
+            console.error('Error:', error);
         }
     });
 });
