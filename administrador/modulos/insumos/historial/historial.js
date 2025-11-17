@@ -1,6 +1,6 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { getFirestore, collection, getDocs, query, where, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { getFirestore, collection, getDocs, query, where, orderBy, doc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const firebaseConfig = {
     apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
@@ -23,13 +23,7 @@ let selectedYear = new Date().getFullYear().toString();
 let selectedMonth = String(new Date().getMonth() + 1).padStart(2, '0');
 let availableYears = [];
 let availableMonths = {};
-let filters = {
-    admision: '',
-    paciente: '',
-    codigo: '',
-    descripcion: '',
-    oc: ''
-};
+let filters = { admision: '', paciente: '', codigo: '', descripcion: '', oc: '' };
 let filterScope = 'currentPage';
 
 function showLoading() {
@@ -108,6 +102,60 @@ async function getAvailableYearsAndMonths() {
         hideLoading();
         showToast('Error al cargar años y meses: ' + error.message, 'error');
         console.error('Error al cargar años y meses:', error);
+    }
+}
+
+async function completarPrevisionYConvenioDesdeReportes() {
+    try {
+        const historialSnapshot = await getDocs(query(
+            collection(db, 'consigna_historial'),
+            where('prevision', 'in', ['', null]),
+            where('convenio', 'in', ['', null])
+        ));
+
+        if (historialSnapshot.empty) return;
+
+        const admisionesFaltantes = [];
+        historialSnapshot.forEach(doc => {
+            const data = doc.data();
+            if (data.admision) {
+                admisionesFaltantes.push({ id: doc.id, admision: data.admision.trim() });
+            }
+        });
+
+        if (admisionesFaltantes.length === 0) return;
+
+        const reportesSnapshot = await getDocs(collection(db, 'reportes'));
+        const mapaReportes = new Map();
+        reportesSnapshot.forEach(doc => {
+            const data = doc.data();
+            if (data.admision) {
+                mapaReportes.set(data.admision.trim(), {
+                    prevision: (data.isapre || '').trim(),
+                    convenio: (data.convenio || '').trim()
+                });
+            }
+        });
+
+        let actualizados = 0;
+        for (const item of admisionesFaltantes) {
+            const match = mapaReportes.get(item.admision);
+            if (match && (match.prevision || match.convenio)) {
+                const updateData = {};
+                if (!match.prevision) updateData.prevision = match.prevision;
+                if (!match.convenio) updateData.convenio = match.convenio;
+                if (Object.keys(updateData).length > 0) {
+                    await updateDoc(doc(db, 'consigna_historial', item.id), updateData);
+                    actualizados++;
+                }
+            }
+        }
+
+        if (actualizados > 0) {
+            showToast(`Se completaron Previsión y Convenio en ${actualizados} registros`, 'success');
+        }
+    } catch (error) {
+        console.error('Error completando Previsión/Convenio:', error);
     }
 }
 
@@ -322,9 +370,12 @@ document.addEventListener('DOMContentLoaded', () => {
             populateYearSelect();
             populateMonthSelect();
             initControls();
+
+            await completarPrevisionYConvenioDesdeReportes();
+
             await loadRegistros();
         } catch (error) {
-            showToast('Error al inicializar la aplicación: ' + error.message, 'error');
+            showToast('Error al inicializar: ' + error.message, 'error');
             console.error('Error al inicializar:', error);
         }
     });
