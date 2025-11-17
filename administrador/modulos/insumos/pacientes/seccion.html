@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pacientes - Insumos</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: "Segoe UI", sans-serif;
+            background: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 40px auto;
+            text-align: center;
+        }
+        h1 {
+            color: #3A5795;
+            margin-bottom: 30px;
+            font-size: 22px;
+        }
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        .option-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid #e0e0e0;
+        }
+        .option-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            border-color: #3A5795;
+        }
+        .option-card i {
+            font-size: 36px;
+            color: #3A5795;
+            margin-bottom: 15px;
+        }
+        .option-card h3 {
+            margin: 0;
+            font-size: 16px;
+            color: #333;
+        }
+        .option-card p {
+            margin: 8px 0 0;
+            font-size: 13px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Pacientes - Módulo Insumos</h1>
+    <p style="color:#666; margin-bottom: 30px;">Selecciona el tipo de listado que deseas ver:</p>
+
+    <div class="options-grid">
+        <div class="option-card" onclick="parent.loadContent('cargados.html')">
+            <i class="fas fa-check-circle"></i>
+            <h3>Pacientes Cargados</h3>
+            <p>Ver pacientes con insumos ya imputados</p>
+        </div>
+
+        <div class="option-card" onclick="parent.loadContent('pendientes.html')">
+            <i class="fas fa-clock"></i>
+            <h3>Pacientes Pendientes</h3>
+            <p>Pacientes con imputación pendiente</p>
+        </div>
+
+        <div class="option-card" onclick="parent.loadContent('pacientes.html')">
+            <i class="fas fa-users"></i>
+            <h3>Todos los Pacientes</h3>
+            <p>Listado completo de pacientes</p>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
