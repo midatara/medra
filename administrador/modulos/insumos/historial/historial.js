@@ -20,7 +20,7 @@ setPersistence(auth, browserSessionPersistence);
 
 let registros = [];
 let selectedYear = new Date().getFullYear().toString();
-let selectedMonth = '';
+let selectedMonth = String(new Date().getMonth() + 1).padStart(2, '0');
 let availableYears = [];
 let availableMonths = {};
 let filters = {
@@ -98,6 +98,9 @@ async function getAvailableYearsAndMonths() {
 
         if (!availableYears.includes(selectedYear)) {
             selectedYear = availableYears[0] || new Date().getFullYear().toString();
+            selectedMonth = '';
+        } else if (!availableMonths[selectedYear]?.has(selectedMonth)) {
+            selectedMonth = '';
         }
 
         hideLoading();
@@ -134,16 +137,6 @@ function populateMonthSelect() {
 
     monthSelect.innerHTML = '';
 
-    if (months.size === 0) {
-        const opt = document.createElement('option');
-        opt.value = '';
-        opt.textContent = 'Sin registros';
-        opt.disabled = true;
-        monthSelect.appendChild(opt);
-        selectedMonth = '';
-        return;
-    }
-
     const allOption = document.createElement('option');
     allOption.value = '';
     allOption.textContent = 'Todo el año';
@@ -157,7 +150,7 @@ function populateMonthSelect() {
         monthSelect.appendChild(option);
     });
 
-    if (!selectedMonth) monthSelect.value = '';
+    monthSelect.value = selectedMonth || '';
 }
 
 function initControls() {
@@ -173,7 +166,10 @@ function initControls() {
     yearSelect?.addEventListener('change', async () => {
         selectedYear = yearSelect.value;
         const monthsInYear = availableMonths[selectedYear] || new Set();
-        if (selectedMonth && !monthsInYear.has(selectedMonth)) selectedMonth = '';
+        if (selectedMonth && !monthsInYear.has(selectedMonth)) {
+            selectedMonth = String(new Date().getMonth() + 1).padStart(2, '0');
+            if (!monthsInYear.has(selectedMonth)) selectedMonth = '';
+        }
         populateMonthSelect();
         await loadRegistros();
     });
@@ -245,7 +241,6 @@ async function loadRegistros() {
             q = query(collection(db, 'consigna_historial'), orderBy('fechaCX', 'desc'));
         } else {
             hideLoading();
-            showToast('Seleccione un año válido', 'warning');
             return;
         }
 
