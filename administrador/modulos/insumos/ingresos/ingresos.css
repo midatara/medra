@@ -767,47 +767,23 @@ html, body {
 }
 
 #editModal .modal-content {
-    max-width: 1000px;
+    max-width: 1000px;       
     width: 95%;
-    max-height: 92vh;
-    height: auto;
-    min-height: 600px;
-    margin: 2vh auto;
+    max-height: 92vh;  
+    margin: 2vh auto;          
     display: flex;
     flex-direction: column;
     border-radius: 8px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-    overflow: hidden;
-}
-
-#editModal .modal-header {
-    padding: 14px 20px;
-    background-color: #007bff;
-    color: white;
-    border-radius: 8px 8px 0 0;
-}
-
-#editModal .modal-header h2 {
-    margin: 0;
-    font-size: 18px;
-}
-
-#editModal .modal-header .close {
-    color: white;
-    font-size: 24px;
-    opacity: 0.9;
-}
-
-#editModal .modal-header .close:hover {
-    opacity: 1;
+    overflow: hidden;     
 }
 
 #editModal .modal-content-body {
     padding: 20px;
     overflow-y: auto;
     flex-grow: 1;
-    background-color: #fdfdfd;
 }
+
+
 
 #editModal .edit-form-grid {
     display: grid;
