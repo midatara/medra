@@ -767,14 +767,18 @@ html, body {
 }
 
 #editModal .modal-content {
-    max-width: 1000px;       
+    max-width: 1000px;
     width: 95%;
-    max-height: 92vh;  
-    margin: 2vh auto;          
+    max-height: 92vh;    
+    margin: 2vh auto;
     display: flex;
     flex-direction: column;
-    border-radius: 8px;
-    overflow: hidden;     
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    overflow: hidden;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
 }
 
 #editModal .modal-content-body {
