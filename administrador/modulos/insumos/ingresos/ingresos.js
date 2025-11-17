@@ -23,7 +23,6 @@ export let medicos = [];
 export let referencias = [];
 export let atributoFilter = 'CONSIGNACION';  
 export let registros = [];
-
 export function showLoading() {
     const loading = document.getElementById('loading');
     if (loading) loading.classList.add('show');
@@ -163,7 +162,6 @@ function updateTotalItems() {
     const cantidadInput = document.getElementById('cantidad');
     const precioUnitarioInput = document.getElementById('precioUnitario');
     const totalItemsInput = document.getElementById('totalItems');
-
     const cantidad = parseFloat(cantidadInput.value) || 0;
     const precioUnitario = parseFloat(precioUnitarioInput.value.replace(/\./g, '')) || 0;
 
@@ -436,7 +434,7 @@ export async function reloadReferenciasForEdit(customFilter = null) {
             orderBy('referencia')
         );
         const querySnapshot = await getDocs(q);
-        referencias.length = 0; // Limpiamos el array global
+        referencias.length = 0;
 
         querySnapshot.forEach((doc) => {
             const data = doc.data();

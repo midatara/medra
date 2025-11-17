@@ -2,8 +2,6 @@ import { getFirestore, doc, updateDoc, deleteDoc, getDocs, query, where, collect
 import { showLoading, hideLoading, showToast, medicos, referencias, registros, db, reloadReferenciasForEdit, atributoFilter } from './ingresos.js';
 
 let currentEditId = null;
-
-// Variable local para el filtro dentro del modal de edición
 let editAtributoFilter = 'CONSIGNACION';
 
 function formatNumber(num) {
@@ -19,10 +17,8 @@ export async function showEditModal(registro) {
     const modal = document.getElementById('editModal');
     if (!modal) return;
 
-    // Guardamos el atributo actual del registro
     editAtributoFilter = registro.atributo || 'CONSIGNACION';
 
-    // Rellenamos todos los campos
     document.getElementById('editAdmision').value = registro.admision || '';
     document.getElementById('editPaciente').value = registro.paciente || '';
     document.getElementById('editMedico').value = registro.medico || '';
@@ -37,13 +33,11 @@ export async function showEditModal(registro) {
     document.getElementById('editTotalItems').value = formatNumber(registro.totalItems);
     document.getElementById('editDocDelivery').value = registro.docDelivery || '';
 
-    // Marcamos el radio correcto
     const radio = document.querySelector(`input[name="editAtributoFilter"][value="${editAtributoFilter}"]`);
     if (radio) radio.checked = true;
 
     modal.style.display = 'block';
 
-    // ← AQUÍ ESTÁ LA CLAVE: async + await
     await reloadReferenciasForEdit(editAtributoFilter);
     initEditFields();
 }
@@ -60,26 +54,22 @@ function initEditFields() {
     initDescripcionEdit();
     initTotalEdit();
     initDocDeliveryEdit();
-    initAtributoFilterEdit();  // AQUÍ ESTÁ LA CLAVE
+    initAtributoFilterEdit(); 
     initSaveEdit();
     initCancelEdit();
 }
 
-// === FILTRO DE ATRIBUTO EN MODAL DE EDICIÓN (AHORA SÍ FUNCIONA IGUAL QUE EL PRINCIPAL) ===
 function initAtributoFilterEdit() {
     document.querySelectorAll('input[name="editAtributoFilter"]').forEach(radio => {
         radio.addEventListener('change', async (e) => {
             const nuevoFiltro = e.target.value;
 
-            // Actualizamos el filtro local
             editAtributoFilter = nuevoFiltro;
 
             showLoading();
 
-            // Recargamos referencias usando el filtro del modal (no el global)
             await reloadReferenciasForEdit(nuevoFiltro);
 
-            // Limpiamos todos los campos relacionados
             document.getElementById('editCodigo').value = '';
             document.getElementById('editDescripcion').value = '';
             document.getElementById('editReferencia').value = '';
@@ -87,8 +77,6 @@ function initAtributoFilterEdit() {
             document.getElementById('editPrecioUnitario').value = '';
             document.getElementById('editAtributo').value = nuevoFiltro;
             document.getElementById('editTotalItems').value = '';
-
-            // Cerramos dropdowns
             document.getElementById('editCodigoDropdown').style.display = 'none';
             document.getElementById('editDescripcionDropdown').style.display = 'none';
 
@@ -98,7 +86,6 @@ function initAtributoFilterEdit() {
     });
 }
 
-// === Resto de funciones (sin cambios importantes, solo corregido un bug en descripción) ===
 function initMedicoEdit() {
     const input = document.getElementById('editMedico');
     const toggle = document.getElementById('editMedicoToggle');
@@ -171,14 +158,13 @@ function initDescripcionEdit() {
     const input = document.getElementById('editDescripcion');
     const toggle = document.getElementById('editDescripcionToggle');
     const dropdown = document.getElementById('editDescripcionDropdown');
-
     const show = (items) => {
         dropdown.innerHTML = '';
         items.forEach(r => {
             const div = document.createElement('div');
             div.textContent = r.descripcion;
             div.onclick = () => {
-                input.value = r.descripcion;  // CORREGIDO: antes decía r.deserna
+                input.value = r.descripcion;  
                 fillEditRelated(r);
                 dropdown.style.display = 'none';
             };
@@ -260,7 +246,7 @@ function initSaveEdit() {
             referencia: document.getElementById('editReferencia').value.trim(),
             proveedor: document.getElementById('editProveedor').value.trim(),
             precioUnitario: parseNumber(document.getElementById('editPrecioUnitario').value),
-            atributo: editAtributoFilter, // Usamos el filtro actual del modal
+            atributo: editAtributoFilter, 
             totalItems: parseNumber(document.getElementById('editTotalItems').value),
             docDelivery: document.getElementById('editDocDelivery').value.trim(),
         };
@@ -291,7 +277,6 @@ function initCancelEdit() {
     document.querySelector('#editModal .close').onclick = closeEditModal;
 }
 
-// === Funciones de eliminar y renderizar (sin cambios) ===
 export function showDeleteModal(id) {
     const modal = document.getElementById('deleteModal');
     if (!modal) return;
@@ -300,7 +285,6 @@ export function showDeleteModal(id) {
     const confirm = document.getElementById('confirmDeleteBtn');
     const cancel = document.getElementById('cancelDeleteBtn');
     const close = modal.querySelector('.close');
-
     const cleanup = () => {
         modal.style.display = 'none';
         confirm.onclick = null; cancel.onclick = null; close.onclick = null;
