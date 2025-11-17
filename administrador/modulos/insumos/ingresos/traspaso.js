@@ -1,4 +1,4 @@
-import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, serverTimestamp, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { showToast, showLoading, hideLoading } from './ingresos.js';
 
 const db = getFirestore();
@@ -16,82 +16,74 @@ function showTraspasoModal() {
     const confirmBtn = document.getElementById('confirmTraspasarBtn');
     const cancelBtn = document.getElementById('cancelTraspasarBtn');
 
-    closeBtn.onclick = () => {
-        modal.style.display = 'none';
-    };
-
-    cancelBtn.onclick = () => {
-        modal.style.display = 'none';
-    };
+    const closeModal = () => modal.style.display = 'none';
+    closeBtn.onclick = closeModal;
+    cancelBtn.onclick = closeModal;
+    window.onclick = (e) => { if (e.target === modal) closeModal(); };
 
     confirmBtn.onclick = async () => {
         await traspasarRegistros();
-        modal.style.display = 'none';
-    };
-
-    window.onclick = (event) => {
-        if (event.target === modal) {
-            modal.style.display = 'none';
-        }
+        closeModal();
     };
 }
 
 async function traspasarRegistros() {
     showLoading();
     try {
-        const querySnapshot = await getDocs(collection(db, 'consigna_ingresos'));
-        if (querySnapshot.empty) {
-            showToast('No hay registros para traspasar', 'error');
+        const ingresosSnap = await getDocs(collection(db, 'consigna_ingresos'));
+        
+        if (ingresosSnap.empty) {
+            showToast('No hay registros para traspasar', 'info');
             hideLoading();
             return;
         }
 
-        const traspasoPromises = [];
-        const deletePromises = [];
-        querySnapshot.forEach((docSnapshot) => {
-            const data = docSnapshot.data();
-            traspasoPromises.push(
-                addDoc(collection(db, 'consigna_historial'), {
-                    ...data,
-                    traspasoAt: serverTimestamp()
-                })
-            );
-            deletePromises.push(deleteDoc(doc(db, 'consigna_ingresos', docSnapshot.id)));
+        // Usamos batch para mejor rendimiento y atomicidad
+        const batch = writeBatch(db);
+        const historialRef = collection(db, 'consigna_historial');
+
+        ingresosSnap.forEach((docSnap) => {
+            const data = docSnap.data();
+
+            // Agregamos el campo estado: "INGRESADO" y la fecha de traspaso
+            const nuevoRegistro = {
+                ...data,
+                estado: 'INGRESADO',           // ← NUEVO CAMPO
+                traspasoAt: serverTimestamp()  // ← Fecha exacta del traspaso
+            };
+
+            const nuevoDocRef = doc(historialRef);
+            batch.set(nuevoDocRef, nuevoRegistro);
+            batch.delete(doc(db, 'consigna_ingresos', docSnap.id));
         });
 
-        await Promise.all(traspasoPromises);
-        await Promise.all(deletePromises);
+        await batch.commit();
 
+        // Limpiar tabla y botón
         const tbody = document.querySelector('#registrarTable tbody');
         if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="15">No hay registros para mostrar</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="15">No hay registros</td></tr>';
         }
+        const btn = document.getElementById('traspasarBtn');
+        if (btn) btn.disabled = true;
 
-        const traspasarBtn = document.getElementById('traspasarBtn');
-        if (traspasarBtn) {
-            traspasarBtn.disabled = true;
-        }
-
-        showToast('Registros traspasados exitosamente', 'success');
+        showToast(`Se traspasaron ${ingresosSnap.size} registro(s) con estado INGRESADO`, 'success');
+        
     } catch (error) {
-        showToast('Error al traspasar los registros: ' + error.message, 'error');
-        console.error('Error al traspasar:', error);
+        console.error('Error en traspaso:', error);
+        showToast('Error al traspasar: ' + error.message, 'error');
     } finally {
         hideLoading();
     }
 }
 
 function initTraspasoButton() {
-    const traspasarBtn = document.getElementById('traspasarBtn');
-    if (!traspasarBtn) {
-        console.error('Botón Traspasar con ID "traspasarBtn" no encontrado');
-        return;
+    const btn = document.getElementById('traspasarBtn');
+    if (btn) {
+        btn.addEventListener('click', showTraspasoModal);
     }
-    traspasarBtn.addEventListener('click', showTraspasoModal);
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    initTraspasoButton();
-});
+document.addEventListener('DOMContentLoaded', initTraspasoButton);
 
 export { showTraspasoModal };
