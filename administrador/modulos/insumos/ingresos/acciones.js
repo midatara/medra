@@ -14,7 +14,7 @@ function parseNumber(str) {
     return parseFloat(str.replace(/\./g, '')) || 0;
 }
 
-export function showEditModal(registro) {
+export async function showEditModal(registro) {
     currentEditId = registro.id;
     const modal = document.getElementById('editModal');
     if (!modal) return;
@@ -43,10 +43,9 @@ export function showEditModal(registro) {
 
     modal.style.display = 'block';
 
-    // Forzamos recarga de referencias según el atributo actual
-    reloadReferenciasForEdit().then(() => {
-        initEditFields();
-    });
+    // ← AQUÍ ESTÁ LA CLAVE: async + await
+    await reloadReferenciasForEdit(editAtributoFilter);
+    initEditFields();
 }
 
 function closeEditModal() {
@@ -70,34 +69,31 @@ function initEditFields() {
 function initAtributoFilterEdit() {
     document.querySelectorAll('input[name="editAtributoFilter"]').forEach(radio => {
         radio.addEventListener('change', async (e) => {
-            editAtributoFilter = e.target.value;
+            const nuevoFiltro = e.target.value;
 
-            // Recargamos las referencias con el nuevo filtro
+            // Actualizamos el filtro local
+            editAtributoFilter = nuevoFiltro;
+
             showLoading();
-            await reloadReferenciasForEdit(); // Esta función ya respeta atributoFilter global, pero vamos a forzar el valor correcto:
 
-            // Forzamos que la variable global también se actualice temporalmente (solo para este modal)
-            const originalFilter = window.currentAtributoFilter; // guardamos el original
-            window.currentAtributoFilter = editAtributoFilter;
+            // Recargamos referencias usando el filtro del modal (no el global)
+            await reloadReferenciasForEdit(nuevoFiltro);
 
-            try {
-                // Limpiamos campos relacionados
-                document.getElementById('editCodigo').value = '';
-                document.getElementById('editDescripcion').value = '';
-                document.getElementById('editReferencia').value = '';
-                document.getElementById('editProveedor').value = '';
-                document.getElementById('editPrecioUnitario').value = '';
-                document.getElementById('editAtributo').value = editAtributoFilter;
-                document.getElementById('editTotalItems').value = '';
-                hideLoading();
+            // Limpiamos todos los campos relacionados
+            document.getElementById('editCodigo').value = '';
+            document.getElementById('editDescripcion').value = '';
+            document.getElementById('editReferencia').value = '';
+            document.getElementById('editProveedor').value = '';
+            document.getElementById('editPrecioUnitario').value = '';
+            document.getElementById('editAtributo').value = nuevoFiltro;
+            document.getElementById('editTotalItems').value = '';
 
-                // Cerramos dropdowns
-                document.getElementById('editCodigoDropdown').style.display = 'none';
-                document.getElementById('editDescripcionDropdown').style.display = 'none';
-            } finally {
-                // Restauramos el filtro global original
-                window.currentAtributoFilter = originalFilter;
-            }
+            // Cerramos dropdowns
+            document.getElementById('editCodigoDropdown').style.display = 'none';
+            document.getElementById('editDescripcionDropdown').style.display = 'none';
+
+            hideLoading();
+            showToast(`Mostrando referencias de: ${nuevoFiltro}`, 'info');
         });
     });
 }

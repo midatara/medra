@@ -425,16 +425,38 @@ function initLimpiarButton() {
     if (btn) btn.addEventListener('click', limpiarCampos);
 }
 
-export async function reloadReferenciasForEdit() {
-    await loadReferencias();
-    ['editCodigo', 'editDescripcion', 'editReferencia', 'editProveedor', 'editPrecioUnitario', 'editAtributo', 'editTotalItems'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.value = '';
-    });
-    ['editCodigoDropdown', 'editDescripcionDropdown', 'editMedicoDropdown'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.style.display = 'none';
-    });
+export async function reloadReferenciasForEdit(customFilter = null) {
+    const filterToUse = customFilter !== null ? customFilter : atributoFilter;
+
+    showLoading();
+    try {
+        const q = query(
+            collection(db, 'referencias_implantes'),
+            where('atributo', '==', filterToUse),
+            orderBy('referencia')
+        );
+        const querySnapshot = await getDocs(q);
+        referencias.length = 0; // Limpiamos el array global
+
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            if (data.codigo && data.descripcion) {
+                referencias.push({
+                    id: doc.id,
+                    codigo: data.codigo,
+                    descripcion: data.descripcion,
+                    referencia: data.referencia,
+                    proveedor: data.proveedor,
+                    precioUnitario: data.precioUnitario,
+                    atributo: data.atributo
+                });
+            }
+        });
+        hideLoading();
+    } catch (error) {
+        hideLoading();
+        showToast('Error al recargar referencias: ' + error.message, 'error');
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
