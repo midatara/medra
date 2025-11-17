@@ -52,7 +52,7 @@ async function loadPendientes() {
 
         snapshot.forEach(doc => {
             const d = doc.data();
-            if (d.estado === 'CARGADO') return; // Excluimos los ya cargados
+            if (d.estado === 'CARGADO') return; 
 
             rawData.push({
                 id: doc.id,
@@ -60,7 +60,6 @@ async function loadPendientes() {
             });
         });
 
-        // Agrupamos por admision + proveedor
         const map = new Map();
 
         rawData.forEach(reg => {
@@ -83,7 +82,6 @@ async function loadPendientes() {
             grupo.totalItems += Number(reg.totalItems || 0);
             grupo.registrosIds.push(reg.id);
 
-            // Si hay varios estados, priorizamos: INGRESADO > PENDIENTE > etc.
             if (!grupo.estado || grupo.estado === 'PENDIENTE') {
                 grupo.estado = reg.estado || 'PENDIENTE';
             }
@@ -156,7 +154,7 @@ async function marcarComoCargado() {
         );
 
         showToast(`Se marcaron ${checkedBoxes.length} paciente(s) como CARGADO`, 'success');
-        loadPendientes(); // Recargar
+        loadPendientes(); 
     } catch (err) {
         showToast('Error al actualizar: ' + err.message, 'error');
     } finally {
