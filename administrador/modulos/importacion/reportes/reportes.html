@@ -157,26 +157,49 @@
         const fileInput = document.getElementById('fileUpload');
 
         function toDDMMYYYY(valor) {
-            if (!valor && valor !== 0) return '';
-            if (typeof valor === 'string') {
-                const m = valor.trim().match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
-                if (m) {
-                    const d = m[1].padStart(2, '0');
-                    const mm = m[2].padStart(2, '0');
-                    const y = m[3];
-                    if (parseInt(mm) <= 12 && parseInt(d) <= 31) return `${d}-${mm}-${y}`;
+                    if (!valor && valor !== 0) return '';
+                    
+                    // Caso 1: String con formato DD-MM-YYYY o DD/MM/YYYY
+                    if (typeof valor === 'string') {
+                        const str = valor.trim();
+                        
+                        // Formato DD-MM-YYYY o DD/MM/YYYY
+                        const m1 = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+                        if (m1) {
+                            const d = m1[1].padStart(2, '0');
+                            const mm = m1[2].padStart(2, '0');
+                            const y = m1[3];
+                            if (parseInt(mm) >= 1 && parseInt(mm) <= 12 && parseInt(d) >= 1 && parseInt(d) <= 31) {
+                                return `${d}-${mm}-${y}`;
+                            }
+                        }
+                        
+                        // Formato YYYY-MM-DD o YYYY/MM/DD
+                        const m2 = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+                        if (m2) {
+                            const y = m2[1];
+                            const mm = m2[2].padStart(2, '0');
+                            const d = m2[3].padStart(2, '0');
+                            if (parseInt(mm) >= 1 && parseInt(mm) <= 12 && parseInt(d) >= 1 && parseInt(d) <= 31) {
+                                return `${d}-${mm}-${y}`;
+                            }
+                        }
+                    }
+                    
+                    // Caso 2: Número serial de Excel (días desde 1900-01-01)
+                    if (typeof valor === 'number') {
+                        const epoch1900 = new Date(Date.UTC(1899, 11, 30));
+                        const fecha = new Date(epoch1900.getTime() + valor * 86400000);
+                        return `${String(fecha.getUTCDate()).padStart(2,'0')}-${String(fecha.getUTCMonth()+1).padStart(2,'0')}-${fecha.getUTCFullYear()}`;
+                    }
+                    
+                    // Caso 3: Objeto Date
+                    if (valor instanceof Date && !isNaN(valor)) {
+                        return `${String(valor.getDate()).padStart(2,'0')}-${String(valor.getMonth()+1).padStart(2,'0')}-${valor.getFullYear()}`;
+                    }
+                    
+                    return '';
                 }
-            }
-            if (typeof valor === 'number') {
-                const epoch1900 = new Date(Date.UTC(1899, 11, 30));
-                const fecha = new Date(epoch1900.getTime() + valor * 86400000);
-                return `${String(fecha.getUTCDate()).padStart(2,'0')}-${String(fecha.getUTCMonth()+1).padStart(2,'0')}-${fecha.getUTCFullYear()}`;
-            }
-            if (valor instanceof Date && !isNaN(valor)) {
-                return `${String(valor.getDate()).padStart(2,'0')}-${String(valor.getMonth()+1).padStart(2,'0')}-${valor.getFullYear()}`;
-            }
-            return '';
-        }
 
         function showTableLoading() { tableLoading.classList.add('show'); }
         function hideTableLoading() { tableLoading.classList.remove('show'); }
