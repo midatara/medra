@@ -340,18 +340,24 @@
 
         function getVisible() {
             if (!selectedMes) return [];
+
             return reportes.filter(r => {
                 const f = r.fecha || '';
                 const p = f.split('-');
-                if (p.length!==3) return false;
+                if (p.length !== 3) return false;
+
                 const y = parseInt(p[2]);
-                const m = new Date(y, parseInt(p[1])-1).toLocaleString('es-CL',{month:'long'});
+                const m = new Date(y, parseInt(p[1]) - 1).toLocaleString('es-CL', { month: 'long' });
+
                 if (y != selectedAno || m !== selectedMes) return false;
-                return (i=>i||true)((r.admision||'').toLowerCase().includes(searchAdmision)) &&
-                       (r.paciente||'').toLowerCase().includes(searchPaciente) &&
-                       (r.rut||'').toLowerCase().includes(searchRut) &&
-                       (r.descripcion||'').toLowerCase().includes(searchDesc) &&
-                       (r.primerCirujano||'').toLowerCase().includes(searchCirujano);
+
+                const admisionMatch = !searchAdmision || (r.admision || '').toLowerCase().includes(searchAdmision);
+                const pacienteMatch = !searchPaciente || (r.paciente || '').toLowerCase().includes(searchPaciente);
+                const rutMatch = !searchRut || (r.rut || '').toLowerCase().includes(searchRut);
+                const descMatch = !searchDesc || (r.descripcion || '').toLowerCase().includes(searchDesc);
+                const cirujanoMatch = !searchCirujano || (r.primerCirujano || '').toLowerCase().includes(searchCirujano);
+
+                return admisionMatch && pacienteMatch && rutMatch && descMatch && cirujanoMatch;
             });
         }
 
@@ -438,14 +444,15 @@
         selectMes.onchange = () => { selectedMes = selectMes.value; render(); };
 
         ['buscarAdmision','buscarPaciente','buscarRut','buscarDescripcion','buscarCirujano'].forEach(id=>{
-            document.getElementById(id).oninput = e=>{
-                const v = e.target.value.toLowerCase().trim();
-                if(id==='buscarAdmision') searchAdmision=v;
-                if(id==='buscarPaciente') searchPaciente=v;
-                if(id==='buscarRut') searchRut=v;
-                if(id==='buscarDescripcion') searchDesc=v;
-                if(id==='buscarCirujano') searchCirujano=v;
-                if(selectedMes) render();
+            document.getElementById(id).oninput = function() {
+                const v = this.value.toLowerCase().trim();
+                if (id === 'buscarAdmision') searchAdmision = v;
+                if (id === 'buscarPaciente') searchPaciente = v;
+                if (id === 'buscarRut') searchRut = v;
+                if (id === 'buscarDescripcion') searchDesc = v;
+                if (id === 'buscarCirujano') searchCirujano = v;
+
+                if (selectedMes) render();  
             };
         });
 
