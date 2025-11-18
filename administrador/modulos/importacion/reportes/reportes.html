@@ -39,13 +39,11 @@
         .resize-handle:hover,.resize-handle.active{background:#007bff}
         .empty-message{text-align:center;padding:80px 0;font-size:14px;color:#666}
 
-        /* SPINNER 1: PARA CARGAR LA TABLA */
-        .table-loading{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(255,255,255,0.9);padding:30px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.2);z-index:10;display:none;flex-direction:column;align-items:center}
+        .table-loading{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(255,255,255,0.95);padding:30px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.2);z-index:10;display:none;flex-direction:column;align-items:center}
         .table-loading.show{display:flex}
         .spinner-table{width:40px;height:40px;border:5px solid #f0f0f0;border-top:5px solid #007bff;border-radius:50%;animation:s 1s linear infinite;margin-bottom:12px}
         @keyframes s{to{transform:rotate(360deg)}}
 
-        /* SPINNER 2: PARA IMPORTAR CON BARRA */
         .import-loading{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:1000;justify-content:center;align-items:center;flex-direction:column;color:white}
         .import-loading.show{display:flex}
         .import-loading h3{margin:0 0 20px 0;font-size:18px}
@@ -97,7 +95,7 @@
 
             <div class="reportes-actions">
                 <button id="actionsBtn">
-                    Acciones <i class="fas fa-chevron-down"></i>
+                    Acciones
                 </button>
                 <div id="actionsMenu" class="reportes-dropdown">
                     <a href="#" id="downloadTemplate">Formato de importación</a>
@@ -109,7 +107,6 @@
         </div>
 
         <div class="table-wrapper">
-            <!-- SPINNER 1: DENTRO DE LA TABLA -->
             <div id="tableLoading" class="table-loading">
                 <div class="spinner-table"></div>
                 <div>Cargando datos...</div>
@@ -129,7 +126,6 @@
             </table>
         </div>
 
-        <!-- SPINNER 2: PARA IMPORTAR -->
         <div id="importLoading" class="import-loading">
             <h3>Importando datos...</h3>
             <div class="progress-container">
@@ -165,29 +161,39 @@
         const actionsMenu = document.getElementById('actionsMenu');
         const fileInput = document.getElementById('fileUpload');
 
-        // FECHA 100% CORREGIDA: DD-MM-YYYY SIEMPRE
-        function formatDate(dateInput) {
-            if (!dateInput) return '';
+        // FUNCIÓN CORRECTA PARA CONVERTIR CUALQUIER FECHA A "DD-MM-YYYY"
+        function toDDMMYYYY(input) {
+            if (!input) return '';
+            
             let date;
-            if (typeof dateInput === 'string' && dateInput.includes('-')) {
-                const parts = dateInput.split('-');
-                if (parts.length === 3) {
-                    if (parts[0].length === 4) {
-                        // YYYY-MM-DD
-                        date = new Date(parts[0], parts[1]-1, parts[2]);
-                    } else {
-                        // DD-MM-YYYY
-                        date = new Date(parts[2], parts[1]-1, parts[0]);
+            
+            if (input instanceof Date) {
+                date = input;
+            } else if (typeof input === 'number') {
+                date = new Date(input);
+            } else if (typeof input === 'string') {
+                // Si ya está en formato DD-MM-YYYY → devolver tal cual
+                if (/^\d{2}-\d{2}-\d{4}$/.test(input.trim())) {
+                    return input.trim();
+                }
+                // Si viene como "01/10/2025" o "1/10/2025"
+                if (input.includes('/')) {
+                    const parts = input.trim().split('/');
+                    if (parts.length === 3) {
+                        const day = parts[0].padStart(2, '0');
+                        const month = parts[1].padStart(2, '0');
+                        const year = parts[2];
+                        return `${day}-${month}-${year}`;
                     }
                 }
-            } else if (typeof dateInput === 'string' && dateInput.includes('/')) {
-                const parts = dateInput.split('/');
-                date = new Date(parts[2], parts[0]-1, parts[1]); // MM/DD/YYYY → lo convertimos
-            } else {
-                date = new Date(dateInput);
             }
-            if (isNaN(date.getTime())) return dateInput;
-            return `${String(date.getDate()).padStart(2,'0')}-${String(date.getMonth()+1).padStart(2,'0')}-${date.getFullYear()}`;
+            
+            // Último recurso: usar Excel serial date o Date normal
+            if (date && !isNaN(date.getTime())) {
+                return `${String(date.getDate()).padStart(2,'0')}-${String(date.getMonth()+1).padStart(2,'0')}-${date.getFullYear()}`;
+            }
+            
+            return '';
         }
 
         function showTableLoading() { tableLoading.classList.add('show'); }
@@ -201,7 +207,7 @@
         }
         function showToast(m,t='success') { toast.textContent=m; toast.className=`reportes-toast ${t} show`; setTimeout(()=>toast.classList.remove('show'),5000); }
 
-        // === REDIMENSIONAR COLUMNAS ===
+        // === RESIZE COLUMNAS ===
         function initResize() {
             const table = document.getElementById('reportesTable');
             const headers = table.querySelectorAll('th');
@@ -232,11 +238,13 @@
             try {
                 const snap = await getDocs(collection(db, "reportes"));
                 reportes = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                
                 const anos = [...new Set(reportes.map(r => {
-                    const dateStr = r.fecha || '';
-                    const parts = dateStr.split('-');
+                    const f = r.fecha || '';
+                    const parts = f.split('-');
                     return parts.length === 3 ? parseInt(parts[2]) : new Date().getFullYear();
                 }))].sort((a,b) => b-a);
+                
                 selectAno.innerHTML = anos.map(a => `<option value="${a}">${a}</option>`).join('');
                 selectAno.value = selectedAno;
                 updateMeses();
@@ -248,11 +256,10 @@
         function updateMeses() {
             const meses = new Set();
             reportes.forEach(r => {
-                const dateStr = r.fecha || '';
-                const parts = dateStr.split('-');
+                const f = r.fecha || '';
+                const parts = f.split('-');
                 if (parts.length === 3 && parseInt(parts[2]) == selectedAno) {
-                    const monthNum = parseInt(parts[1]);
-                    const monthName = new Date(2020, monthNum-1).toLocaleString('es-CL', {month: 'long'});
+                    const monthName = new Date(parseInt(parts[2]), parseInt(parts[1])-1).toLocaleString('es-CL', {month: 'long'});
                     meses.add(monthName);
                 }
             });
@@ -266,12 +273,11 @@
         function getVisible() {
             if (!selectedMes) return [];
             return reportes.filter(r => {
-                const dateStr = r.fecha || '';
-                const parts = dateStr.split('-');
+                const f = r.fecha || '';
+                const parts = f.split('-');
                 if (parts.length !== 3) return false;
                 const year = parseInt(parts[2]);
-                const monthNum = parseInt(parts[1]);
-                const monthName = new Date(2020, monthNum-1).toLocaleString('es-CL', {month: 'long'});
+                const monthName = new Date(year, parseInt(parts[1])-1).toLocaleString('es-CL', {month: 'long'});
                 if (year != selectedAno || monthName !== selectedMes) return false;
                 const a = (r.admision||'').toLowerCase().includes(searchAdmision);
                 const p = (r.paciente||'').toLowerCase().includes(searchPaciente);
@@ -299,7 +305,7 @@
             data.forEach(r => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td>${formatDate(r.fecha)}</td>
+                    <td>${r.fecha || ''}</td>
                     <td>${r.dia||''}</td>
                     <td>${r.mes||''}</td>
                     <td>${r.codArticulo||''}</td>
@@ -321,47 +327,7 @@
             setTimeout(() => { hideTableLoading(); initResize(); }, 100);
         }
 
-        selectAno.onchange = () => { selectedAno = selectAno.value; updateMeses(); };
-        selectMes.onchange = () => { selectedMes = selectMes.value; render(); };
-
-        ['buscarAdmision','buscarPaciente','buscarRut','buscarDescripcion','buscarCirujano'].forEach(id => {
-            document.getElementById(id).oninput = e => {
-                const v = e.target.value.toLowerCase().trim();
-                if (id === 'buscarAdmision') searchAdmision = v;
-                if (id === 'buscarPaciente') searchPaciente = v;
-                if (id === 'buscarRut') searchRut = v;
-                if (id === 'buscarDescripcion') searchDesc = v;
-                if (id === 'buscarCirujano') searchCirujano = v;
-                if (selectedMes) render();
-            };
-        });
-
-        actionsBtn.onclick = e => { e.stopPropagation(); actionsMenu.classList.toggle('show'); };
-        document.addEventListener('click', e => {
-            if (!actionsBtn.contains(e.target) && !actionsMenu.contains(e.target)) {
-                actionsMenu.classList.remove('show');
-            }
-        });
-
-        document.getElementById('downloadTemplate').onclick = e => { e.preventDefault(); downloadTemplate(); actionsMenu.classList.remove('show'); };
-        document.getElementById('importExcel').onclick = e => { e.preventDefault(); fileInput.click(); actionsMenu.classList.remove('show'); };
-        document.getElementById('downloadVisible').onclick = e => { e.preventDefault(); exportData(getVisible(), 'reportes_visibles'); actionsMenu.classList.remove('show'); };
-        document.getElementById('downloadAll').onclick = e => { e.preventDefault(); exportData(reportes, 'todos_reportes'); actionsMenu.classList.remove('show'); };
-
-        function downloadTemplate() {
-            const ws = XLSX.utils.aoa_to_sheet([["Fecha","Día","Mes","Cod. Artículo","Descripción","Admisión","Rut","Paciente","Edad","Previsión","Isapre","Convenio","Cód. Arancel","Arancel","Cant. Art.","1° Cirujano"]]);
-            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Template");
-            XLSX.writeFile(wb, "template_reportes.xlsx");
-        }
-
-        function exportData(data, name) {
-            const exp = data.map(r => ({ fecha: formatDate(r.fecha), dia: r.dia, mes: r.mes, codArticulo: r.codArticulo, descripcion: r.descripcion, admision: r.admision, rut: r.rut, paciente: r.paciente, edad: r.edad, prevision: r.prevision, isapre: r.isapre, convenio: r.convenio, codArancel: r.codArancel, arancel: r.arancel, cantidadArticulo: r.cantidadArticulo, primerCirujano: r.primerCirujano }));
-            const ws = XLSX.utils.json_to_sheet(exp);
-            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Reportes");
-            XLSX.writeFile(wb, name + '.xlsx');
-        }
-
-        // IMPORTACIÓN CON BARRA DE PROGRESO
+        // IMPORTACIÓN CORRECTA
         fileInput.onchange = async e => {
             const file = e.target.files[0];
             if (!file) return;
@@ -385,7 +351,7 @@
                     const r = json[i];
 
                     const fila = {
-                        fecha: formatDate(r.fecha),
+                        fecha: toDDMMYYYY(r.fecha),  // AQUÍ ESTÁ LA CLAVE
                         dia: String(r.dia || '').trim(),
                         mes: String(r.mes || '').trim(),
                         codArticulo: String(r.codArticulo || '').trim(),
@@ -432,6 +398,46 @@
             }
             fileInput.value = '';
         };
+
+        // Eventos menú, resize, filtros... (todo igual)
+        selectAno.onchange = () => { selectedAno = selectAno.value; updateMeses(); };
+        selectMes.onchange = () => { selectedMes = selectMes.value; render(); };
+        ['buscarAdmision','buscarPaciente','buscarRut','buscarDescripcion','buscarCirujano'].forEach(id => {
+            document.getElementById(id).oninput = e => {
+                const v = e.target.value.toLowerCase().trim();
+                if (id === 'buscarAdmision') searchAdmision = v;
+                if (id === 'buscarPaciente') searchPaciente = v;
+                if (id === 'buscarRut') searchRut = v;
+                if (id === 'buscarDescripcion') searchDesc = v;
+                if (id === 'buscarCirujano') searchCirujano = v;
+                if (selectedMes) render();
+            };
+        });
+
+        actionsBtn.onclick = e => { e.stopPropagation(); actionsMenu.classList.toggle('show'); };
+        document.addEventListener('click', e => {
+            if (!actionsBtn.contains(e.target) && !actionsMenu.contains(e.target)) {
+                actionsMenu.classList.remove('show');
+            }
+        });
+
+        document.getElementById('downloadTemplate').onclick = e => { e.preventDefault(); downloadTemplate(); actionsMenu.classList.remove('show'); };
+        document.getElementById('importExcel').onclick = e => { e.preventDefault(); fileInput.click(); actionsMenu.classList.remove('show'); };
+        document.getElementById('downloadVisible').onclick = e => { e.preventDefault(); exportData(getVisible(), 'reportes_visibles'); actionsMenu.classList.remove('show'); };
+        document.getElementById('downloadAll').onclick = e => { e.preventDefault(); exportData(reportes, 'todos_reportes'); actionsMenu.classList.remove('show'); };
+
+        function downloadTemplate() {
+            const ws = XLSX.utils.aoa_to_sheet([["Fecha","Día","Mes","Cod. Artículo","Descripción","Admisión","Rut","Paciente","Edad","Previsión","Isapre","Convenio","Cód. Arancel","Arancel","Cant. Art.","1° Cirujano"]]);
+            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Template");
+            XLSX.writeFile(wb, "template_reportes.xlsx");
+        }
+
+        function exportData(data, name) {
+            const exp = data.map(r => ({ fecha: r.fecha || '', dia: r.dia, mes: r.mes, codArticulo: r.codArticulo, descripcion: r.descripcion, admision: r.admision, rut: r.rut, paciente: r.paciente, edad: r.edad, prevision: r.prevision, isapre: r.isapre, convenio: r.convenio, codArancel: r.codArancel, arancel: r.arancel, cantidadArticulo: r.cantidadArticulo, primerCirujano: r.primerCirujano }));
+            const ws = XLSX.utils.json_to_sheet(exp);
+            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Reportes");
+            XLSX.writeFile(wb, name + '.xlsx');
+        }
 
         onAuthStateChanged(auth, user => {
             if (!user) { window.location.replace('../../../../../../index.html'); return; }
