@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historial Completo - Insumos</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="general.css">
+</head>
+<body>
+    <div class="historial-main-container">
+
+        <div class="historial-back-button">
+            <button onclick="parent.loadContent('modulos/insumos/pacientes/seccion.html')" class="btn-back">
+                <i class="fas fa-arrow-left"></i>
+                <span>Volver al menú principal</span>
+            </button>
+        </div>
+
+        <h1 class="historial-title">Historial Completo de Insumos</h1>
+
+        <!-- FILTROS AVANZADOS -->
+        <div class="historial-controls-container">
+            <div class="filters-grid">
+                <div class="filter-group">
+                    <label>Año</label>
+                    <select id="yearSelect"></select>
+                </div>
+                <div class="filter-group">
+                    <label>Mes</label>
+                    <select id="monthSelect"></select>
+                </div>
+                <div class="filter-group">
+                    <label>Admisión</label>
+                    <input type="text" id="filterAdmision" placeholder="Buscar admisión...">
+                </div>
+                <div class="filter-group">
+                    <label>Paciente</label>
+                    <input type="text" id="filterPaciente" placeholder="Buscar paciente...">
+                </div>
+                <div class="filter-group">
+                    <label>Médico</label>
+                    <input type="text" id="filterMedico" placeholder="Buscar médico...">
+                </div>
+                <div class="filter-group">
+                    <label>Proveedor</label>
+                    <input type="text" id="filterProveedor" placeholder="Buscar proveedor...">
+                </div>
+            </div>
+
+            <div class="scope-buttons">
+                <label>
+                    <input type="radio" name="filterScope" value="currentMonth" checked>
+                    Solo mes/año seleccionado
+                </label>
+                <label>
+                    <input type="radio" name="filterScope" value="currentYear">
+                    Todo el año seleccionado
+                </label>
+                <label>
+                    <input type="radio" name="filterScope" value="all">
+                    Todos los registros
+                </label>
+            </div>
+
+            <div class="historial-buttons">
+                <button id="refreshBtn" class="btn-secondary">
+                    <i class="fas fa-sync-alt"></i> Actualizar
+                </button>
+            </div>
+        </div>
+
+        <div class="historial-table-container">
+            <table class="historial-table" id="historialTable">
+                <thead>
+                    <tr>
+                        <th>Estado<div class="resize-handle"></div></th>
+                        <th>Previsión<div class="resize-handle"></div></th>
+                        <th>Admisión<div class="resize-handle"></div></th>
+                        <th>Paciente<div class="resize-handle"></div></th>
+                        <th>Médico<div class="resize-handle"></div></th>
+                        <th>Fecha CX<div class="resize-handle"></div></th>
+                        <th>Proveedor<div class="resize-handle"></div></th>
+                        <th>Total<div class="resize-handle"></div></th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div id="loading" class="loading-modal">
+            <div class="spinner"></div>
+            <span class="loading-text">Cargando...</span>
+        </div>
+    </div>
+
+    <div class="historial-toast-container" id="toastContainer"></div>
+
+    <script type="module" src="general.js"></script>
+    <script type="module" src="resizeColumnsGeneral.js"></script>
+</body>
+</html>
