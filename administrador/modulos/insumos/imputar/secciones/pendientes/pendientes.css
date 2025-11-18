@@ -1,0 +1,284 @@
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    overflow: hidden;
+    font-size: 12px;
+}
+
+.imputar-main-container {
+    width: 100%;
+    height: 100%;
+    background: white;
+    padding: 5px 20px 20px 20px;
+    box-sizing: border-box;
+    overflow-y: auto;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.imputar-title {
+    text-align: start;
+    margin: 0 0 15px 0;
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+}
+
+.imputar-subtitle {
+    margin: 0 0 15px 0;
+    color: #666;
+    font-size: 13px;
+}
+
+.imputar-controls-container {
+    margin-bottom: 15px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.imputar-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-primary, .btn-secondary {
+    padding: 6px 14px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-primary {
+    background: #27ae60;
+    color: white;
+}
+
+.btn-primary:disabled {
+    background: #95a5a6;
+    cursor: not-allowed;
+}
+
+.btn-secondary {
+    background: #3498db;
+    color: white;
+}
+
+.imputar-table-container {
+    width: 100%;
+    max-height: 650px;
+    overflow-y: auto;
+    overflow-x: auto;
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    flex-grow: 1;
+}
+
+.imputar-table {
+    table-layout: fixed;
+    border-collapse: collapse;
+    font-size: 11px;
+    width: auto;
+    min-width: 100%;
+    box-sizing: border-box;
+}
+
+.imputar-table th, .imputar-table td {
+    padding: 4px;
+    text-align: left;
+    border: 1px solid #ddd;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-sizing: border-box;
+}
+
+.imputar-table th {
+    background-color: #f2f2f2;
+    color: #333;
+    font-size: 11px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    cursor: default;
+    user-select: none;
+    position: relative;
+}
+
+.imputar-table th .resize-handle {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 5px;
+    height: 100%;
+    cursor: col-resize;
+    background: transparent;
+    z-index: 11;
+}
+
+.imputar-table th .resize-handle:hover,
+.imputar-table th .resize-handle.active {
+    background: #007bff;
+    width: 5px;
+}
+
+.imputar-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+/* Anchos de columnas – ajustados a las 12 columnas del módulo Imputar */
+.imputar-table th:nth-child(1), .imputar-table td:nth-child(1)  { width: 50px; }
+.imputar-table th:nth-child(2), .imputar-table td:nth-child(2)  { width: 100px; }
+.imputar-table th:nth-child(3), .imputar-table td:nth-child(3)  { width: 100px; }
+.imputar-table th:nth-child(4), .imputar-table td:nth-child(4)  { width: 100px; }
+.imputar-table th:nth-child(5), .imputar-table td:nth-child(5)  { width: 90px; }
+.imputar-table th:nth-child(6), .imputar-table td:nth-child(6)  { width: 220px; }
+.imputar-table th:nth-child(7), .imputar-table td:nth-child(7)  { width: 90px; }
+.imputar-table th:nth-child(8), .imputar-table td:nth-child(8)  { width: 110px; }
+.imputar-table th:nth-child(9), .imputar-table td:nth-child(9)  { width: 300px; }
+.imputar-table th:nth-child(10),.imputar-table td:nth-child(10) { width: 80px; text-align: center; }
+.imputar-table th:nth-child(11),.imputar-table td:nth-child(11) { width: 110px; text-align: right; }
+.imputar-table th:nth-child(12),.imputar-table td:nth-child(12) { width: 130px; }
+
+.total-cell {
+    font-weight: bold;
+    color: #27ae60;
+    text-align: right;
+}
+
+.estado-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: bold;
+    color: white;
+    background: #e67e22;
+}
+
+.estado-badge[data-estado="CARGADO"] { background: #27ae60; }
+.estado-badge[data-estado="INGRESADO"] { background: #3498db; }
+
+.imputar-toast-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 350px;
+}
+
+.imputar-toast {
+    background-color: #333;
+    color: white;
+    padding: 12px 16px;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    font-size: 12px;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.imputar-toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.imputar-toast.success { background-color: #28a745; }
+.imputar-toast.error { background-color: #dc3545; }
+
+.loading-modal {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 120px;
+    height: 80px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    z-index: 2000;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.loading-modal.show {
+    display: flex !important;
+}
+
+.spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid #e3f2fd;
+    border-top: 3px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.loading-text {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #333;
+}
+
+@keyframes spin {
+     0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.imputar-back-button {
+    margin-bottom: 10px;
+}
+
+.btn-back {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    transition: all 0.2s ease;
+}
+
+.btn-back:hover {
+    background: #5a6268;
+    transform: translateY(-1px);
+}
+
+.btn-back i {
+    font-size: 14px;
+}
+
+@media screen and (max-width: 768px) {
+    .imputar-buttons {
+        flex-direction: column;
+    }
+    .btn-primary, .btn-secondary {
+        width: 100%;
+    }
+}
