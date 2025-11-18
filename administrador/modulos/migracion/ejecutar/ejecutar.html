@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Migrar Ingresos Lab</title>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; background: #f0f0f0; }
@@ -12,26 +13,40 @@
     h1 { text-align: center; color: #1a73e8; }
     button { padding: 12px 24px; font-size: 16px; background: #1a73e8; color: white; border: none; border-radius: 6px; cursor: pointer; width: 100%; margin-top: 20px; }
     button:disabled { background: #ccc; cursor: not-allowed; }
-    .log { margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 6px; height: 300px; overflow-y: auto; font-family: monospace; font-size: 13px; }
+    .log { margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 6px; height: 350px; overflow-y: auto; font-family: monospace; font-size: 13px; }
     .success { color: green; }
     .error { color: red; }
+    #authSection { text-align: center; margin-bottom: 20px; }
+    .hidden { display: none; }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Migración Ingresos</h1>
-    <p>Esto copiará todos los datos de:</p>
-    <ul>
-      <li><strong>ingresos_lab</strong> → <strong>laboratorio_ingresos</strong></li>
-      <li><strong>ingresos_lab_historial</strong> → <strong>laboratorio_ingresos_historial</strong></li>
-    </ul>
-    <p><strong>Se mantienen los mismos IDs. Es seguro ejecutarlo varias veces.</strong></p>
-    <button id="btnMigrar">INICIAR MIGRACIÓN</button>
+    
+    <div id="authSection">
+      <p>👤 <strong>Estado:</strong> <span id="authStatus">No autenticado</span></p>
+      <button id="loginBtn">INICIAR SESIÓN</button>
+      <p style="font-size: 12px; color: #666; margin-top: 10px;">
+        Necesitas iniciar sesión con tu cuenta de Google para migrar los datos
+      </p>
+    </div>
+
+    <div id="migrationSection" class="hidden">
+      <p><strong>Esto copiará todos los datos de:</strong></p>
+      <ul>
+        <li><strong>ingresos_lab</strong> → <strong>laboratorio_ingresos</strong></li>
+        <li><strong>ingresos_lab_historial</strong> → <strong>laboratorio_ingresos_historial</strong></li>
+      </ul>
+      <p><small>✅ Se mantienen los mismos IDs. Es seguro ejecutarlo varias veces.</small></p>
+      <button id="btnMigrar">INICIAR MIGRACIÓN</button>
+    </div>
+
     <div id="log" class="log">Listo para comenzar...</div>
   </div>
 
   <script>
-    // TU CONFIGURACIÓN DE FIREBASE (la misma que tienes en ingresos.js)
+    // TU CONFIGURACIÓN DE FIREBASE
     const firebaseConfig = {
       apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
       authDomain: "datara-salud.firebaseapp.com",
@@ -42,64 +57,138 @@
     };
 
     firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
     const db = firebase.firestore();
 
     const log = document.getElementById('log');
-    const btn = document.getElementById('btnMigrar');
+    const authSection = document.getElementById('authSection');
+    const migrationSection = document.getElementById('migrationSection');
+    const btnMigrar = document.getElementById('btnMigrar');
+    const loginBtn = document.getElementById('loginBtn');
+    const authStatus = document.getElementById('authStatus');
 
     function addLog(text, type = '') {
+      const timestamp = new Date().toLocaleTimeString();
       const div = document.createElement('div');
-      div.textContent = text;
+      div.innerHTML = `<strong>[${timestamp}]</strong> ${text}`;
       if (type) div.className = type;
       log.appendChild(div);
       log.scrollTop = log.scrollHeight;
     }
 
-    async function migrarColeccion(origen, destino) {
-      addLog(`Iniciando migración: ${origen} → ${destino}`);
-      const snapshot = await db.collection(origen).get();
-      addLog(`Encontrados ${snapshot.size} documentos.`);
-
-      let count = 0;
-      const batchSize = 400; // Límite seguro de Firestore
-      let batch = db.batch();
-
-      for (const doc of snapshot.docs) {
-        const refDestino = db.collection(destino).doc(doc.id);
-        batch.set(refDestino, doc.data());
-
-        count++;
-        if (count % batchSize === 0 || count === snapshot.size) {
-          await batch.commit();
-          addLog(`Commit: ${count} documentos copiados...`);
-          batch = db.batch(); // Nuevo batch
+    function updateAuthStatus() {
+      auth.onAuthStateChanged((user) => {
+        if (user) {
+          authStatus.textContent = `Autenticado como: ${user.email}`;
+          authSection.classList.add('hidden');
+          migrationSection.classList.remove('hidden');
+          addLog(`✅ Autenticado como ${user.email}`, 'success');
+        } else {
+          authStatus.textContent = 'No autenticado';
+          authSection.classList.remove('hidden');
+          migrationSection.classList.add('hidden');
+          addLog('⚠️ No estás autenticado. Haz clic en "INICIAR SESIÓN"', 'error');
         }
-      }
-
-      addLog(`¡Completado! ${origen} → ${destino}`, 'success');
+      });
     }
 
-    btn.addEventListener('click', async () => {
-      btn.disabled = true;
-      addLog('Conectando a Firebase...');
+    loginBtn.addEventListener('click', () => {
+      addLog('Iniciando proceso de autenticación...');
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(provider)
+        .then((result) => {
+          addLog(`✅ Login exitoso: ${result.user.email}`, 'success');
+          updateAuthStatus();
+        })
+        .catch((error) => {
+          addLog(`❌ Error de autenticación: ${error.message}`, 'error');
+          console.error(error);
+        });
+    });
+
+    async function migrarColeccion(origen, destino) {
+      addLog(`🚀 Iniciando migración: ${origen} → ${destino}`);
+      
+      try {
+        const snapshot = await db.collection(origen).get();
+        addLog(`📊 Encontrados ${snapshot.size} documentos en ${origen}`);
+
+        if (snapshot.empty) {
+          addLog(`⚠️ La colección ${origen} está vacía`, 'error');
+          return;
+        }
+
+        let count = 0;
+        const batchSize = 400; // Límite seguro de Firestore
+        let batch = db.batch();
+
+        for (const doc of snapshot.docs) {
+          const refDestino = db.collection(destino).doc(doc.id);
+          batch.set(refDestino, doc.data());
+
+          count++;
+          
+          if (count % 50 === 0) {
+            addLog(`⏳ Progreso: ${count}/${snapshot.size} documentos...`);
+          }
+
+          if (count % batchSize === 0 || count === snapshot.size) {
+            await batch.commit();
+            addLog(`✅ Commit: ${count} documentos copiados a ${destino}`);
+            batch = db.batch(); // Nuevo batch
+          }
+        }
+
+        // Verificar que se copiaron correctamente
+        const verifySnapshot = await db.collection(destino).get();
+        addLog(`🔍 Verificación: ${verifySnapshot.size} documentos en ${destino}`, 'success');
+        
+        if (verifySnapshot.size === snapshot.size) {
+          addLog(`🎉 ¡Migración COMPLETA! ${origen} → ${destino} (${count} docs)`, 'success');
+        } else {
+          addLog(`⚠️ Advertencia: Diferencia en conteo (${snapshot.size} vs ${verifySnapshot.size})`, 'error');
+        }
+      } catch (error) {
+        addLog(`❌ ERROR en ${origen} → ${destino}: ${error.message}`, 'error');
+        console.error(error);
+        throw error;
+      }
+    }
+
+    btnMigrar.addEventListener('click', async () => {
+      btnMigrar.disabled = true;
+      btnMigrar.textContent = 'MIGRANDO...';
+      addLog('=== INICIANDO MIGRACIÓN COMPLETA ===');
 
       try {
-        // Migrar ingresos
+        // Verificar conexión
+        await db.collection('ingresos_lab').limit(1).get();
+        addLog('✅ Conexión a Firestore OK');
+
+        // Paso 1: Migrar ingresos
         await migrarColeccion('ingresos_lab', 'laboratorio_ingresos');
         
-        // Migrar historial
+        // Paso 2: Migrar historial
         await migrarColeccion('ingresos_lab_historial', 'laboratorio_ingresos_historial');
 
-        addLog('¡MIGRACIÓN COMPLETA!', 'success');
-        addLog('Ya puedes cambiar el nombre en ingresos.js', 'success');
-        addLog('Puedes cerrar esta página.');
+        addLog('=== 🎊 MIGRACIÓN TOTAL COMPLETADA ===', 'success');
+        addLog('📝 Ahora puedes cambiar los nombres en ingresos.js:', 'success');
+        addLog('  "ingresos_lab" → "laboratorio_ingresos"', 'success');
+        addLog('  "ingresos_lab_historial" → "laboratorio_ingresos_historial"', 'success');
+        addLog('🔗 Puedes cerrar esta página cuando termines.', 'success');
+        
       } catch (err) {
-        addLog('ERROR: ' + err.message, 'error');
+        addLog(`❌ FALLO GENERAL: ${err.message}`, 'error');
         console.error(err);
       } finally {
-        btn.disabled = false;
+        btnMigrar.disabled = false;
+        btnMigrar.textContent = 'INICIAR MIGRACIÓN';
       }
     });
+
+    // Inicializar
+    updateAuthStatus();
+    addLog('💡 Abre la consola del navegador (F12) para ver detalles técnicos');
   </script>
 </body>
 </html>
