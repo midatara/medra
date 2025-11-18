@@ -305,6 +305,33 @@ async function getUserFullName(uid) {
     }
 }
 
+function limpiarCamposInsumo() {
+    const camposInsumo = ['codigo', 'descripcion', 'cantidad', 'referencia', 'proveedor', 'precioUnitario', 'atributo', 'totalItems'];
+    camposInsumo.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.value = '';
+            if (el.dataset.raw !== undefined) el.dataset.raw = 0;
+        }
+    });
+    ['codigoDropdown', 'descripcionDropdown'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+}
+
+function limpiarTodo() {
+    ['admision', 'paciente', 'medico', 'fechaCX', 'docDelivery'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    const medicoDropdown = document.getElementById('medicoDropdown');
+    if (medicoDropdown) medicoDropdown.style.display = 'none';
+    const guiaStatus = document.getElementById('guiaStatus');
+    if (guiaStatus) { guiaStatus.textContent = ''; guiaStatus.style.color = '#999'; }
+    limpiarCamposInsumo();
+}
+
 async function registrarIngreso() {
     const fields = {
         admision: document.getElementById('admision').value.trim(),
@@ -339,29 +366,13 @@ async function registrarIngreso() {
         registros.unshift({ id: docRef.id, ...fields, usuario, createdAt: new Date() });
         renderTable();
         updateTraspasarButton();
-        limpiarCampos();
+        limpiarCamposInsumo();
         showToast('Registro guardado', 'success');
     } catch (err) {
         showToast('Error al guardar: ' + err.message, 'error');
     } finally {
         hideLoading();
     }
-}
-
-function limpiarCampos() {
-    ['admision', 'paciente', 'medico', 'fechaCX', 'docDelivery'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.value = '';
-    });
-    const status = document.getElementById('guiaStatus');
-    if (status) { status.textContent = ''; status.style.color = '#999'; }
-    const dropdown = document.getElementById('medicoDropdown');
-    if (dropdown) dropdown.style.display = 'none';
-
-    document.getElementById('precioUnitario').value = '';
-    document.getElementById('precioUnitario').dataset.raw = 0;
-    document.getElementById('totalItems').value = '';
-    document.getElementById('totalItems').dataset.raw = 0;
 }
 
 function renderTable() {
@@ -414,7 +425,7 @@ function initRegistrarButton() {
 
 function initLimpiarButton() {
     const btn = document.getElementById('limpiarBtn');
-    if (btn) btn.addEventListener('click', limpiarCampos);
+    if (btn) btn.addEventListener('click', limpiarTodo);
 }
 
 export async function reloadReferenciasForEdit(customFilter = null) {
