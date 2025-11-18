@@ -110,9 +110,22 @@
             <table id="reportesTable" class="reportes-table">
                 <thead>
                     <tr>
-                        <th>Fecha</th><th>Día</th><th>Mes</th><th>Cod. Artículo</th><th>Descripción</th><th>Admisión</th>
-                        <th>Rut</th><th>Paciente</th><th>Edad</th><th>Previsión</th><th>Isapre</th><th>Convenio</th>
-                        <th>Cód. Arancel</th><th>Arancel</th><th>Cant. Art.</th><th>1° Cirujano</th>
+                        <th>Fecha<div class="resize-handle"></div></th>
+                        <th>Día<div class="resize-handle"></div></th>
+                        <th>Mes<div class="resize-handle"></div></th>
+                        <th>Cod. Artículo<div class="resize-handle"></div></th>
+                        <th>Descripción<div class="resize-handle"></div></th>
+                        <th>Admisión<div class="resize-handle"></div></th>
+                        <th>Rut<div class="resize-handle"></div></th>
+                        <th>Paciente<div class="resize-handle"></div></th>
+                        <th>Edad<div class="resize-handle"></div></th>
+                        <th>Previsión<div class="resize-handle"></div></th>
+                        <th>Isapre<div class="resize-handle"></div></th>
+                        <th>Convenio<div class="resize-handle"></div></th>
+                        <th>Cód. Arancel<div class="resize-handle"></div></th>
+                        <th>Arancel<div class="resize-handle"></div></th>
+                        <th>Cant. Art.<div class="resize-handle"></div></th>
+                        <th>1° Cirujano<div class="resize-handle"></div></th>
                     </tr>
                 </thead>
                 <tbody id="reportesBody">
@@ -158,41 +171,31 @@
 
         function toDDMMYYYY(valor) {
             if (!valor && valor !== 0) return '';
-
             if (typeof valor === 'string') {
                 const str = valor.trim();
-
                 const m1 = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
                 if (m1) {
                     const d = m1[1].padStart(2, '0');
                     const mm = m1[2].padStart(2, '0');
                     const y = m1[3];
-                    if (parseInt(mm) >= 1 && parseInt(mm) <= 12 && parseInt(d) >= 1 && parseInt(d) <= 31) {
-                        return `${d}-${mm}-${y}`;
-                    }
+                    if (parseInt(mm) >= 1 && parseInt(mm) <= 12 && parseInt(d) >= 1 && parseInt(d) <= 31) return `${d}-${mm}-${y}`;
                 }
-
                 const m2 = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
                 if (m2) {
                     const y = m2[1];
                     const mm = m2[2].padStart(2, '0');
                     const d = m2[3].padStart(2, '0');
-                    if (parseInt(mm) >= 1 && parseInt(mm) <= 12 && parseInt(d) >= 1 && parseInt(d) <= 31) {
-                        return `${d}-${mm}-${y}`;
-                    }
+                    if (parseInt(mm) >= 1 && parseInt(mm) <= 12 && parseInt(d) >= 1 && parseInt(d) <= 31) return `${d}-${mm}-${y}`;
                 }
             }
-
             if (typeof valor === 'number') {
                 const epoch1900 = new Date(Date.UTC(1899, 11, 30));
                 const fecha = new Date(epoch1900.getTime() + valor * 86400000);
                 return `${String(fecha.getUTCDate()).padStart(2,'0')}-${String(fecha.getUTCMonth()+1).padStart(2,'0')}-${fecha.getUTCFullYear()}`;
             }
-
             if (valor instanceof Date && !isNaN(valor)) {
                 return `${String(valor.getDate()).padStart(2,'0')}-${String(valor.getMonth()+1).padStart(2,'0')}-${valor.getFullYear()}`;
             }
-
             return '';
         }
 
@@ -213,63 +216,94 @@
 
         function initResize() {
             const table = document.getElementById('reportesTable');
+            if (!table) return;
             const headers = table.querySelectorAll('th');
-            let resizing = false, col = -1, startX = 0, startW = 0;
-            const MIN = 40, MAX = 800;
+            let isResizing = false;
+            let currentCol = -1;
+            let startX = 0;
+            let startWidth = 0;
+            const MIN_WIDTH = 40;
+            const MAX_WIDTH = 800;
 
-            function apply() {
-                const s = localStorage.getItem('reportes-column-widths');
-                if (!s) return;
-                try {
-                    const w = JSON.parse(s);
-                    headers.forEach((th,i) => {
-                        if (w[i]) {
-                            const px = w[i] + 'px';
-                            th.style.width = th.style.minWidth = th.style.maxWidth = px;
-                            table.querySelectorAll(`td:nth-child(${i+1})`).forEach(td => 
-                                td.style.width = td.style.minWidth = td.style.maxWidth = px);
-                        }
-                    });
-                } catch(e) {}
-            }
+            applySavedColumnWidths();
 
-            function save() {
-                const w = Array.from(headers).map(th => parseInt(th.style.width) || th.offsetWidth);
-                localStorage.setItem('reportes-column-widths', JSON.stringify(w));
-            }
-
-            headers.forEach((th,i) => {
-                let h = th.querySelector('.resize-handle');
-                if (!h) { h = document.createElement('div'); h.className = 'resize-handle'; th.appendChild(h); }
-                h.onmousedown = e => {
+            headers.forEach((th, i) => {
+                let handle = th.querySelector('.resize-handle');
+                if (!handle) {
+                    handle = document.createElement('div');
+                    handle.className = 'resize-handle';
+                    th.appendChild(handle);
+                }
+                handle.onmousedown = e => {
                     e.preventDefault();
-                    resizing = true; col = i; startX = e.clientX; startW = th.offsetWidth;
-                    h.classList.add('active');
+                    e.stopPropagation();
+                    isResizing = true;
+                    currentCol = i;
+                    startX = e.clientX;
+                    startWidth = th.offsetWidth;
+                    handle.classList.add('active');
                     document.body.style.cursor = 'col-resize';
                     document.body.style.userSelect = 'none';
                 };
             });
 
             document.onmousemove = e => {
-                if (!resizing || col === -1) return;
-                let nw = Math.max(MIN, Math.min(MAX, startW + (e.clientX - startX)));
+                if (!isResizing || currentCol === -1) return;
+                let nw = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, startWidth + (e.clientX - startX)));
                 const px = nw + 'px';
-                headers[col].style.width = headers[col].style.minWidth = headers[col].style.maxWidth = px;
-                table.querySelectorAll(`td:nth-child(${col+1})`).forEach(td => 
-                    td.style.width = td.style.minWidth = td.style.maxWidth = px);
+                headers[currentCol].style.width = headers[currentCol].style.minWidth = headers[currentCol].style.maxWidth = px;
+                table.querySelectorAll(`tbody td:nth-child(${currentCol + 1})`).forEach(td => {
+                    td.style.width = td.style.minWidth = td.style.maxWidth = px;
+                });
             };
 
             document.onmouseup = () => {
-                if (resizing) {
-                    resizing = false; col = -1;
+                if (isResizing) {
+                    isResizing = false;
+                    currentCol = -1;
                     document.body.style.cursor = '';
                     document.body.style.userSelect = '';
                     table.querySelectorAll('.resize-handle.active').forEach(h => h.classList.remove('active'));
-                    save();
+                    saveColumnWidths();
                 }
             };
 
-            apply();
+            const observer = new MutationObserver(() => setTimeout(applySavedColumnWidths, 50));
+            observer.observe(table.querySelector('tbody'), { childList: true, subtree: true });
+
+            const originalRender = window.render;
+            window.render = function(...args) {
+                originalRender.apply(this, args);
+                setTimeout(applySavedColumnWidths, 50);
+            };
+        }
+
+        function applySavedColumnWidths() {
+            const saved = localStorage.getItem('reportes-column-widths');
+            if (!saved) return;
+            try {
+                const widths = JSON.parse(saved);
+                const table = document.getElementById('reportesTable');
+                if (!table) return;
+                const headers = table.querySelectorAll('th');
+                headers.forEach((th, i) => {
+                    if (widths[i]) {
+                        const px = widths[i] + 'px';
+                        th.style.width = th.style.minWidth = th.style.maxWidth = px;
+                        table.querySelectorAll(`tbody td:nth-child(${i + 1})`).forEach(td => {
+                            td.style.width = td.style.minWidth = td.style.maxWidth = px;
+                        });
+                    }
+                });
+            } catch(e) {}
+        }
+
+        function saveColumnWidths() {
+            const table = document.getElementById('reportesTable');
+            if (!table) return;
+            const headers = table.querySelectorAll('th');
+            const widths = Array.from(headers).map(th => parseInt(th.style.width) || th.offsetWidth);
+            localStorage.setItem('reportes-column-widths', JSON.stringify(widths));
         }
 
         async function loadAll() {
@@ -280,13 +314,11 @@
                     const f = r.fecha || '';
                     const p = f.split('-');
                     return p.length === 3 ? parseInt(p[2]) : new Date().getFullYear();
-                }))].sort((a,b) => b-a);
-                selectAno.innerHTML = anos.map(a => `<option value="${a}">${a}</option>`).join('');
+                }))].sort((a,b)=>b-a);
+                selectAno.innerHTML = anos.map(a=>`<option value="${a}">${a}</option>`).join('');
                 selectAno.value = selectedAno;
                 updateMeses();
-            } catch(e) {
-                showToast("Error cargando datos", "error");
-            }
+            } catch(e) { showToast("Error cargando datos","error"); }
         }
 
         function updateMeses() {
@@ -294,15 +326,14 @@
             reportes.forEach(r => {
                 const f = r.fecha || '';
                 const p = f.split('-');
-                if (p.length === 3 && parseInt(p[2]) == selectedAno) {
-                    const m = new Date(parseInt(p[2]), parseInt(p[1])-1).toLocaleString('es-CL', {month: 'long'});
+                if (p.length===3 && parseInt(p[2])==selectedAno) {
+                    const m = new Date(parseInt(p[2]), parseInt(p[1])-1).toLocaleString('es-CL',{month:'long'});
                     meses.add(m);
                 }
             });
             const orden = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-            const sorted = [...meses].sort((a,b) => orden.indexOf(a) - orden.indexOf(b));
-            selectMes.innerHTML = '<option value="">Selecciona mes</option>' + 
-                sorted.map(m => `<option value="${m}">${m.charAt(0).toUpperCase() + m.slice(1)}</option>`).join('');
+            const sorted = [...meses].sort((a,b)=>orden.indexOf(a)-orden.indexOf(b));
+            selectMes.innerHTML = '<option value="">Selecciona mes</option>' + sorted.map(m=>`<option value="${m}">${m.charAt(0).toUpperCase()+m.slice(1)}</option>`).join('');
             selectedMes = '';
             render();
         }
@@ -312,11 +343,11 @@
             return reportes.filter(r => {
                 const f = r.fecha || '';
                 const p = f.split('-');
-                if (p.length !== 3) return false;
+                if (p.length!==3) return false;
                 const y = parseInt(p[2]);
-                const m = new Date(y, parseInt(p[1])-1).toLocaleString('es-CL', {month: 'long'});
+                const m = new Date(y, parseInt(p[1])-1).toLocaleString('es-CL',{month:'long'});
                 if (y != selectedAno || m !== selectedMes) return false;
-                return (r.admision||'').toLowerCase().includes(searchAdmision) &&
+                return (i=>i||true)((r.admision||'').toLowerCase().includes(searchAdmision)) &&
                        (r.paciente||'').toLowerCase().includes(searchPaciente) &&
                        (r.rut||'').toLowerCase().includes(searchRut) &&
                        (r.descripcion||'').toLowerCase().includes(searchDesc) &&
@@ -333,7 +364,7 @@
                 return;
             }
             const data = getVisible();
-            if (data.length === 0) {
+            if (data.length===0) {
                 body.innerHTML = '<tr><td colspan="16" class="empty-message">No hay resultados</td></tr>';
                 hideTableLoading();
                 return;
@@ -343,138 +374,108 @@
                 tr.innerHTML = `<td>${r.fecha||''}</td><td>${r.dia||''}</td><td>${r.mes||''}</td><td>${r.codArticulo||''}</td><td>${r.descripcion||''}</td><td>${r.admision||''}</td><td>${r.rut||''}</td><td>${r.paciente||''}</td><td>${r.edad||''}</td><td>${r.prevision||''}</td><td>${r.isapre||''}</td><td>${r.convenio||''}</td><td>${r.codArancel||''}</td><td>${r.arancel||''}</td><td>${r.cantidadArticulo||''}</td><td>${r.primerCirujano||''}</td>`;
                 body.appendChild(tr);
             });
-            setTimeout(() => { hideTableLoading(); initResize(); }, 100);
+            setTimeout(() => { hideTableLoading(); applySavedColumnWidths(); }, 100);
         }
 
         fileInput.onchange = async e => {
             const file = e.target.files[0];
             if (!file) return;
-            
             showImportLoading();
-            updateProgress(0, 100);
-
+            updateProgress(0,100);
             try {
                 const data = await file.arrayBuffer();
                 const wb = XLSX.read(data, { type: 'array', cellDates: false, raw: true });
                 const ws = wb.Sheets[wb.SheetNames[0]];
-                
                 const json = XLSX.utils.sheet_to_json(ws, {
                     header: ["fecha","dia","mes","codArticulo","descripcion","admision","rut","paciente","edad","prevision","isapre","convenio","codArancel","arancel","cantidadArticulo","primerCirujano"],
-                    range: 1,
-                    defval: '',
-                    raw: true
+                    range: 1, defval: '', raw: true
                 });
 
-                let agregados = 0, actualizados = 0, omitidos = 0;
+                let agregados=0, actualizados=0, omitidos=0;
                 const total = json.length;
 
-                for (let i = 0; i < json.length; i++) {
-                    updateProgress(i + 1, total);
+                for (let i=0; i<json.length; i++) {
+                    updateProgress(i+1,total);
                     const r = json[i];
-                    
                     const fila = {
-                        fecha: toDDMMYYYY(r.fecha),
-                        dia: String(r.dia||'').trim(),
-                        mes: String(r.mes||'').trim(),
-                        codArticulo: String(r.codArticulo||'').trim(),
-                        descripcion: String(r.descripcion||'').trim(),
-                        admision: String(r.admision||'').trim(),
-                        rut: String(r.rut||'').trim(),
-                        paciente: String(r.paciente||'').trim(),
-                        edad: String(r.edad||'').trim(),
-                        prevision: String(r.prevision||'').trim(),
-                        isapre: String(r.isapre||'').trim(),
-                        convenio: String(r.convenio||'').trim(),
-                        codArancel: String(r.codArancel||'').trim(),
-                        arancel: String(r.arancel||'').trim(),
-                        cantidadArticulo: String(r.cantidadArticulo||'').trim(),
+                        fecha: toDDMMYYYY(r.fecha), dia: String(r.dia||'').trim(), mes: String(r.mes||'').trim(),
+                        codArticulo: String(r.codArticulo||'').trim(), descripcion: String(r.descripcion||'').trim(),
+                        admision: String(r.admision||'').trim(), rut: String(r.rut||'').trim(),
+                        paciente: String(r.paciente||'').trim(), edad: String(r.edad||'').trim(),
+                        prevision: String(r.prevision||'').trim(), isapre: String(r.isapre||'').trim(),
+                        convenio: String(r.convenio||'').trim(), codArancel: String(r.codArancel||'').trim(),
+                        arancel: String(r.arancel||'').trim(), cantidadArticulo: String(r.cantidadArticulo||'').trim(),
                         primerCirujano: String(r.primerCirujano||'').trim()
                     };
-
-                    if (!fila.admision || !fila.codArticulo) { 
-                        omitidos++; 
-                        continue; 
-                    }
+                    if (!fila.admision || !fila.codArticulo) { omitidos++; continue; }
 
                     const q = query(collection(db,"reportes"), where("admision","==",fila.admision), where("codArticulo","==",fila.codArticulo));
                     const snap = await getDocs(q);
 
                     if (!snap.empty) {
                         const existente = snap.docs[0].data();
-                        const cambios = Object.keys(fila).some(k => String(fila[k]) !== String(existente[k]||'').trim());
+                        const cambios = Object.keys(fila).some(k=>String(fila[k])!==String(existente[k]||'').trim());
                         if (cambios) {
-                            await updateDoc(doc(db,"reportes",snap.docs[0].id), {...fila, updatedAt: new Date()});
+                            await updateDoc(doc(db,"reportes",snap.docs[0].id),{...fila, updatedAt:new Date()});
                             actualizados++;
-                        } else {
-                            omitidos++;
-                        }
+                        } else omitidos++;
                     } else {
-                        await addDoc(collection(db,"reportes"), {...fila, createdAt: new Date()});
+                        await addDoc(collection(db,"reportes"),{...fila, createdAt:new Date()});
                         agregados++;
                     }
                 }
-
                 hideImportLoading();
                 showToast(`Importación completada: ${agregados} nuevos, ${actualizados} actualizados, ${omitidos} omitidos`, 'success');
                 await loadAll();
             } catch(err) {
                 hideImportLoading();
-                showToast('Error al importar: ' + err.message, 'error');
+                showToast('Error al importar: '+err.message,'error');
             }
-            fileInput.value = '';
+            fileInput.value='';
         };
 
         selectAno.onchange = () => { selectedAno = selectAno.value; updateMeses(); };
         selectMes.onchange = () => { selectedMes = selectMes.value; render(); };
 
-        ['buscarAdmision','buscarPaciente','buscarRut','buscarDescripcion','buscarCirujano'].forEach(id => {
-            document.getElementById(id).oninput = e => {
+        ['buscarAdmision','buscarPaciente','buscarRut','buscarDescripcion','buscarCirujano'].forEach(id=>{
+            document.getElementById(id).oninput = e=>{
                 const v = e.target.value.toLowerCase().trim();
-                if (id === 'buscarAdmision') searchAdmision = v;
-                if (id === 'buscarPaciente') searchPaciente = v;
-                if (id === 'buscarRut') searchRut = v;
-                if (id === 'buscarDescripcion') searchDesc = v;
-                if (id === 'buscarCirujano') searchCirujano = v;
-                if (selectedMes) render();
+                if(id==='buscarAdmision') searchAdmision=v;
+                if(id==='buscarPaciente') searchPaciente=v;
+                if(id==='buscarRut') searchRut=v;
+                if(id==='buscarDescripcion') searchDesc=v;
+                if(id==='buscarCirujano') searchCirujano=v;
+                if(selectedMes) render();
             };
         });
 
-        actionsBtn.onclick = e => { e.stopPropagation(); actionsMenu.classList.toggle('show'); };
-        document.addEventListener('click', e => {
-            if (!actionsBtn.contains(e.target) && !actionsMenu.contains(e.target)) actionsMenu.classList.remove('show');
+        actionsBtn.onclick = e=>{ e.stopPropagation(); actionsMenu.classList.toggle('show'); };
+        document.addEventListener('click', e=>{
+            if(!actionsBtn.contains(e.target) && !actionsMenu.contains(e.target)) actionsMenu.classList.remove('show');
         });
 
-        document.getElementById('downloadTemplate').onclick = e => { e.preventDefault(); downloadTemplate(); actionsMenu.classList.remove('show'); };
-        document.getElementById('importExcel').onclick = e => { e.preventDefault(); fileInput.click(); actionsMenu.classList.remove('show'); };
-        document.getElementById('downloadVisible').onclick = e => { e.preventDefault(); exportData(getVisible(), 'reportes_visibles'); actionsMenu.classList.remove('show'); };
-        document.getElementById('downloadAll').onclick = e => { e.preventDefault(); exportData(reportes, 'todos_reportes'); actionsMenu.classList.remove('show'); };
+        document.getElementById('downloadTemplate').onclick = e=>{ e.preventDefault(); downloadTemplate(); actionsMenu.classList.remove('show'); };
+        document.getElementById('importExcel').onclick = e=>{ e.preventDefault(); fileInput.click(); actionsMenu.classList.remove('show'); };
+        document.getElementById('downloadVisible').onclick = e=>{ e.preventDefault(); exportData(getVisible(),'reportes_visibles'); actionsMenu.classList.remove(('show')); };
+        document.getElementById('downloadAll').onclick = e=>{ e.preventDefault(); exportData(reportes,'todos_reportes'); actionsMenu.classList.remove('show'); };
 
         function downloadTemplate() {
             const ws = XLSX.utils.aoa_to_sheet([["Fecha","Día","Mes","Cod. Artículo","Descripción","Admisión","Rut","Paciente","Edad","Previsión","Isapre","Convenio","Cód. Arancel","Arancel","Cant. Art.","1° Cirujano"]]);
-            const wb = XLSX.utils.book_new(); 
-            XLSX.utils.book_append_sheet(wb, ws, "Template");
-            XLSX.writeFile(wb, "template_reportes.xlsx");
+            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Template");
+            XLSX.writeFile(wb,"template_reportes.xlsx");
         }
 
-        function exportData(data, name) {
-            const exp = data.map(r => ({
-                fecha: r.fecha||'', dia: r.dia, mes: r.mes, codArticulo: r.codArticulo, descripcion: r.descripcion,
-                admision: r.admision, rut: r.rut, paciente: r.paciente, edad: r.edad, prevision: r.prevision,
-                isapre: r.isapre, convenio: r.convenio, codArancel: r.codArancel, arancel: r.arancel,
-                cantidadArticulo: r.cantidadArticulo, primerCirujano: r.primerCirujano
-            }));
+        function exportData(data,name) {
+            const exp = data.map(r=>({fecha:r.fecha||'',dia:r.dia,mes:r.mes,codArticulo:r.codArticulo,descripcion:r.descripcion,admision:r.admision,rut:r.rut,paciente:r.paciente,edad:r.edad,prevision:r.prevision,isapre:r.isapre,convenio:r.convenio,codArancel:r.codArancel,arancel:r.arancel,cantidadArticulo:r.cantidadArticulo,primerCirujano:r.primerCirujano}));
             const ws = XLSX.utils.json_to_sheet(exp);
-            const wb = XLSX.utils.book_new(); 
-            XLSX.utils.book_append_sheet(wb, ws, "Reportes");
-            XLSX.writeFile(wb, name + '.xlsx');
+            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Reportes");
+            XLSX.writeFile(wb,name+'.xlsx');
         }
 
-        onAuthStateChanged(auth, user => {
-            if (!user) { window.location.replace('../../../../../../index.html'); return; }
-            loadAll();
+        onAuthStateChanged(auth, user=>{
+            if(!user){ window.location.replace('../../../../../../index.html'); return; }
+            loadAll().then(()=>initResize());
         });
-
-        document.addEventListener('DOMContentLoaded', initResize);
     </script>
 </body>
 </html>
