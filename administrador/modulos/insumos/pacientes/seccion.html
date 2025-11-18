@@ -6,7 +6,6 @@
     <title>Pacientes - Insumos</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <!-- Firebase clásico (carga rápida y sin errores) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -67,7 +66,6 @@
             color: #666;
         }
 
-        /* Spinner inmediato */
         .pendientes-loading {
             position: absolute;
             top: 12px;
@@ -83,7 +81,6 @@
             to { transform: rotate(360deg); }
         }
 
-        /* Badge número */
         .pendientes-badge {
             position: absolute;
             top: 12px;
@@ -104,7 +101,6 @@
         }
         .pendientes-badge.show { opacity: 1; }
 
-        /* Alerta roja */
         .option-card.pendientes-alert {
             background: #ffeaea !important;
             border: 2px solid #e74c3c !important;
@@ -124,25 +120,23 @@
 
     <div class="options-grid">
 
-        <div class="option-card" id="pendientesCard" onclick="parent.loadContent('modulos/insumos/pacientes/pendientes.html')">
+        <div class="option-card" id="pendientesCard" onclick="parent.loadContent('modulos/insumos/pacientes/secciones/pendientes/pendientes.html')">
             <i class="fas fa-clock"></i>
             <h3>Pacientes Pendientes</h3>
             <p>Pacientes con imputación pendiente</p>
 
-            <!-- Spinner visible desde el primer segundo -->
             <div id="pendientesLoading" class="pendientes-loading"></div>
 
-            <!-- Badge (oculto hasta tener datos) -->
             <span id="pendientesBadge" class="pendientes-badge">0</span>
         </div>
 
-        <div class="option-card" onclick="parent.loadContent('modulos/insumos/pacientes/cargados.html')">
+        <div class="option-card" onclick="parent.loadContent('modulos/insumos/pacientes/secciones/cargados/cargados.html')">
             <i class="fas fa-check-circle"></i>
             <h3>Pacientes Cargados</h3>
             <p>Ver pacientes con insumos ya imputados</p>
         </div>
 
-        <div class="option-card" onclick="parent.loadContent('modulos/insumos/pacientes/pacientes.html')">
+        <div class="option-card" onclick="parent.loadContent('modulos/insumos/pacientes/secciones/pacientes/pacientes.html')">
             <i class="fas fa-users"></i>
             <h3>Todos los Pacientes</h3>
             <p>Listado completo de pacientes</p>
@@ -151,7 +145,6 @@
 </div>
 
 <script>
-    // Configuración Firebase
     const firebaseConfig = {
         apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
         authDomain: "datara-salud.firebaseapp.com",
@@ -184,7 +177,6 @@
 
             const cantidad = grupos.size;
 
-            // Quitar spinner y mostrar resultado
             loading.style.opacity = '0';
             setTimeout(() => loading.style.display = 'none', 400);
 
@@ -203,7 +195,6 @@
         });
     }
 
-    // Ejecutar cuando el usuario esté logueado
     auth.onAuthStateChanged(user => {
         if (user) {
             actualizarContador();
@@ -211,7 +202,6 @@
         }
     });
 
-    // Si ya está logueado al cargar
     if (auth.currentUser) actualizarContador();
 </script>
 
