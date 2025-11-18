@@ -68,6 +68,7 @@ async function loadPendientes() {
 
 function renderTable() {
     const tbody = document.querySelector('#imputarTable tbody');
+    
     tbody.innerHTML = '';
 
     if (registrosPendientes.length === 0) {
