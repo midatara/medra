@@ -2,7 +2,14 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { getFirestore, collection, getDocs, updateDoc, doc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
-const firebaseConfig = { /* igual que siempre */ };
+const firebaseConfig = {
+    apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
+    authDomain: "datara-salud.firebaseapp.com",
+    projectId: "datara-salud",
+    storageBucket: "datara-salud.firebasestorage.app",
+    messagingSenderId: "198886910481",
+    appId: "1:198886910481:web:abbc345203a423a6329fb0"
+};
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
