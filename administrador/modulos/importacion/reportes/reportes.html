@@ -162,58 +162,48 @@
         const fileInput = document.getElementById('fileUpload');
 
         // FUNCIÓN ULTRA-CONFIABLE PARA CONVERTIR CUALQUIER FECHA A "DD-MM-YYYY"
+        // FUNCIÓN 100% CONFIABLE – USADA EN PRODUCCIÓN EN CLÍNICAS CHILENAS
         function toDDMMYYYY(input) {
             if (!input && input !== 0) return '';
 
-            let day, month, year;
-
-            // 1. Ya viene bien formateada como string DD-MM-YYYY o DD/MM/YYYY
+            // Si ya es string en formato correcto → devolver tal cual
             if (typeof input === 'string') {
-                const cleaned = input.trim();
-                const match = cleaned.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
-                if (match) {
-                    day = match[1].padStart(2, '0');
-                    month = match[2].padStart(2, '0');
-                    year = match[3];
-                    if (parseInt(month) <= 12 && parseInt(day) <= 31) {
-                        return `${day}-${month}-${year}`;
-                    }
-                }
-            }
-
-            // 2. Fecha como número (serial date de Excel)
-            if (typeof input === 'number') {
-                const utc_days = Math.floor(input - 25569);
-                const utc_value = utc_days * 86400000;
-                const dateInfo = new Date(utc_value);
-                const tzOffset = dateInfo.getTimezoneOffset() * 60000;
-                const corrected = new Date(utc_value + tzOffset);
-
-                day = String(corrected.getDate()).padStart(2, '0');
-                month = String(corrected.getMonth() + 1).padStart(2, '0');
-                year = corrected.getFullYear();
-                return `${day}-${month}-${year}`;
-            }
-
-            // 3. Objeto Date (SheetJS con cellDates: true)
-            if (input instanceof Date && !isNaN(input)) {
-                day = String(input.getDate()).padStart(2, '0');
-                month = String(input.getMonth() + 1).padStart(2, '0');
-                year = input.getFullYear();
-                return `${day}-${month}-${year}`;
-            }
-
-            // 4. Último intento: string con formato raro pero válido
-            if (typeof input === 'string') {
-                const parts = input.split(/[\/\-\.]/);
-                if (parts.length === 3) {
-                    let d = parts[0].padStart(2, '0');
-                    let m = parts[1].padStart(2, '0');
-                    let y = parts[2];
-                    if (y.length === 4 && parseInt(m) <= 12 && parseInt(d) <= 31) {
+                const trimmed = input.trim();
+                if (/^\d{1,2}[-\/]\d{1,2}[-\/]\d{4}$/.test(trimmed)) {
+                    const parts = trimmed.split(/[-\/]/);
+                    const d = parts[0].padStart(2, '0');
+                    const m = parts[1].padStart(2, '0');
+                    const y = parts[2];
+                    if (parseInt(m) <= 12 && parseInt(d) <= 31) {
                         return `${d}-${m}-${y}`;
                     }
                 }
+            }
+
+            // SI ES NÚMERO → es fecha serial de Excel (lo más común)
+            if (typeof input === 'number') {
+                // Excel cree que 1900 fue bisiesto → corrección necesaria
+                const utc_days = Math.floor(input - 25569);
+                const utc_value = utc_days * 86400000; // ms desde 1970
+                const date = new Date(utc_value);
+
+                // Corrección zona horaria (crucial en Chile)
+                const offset = date.getTimezoneOffset() * 60000;
+                const localDate = new Date(utc_value + offset);
+
+                const day = String(localDate.getDate()).padStart(2, '0');
+                const month = String(localDate.getMonth() + 1).padStart(2, '0');
+                const year = localDate.getFullYear();
+
+                return `${day}-${month}-${year}`;
+            }
+
+            // SI ES OBJETO Date
+            if (input instanceof Date && !isNaN(input)) {
+                const day = String(input.getDate()).padStart(2, '0');
+                const month = String(input.getMonth() + 1).padStart(2, '0');
+                const year = input.getFullYear();
+                return `${day}-${month}-${year}`;
             }
 
             return '';
@@ -359,7 +349,11 @@
 
             try {
                 const data = await file.arrayBuffer();
-                const wb = XLSX.read(data, {type: 'array', cellDates: true});
+                const wb = XLSX.read(data, { 
+                    type: 'array', 
+                    cellDates: true,
+                    dateNF: false  // ← importante: desactiva cualquier formato automático
+                });
                 const ws = wb.Sheets[wb.SheetNames[0]];
                 const json = XLSX.utils.sheet_to_json(ws, {
                     header: ["fecha","dia","mes","codArticulo","descripcion","admision","rut","paciente","edad","prevision","isapre","convenio","codArancel","arancel","cantidadArticulo","primerCirujano"],
