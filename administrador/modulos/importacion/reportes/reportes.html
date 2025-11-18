@@ -31,7 +31,7 @@
         .reportes-dropdown a:last-child{border-bottom:none}
         .reportes-dropdown a:hover{background:#f8f9fa}
         .table-wrapper{height:700px;overflow:auto;border:1px solid #ddd;border-radius:4px;background:white}
-        .reportes-table{width:100%;min-width:2000px;border-collapse:collapse;font-size:11px}
+        .reportes-table{width:100%;min-width:2200px;border-collapse:collapse;font-size:11px}
         .reportes-table th,.reportes-table td{padding:6px 4px;border:1px solid #ddd;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .reportes-table th{background:#f2f2f2;position:relative}
         .reportes-table tbody tr:hover{background:#f8f9fa}
@@ -115,7 +115,7 @@
         <input type="file" id="fileUpload" style="display:none" accept=".xlsx,.xls">
         <div id="reportes-loading" class="reportes-loading">
             <div class="spinner"></div>
-            <div>Procesando importación...</div>
+            <div>Procesando...</div>
         </div>
         <div id="reportes-toast" class="reportes-toast"></div>
     </div>
@@ -145,19 +145,8 @@
         function hideLoading() { loading.classList.remove('show'); }
         function showToast(m,t='success') { toast.textContent=m; toast.className=`reportes-toast ${t} show`; setTimeout(()=>toast.classList.remove('show'),5000); }
 
-        // === MENÚ ACCIONES ===
-        actionsBtn.onclick = (e) => {
-            e.stopPropagation();
-            actionsMenu.classList.toggle('show');
-        };
-        document.addEventListener('click', (e) => {
-            if (!actionsBtn.contains(e.target) && !actionsMenu.contains(e.target)) {
-                actionsMenu.classList.remove('show');
-            }
-        });
-
-        // === REDIMENSIONAR COLUMNAS ===
-        function initResize() { /* ... (el mismo código de antes, lo dejo para no alargar) ... */ 
+        // REDIMENSIONAR COLUMNAS
+        function initResize() {
             const table = document.getElementById('reportesTable');
             const headers = table.querySelectorAll('th');
             let resizing=false, col=-1, startX=0, startW=0;
@@ -183,22 +172,137 @@
             apply();
         }
 
-        // === CARGA Y FILTROS ===
-        async function loadAll() { /* igual que antes */ }
-        function updateMeses() { /* igual */ }
-        function getVisible() { /* igual */ }
-        function render() { /* igual */ }
+        // CARGA INICIAL
+        async function loadAll() {
+            showLoading();
+            try {
+                const snap = await getDocs(collection(db, "reportes"));
+                reportes = snap.docs.map(d => ({id: d.id, ...d.data()}));
 
-        // === ACCIONES DEL MENÚ ===
+                const anos = [...new Set(reportes.map(r => new Date(r.fecha).getFullYear()))].sort((a,b) => b-a);
+                selectAno.innerHTML = anos.map(a => `<option value="${a}">${a}</option>`).join('');
+                selectAno.value = selectedAno;
+
+                updateMeses();
+            } catch(e) {
+                showToast("Error cargando datos", "error");
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function updateMeses() {
+            const meses = new Set();
+            reportes.forEach(r => {
+                const d = new Date(r.fecha);
+                if (d.getFullYear() == selectedAno) meses.add(d.toLocaleString('es-CL', {month: 'long'}));
+            });
+            const orden = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+            const sorted = [...meses].sort((a,b) => orden.indexOf(a) - orden.indexOf(b));
+            selectMes.innerHTML = '<option value="">Selecciona mes</option>' + sorted.map(m => `<option value="${m}">${m.charAt(0).toUpperCase() + m.slice(1)}</option>`).join('');
+            selectedMes = '';
+            render();
+        }
+
+        function getVisible() {
+            if (!selectedMes) return [];
+            return reportes.filter(r => {
+                const d = new Date(r.fecha);
+                if (d.getFullYear() != selectedAno || d.toLocaleString('es-CL',{month:'long'}) !== selectedMes) return false;
+                const a = (r.admision||'').toLowerCase().includes(searchAdmision);
+                const p = (r.paciente||'').toLowerCase().includes(searchPaciente);
+                const ru = (r.rut||'').toLowerCase().includes(searchRut);
+                const de = (r.descripcion||'').toLowerCase().includes(searchDesc);
+                const c = (r.primerCirujano||'').toLowerCase().includes(searchCirujano);
+                return a && p && ru && de && c;
+            });
+        }
+
+        function render() {
+            body.innerHTML = '';
+            if (!selectedMes) {
+                body.innerHTML = '<tr><td colspan="16" class="empty-message">Selecciona un mes para cargar los registros</td></tr>';
+                return;
+            }
+            const data = getVisible();
+            if (data.length === 0) {
+                body.innerHTML = '<tr><td colspan="16" class="empty-message">No hay resultados</td></tr>';
+                return;
+            }
+            data.forEach(r => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${formatDate(r.fecha)}</td>
+                    <td>${r.dia||''}</td>
+                    <td>${r.mes||''}</td>
+                    <td>${r.codArticulo||''}</td>
+                    <td>${r.descripcion||''}</td>
+                    <td>${r.admision||''}</td>
+                    <td>${r.rut||''}</td>
+                    <td>${r.paciente||''}</td>
+                    <td>${r.edad||''}</td>
+                    <td>${r.prevision||''}</td>
+                    <td>${r.isapre||''}</td>
+                    <td>${r.convenio||''}</td>
+                    <td>${r.codArancel||''}</td>
+                    <td>${r.arancel||''}</td>
+                    <td>${r.cantidadArticulo||''}</td>
+                    <td>${r.primerCirujano||''}</td>
+                `;
+                body.appendChild(tr);
+            });
+            setTimeout(initResize, 50);
+        }
+
+        // EVENTOS
+        selectAno.onchange = () => { selectedAno = selectAno.value; updateMeses(); };
+        selectMes.onchange = () => { selectedMes = selectMes.value; render(); };
+
+        ['buscarAdmision','buscarPaciente','buscarRut','buscarDescripcion','buscarCirujano'].forEach(id => {
+            document.getElementById(id).oninput = e => {
+                const v = e.target.value.toLowerCase().trim();
+                if (id === 'buscarAdmision') searchAdmision = v;
+                if (id === 'buscarPaciente') searchPaciente = v;
+                if (id === 'buscarRut') searchRut = v;
+                if (id === 'buscarDescripcion') searchDesc = v;
+                if (id === 'buscarCirujano') searchCirujano = v;
+                if (selectedMes) render();
+            };
+        });
+
+        // MENÚ ACCIONES
+        actionsBtn.onclick = e => { e.stopPropagation(); actionsMenu.classList.toggle('show'); };
+        document.addEventListener('click', e => {
+            if (!actionsBtn.contains(e.target) && !actionsMenu.contains(e.target)) {
+                actionsMenu.classList.remove('show');
+            }
+        });
+
         document.getElementById('downloadTemplate').onclick = e => { e.preventDefault(); downloadTemplate(); actionsMenu.classList.remove('show'); };
         document.getElementById('importExcel').onclick = e => { e.preventDefault(); fileInput.click(); actionsMenu.classList.remove('show'); };
-        document.getElementById('downloadVisible').onclick = e => { e.preventDefault(); exportData(getVisible(),'reportes_visibles'); actionsMenu.classList.remove('show'); };
-        document.getElementById('downloadAll').onclick = e => { e.preventDefault(); exportData(reportes,'todos_reportes'); actionsMenu.classList.remove('show'); };
+        document.getElementById('downloadVisible').onclick = e => { e.preventDefault(); exportData(getVisible(), 'reportes_visibles'); actionsMenu.classList.remove('show'); };
+        document.getElementById('downloadAll').onclick = e => { e.preventDefault(); exportData(reportes, 'todos_reportes'); actionsMenu.classList.remove('show'); };
 
-        function downloadTemplate(){ /* igual */ }
-        function exportData(data,name){ /* igual */ }
+        function downloadTemplate() {
+            const ws = XLSX.utils.aoa_to_sheet([["Fecha","Día","Mes","Cod. Artículo","Descripción","Admisión","Rut","Paciente","Edad","Previsión","Isapre","Convenio","Cód. Arancel","Arancel","Cant. Art.","1° Cirujano"]]);
+            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Template");
+            XLSX.writeFile(wb, "template_reportes.xlsx");
+        }
 
-        // === IMPORTACIÓN COMPLETA SIN DUPLICADOS ===
+        function exportData(data, name) {
+            const exp = data.map(r => ({
+                fecha: formatDate(r.fecha), dia: r.dia, mes: r.mes, codArticulo: r.codArticulo,
+                descripcion: r.descripcion, admision: r.admision, rut: r.rut, paciente: r.paciente,
+                edad: r.edad, prevision: r.prevision, isapre: r.isapre, convenio: r.convenio,
+                codArancel: r.codArancel, arancel: r.arancel, cantidadArticulo: r.cantidadArticulo,
+                primerCirujano: r.primerCirujano
+            }));
+            const ws = XLSX.utils.json_to_sheet(exp);
+            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Reportes");
+            XLSX.writeFile(wb, name + '.xlsx');
+        }
+
+        // IMPORTACIÓN COMPLETA SIN DUPLICADOS
         fileInput.onchange = async e => {
             const file = e.target.files[0];
             if (!file) return;
@@ -264,7 +368,7 @@
             fileInput.value = '';
         };
 
-        // === INICIO ===
+        // INICIO
         onAuthStateChanged(auth, user => {
             if (!user) { window.location.replace('../../../../../../index.html'); return; }
             loadAll();
