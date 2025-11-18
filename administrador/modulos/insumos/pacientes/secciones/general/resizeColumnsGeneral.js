@@ -1,5 +1,3 @@
-// resizeColumnsHistorial.js → Igual que pendientes y cargados
-
 function initColumnResizing() {
     const table = document.querySelector('.historial-table');
     if (!table) return;

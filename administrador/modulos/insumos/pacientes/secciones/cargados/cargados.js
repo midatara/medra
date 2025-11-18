@@ -15,13 +15,13 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-let allData = []; // Todos los registros CARGADO
-let filteredData = []; // Datos filtrados por año/mes/texto
+let allData = []; 
+let filteredData = []; 
 let availableYears = [];
 let availableMonths = {};
 let selectedYear = '';
 let selectedMonth = '';
-let filterScope = 'currentMonth'; // currentMonth | currentYear | all
+let filterScope = 'currentMonth'; 
 
 const yearSelect = document.getElementById('yearSelect');
 const monthSelect = document.getElementById('monthSelect');
@@ -83,7 +83,6 @@ async function loadAllData() {
         availableYears = Array.from(yearsSet).sort((a, b) => b - a);
         availableMonths = monthsByYear;
 
-        // Seleccionar año/mes más reciente por defecto
         const now = new Date();
         selectedYear = now.getFullYear().toString();
         selectedMonth = String(now.getMonth() + 1).padStart(2, '0');
@@ -150,7 +149,7 @@ function getFilteredByDate(data) {
         if (filterScope === 'currentYear') {
             return y === selectedYear;
         }
-        return true; // all
+        return true; 
     });
 }
 
@@ -193,7 +192,6 @@ function applyFiltersAndRender() {
     filtered = applyTextFilters(filtered);
     const grouped = groupData(filtered);
 
-    // Ordenar por fecha más reciente
     grouped.sort((a, b) => b.fechaCX.localeCompare(a.fechaCX));
 
     renderTable(grouped);
@@ -225,9 +223,7 @@ function renderTable(data) {
     });
 }
 
-// === EVENTOS ===
 document.addEventListener('DOMContentLoaded', () => {
-    // Selects
     yearSelect.addEventListener('change', () => {
         selectedYear = yearSelect.value;
         selectedMonth = '';
@@ -240,7 +236,6 @@ document.addEventListener('DOMContentLoaded', () => {
         applyFiltersAndRender();
     });
 
-    // Filtros de texto con debounce
     const textInputs = [
         'filterAdmision',
         'filterPaciente',
@@ -254,7 +249,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 300));
     });
 
-    // Scope radio buttons
     document.querySelectorAll('input[name="filterScope"]').forEach(radio => {
         radio.addEventListener('change', () => {
             filterScope = radio.value;
@@ -264,7 +258,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     refreshBtn.addEventListener('click', loadAllData);
 
-    // Autenticación
     onAuthStateChanged(auth, user => {
         if (!user) {
             window.location.replace('../../../index.html');

@@ -100,7 +100,6 @@ html, body {
     background-color: #f8f9fa;
 }
 
-/* Anchos de columnas */
 .historial-table th:nth-child(1), .historial-table td:nth-child(1) { width: 100px; }
 .historial-table th:nth-child(2), .historial-table td:nth-child(2) { width: 100px; }
 .historial-table th:nth-child(3), .historial-table td:nth-child(3) { width: 90px; }
@@ -123,7 +122,6 @@ html, body {
 .estado-badge[data-estado="INGRESADO"] { background: #3498db; }
 .estado-badge[data-estado="PENDIENTE"] { background: #e67e22; }
 
-/* Toast y loading */
 .historial-toast-container {
     position: fixed; bottom: 20px; right: 20px; z-index: 1000;
     display: flex; flex-direction: column; gap: 10px; max-width: 380px;

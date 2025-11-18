@@ -41,7 +41,6 @@ html, body {
     gap: 12px;
 }
 
-/* FILTROS EN UNA SOLA FILA HORIZONTAL */
 .filters-grid {
     display: grid;
     grid-template-columns: 120px 130px 1fr 1fr 1fr 1fr;
@@ -79,7 +78,6 @@ html, body {
     box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
 }
 
-/* Ámbito de búsqueda (radio buttons) */
 .scope-buttons {
     display: flex;
     flex-wrap: wrap;
@@ -104,7 +102,6 @@ html, body {
     margin: 0;
 }
 
-/* Botón actualizar alineado a la derecha */
 .cargados-buttons {
     display: flex;
     justify-content: flex-end;
@@ -130,7 +127,6 @@ html, body {
     transform: translateY(-1px);
 }
 
-/* Tabla */
 .cargados-table-container {
     flex-grow: 1;
     border: 1px solid #ddd;
@@ -185,7 +181,6 @@ html, body {
     background-color: #f8f9fa;
 }
 
-/* Anchos de columnas */
 .cargados-table th:nth-child(1), .cargados-table td:nth-child(1) { width: 100px; }
 .cargados-table th:nth-child(2), .cargados-table td:nth-child(2) { width: 90px; }
 .cargados-table th:nth-child(3), .cargados-table td:nth-child(3) { width: 220px; }
@@ -199,7 +194,6 @@ html, body {
     color: #27ae60;
 }
 
-/* Toast y loading */
 .cargados-toast-container {
     position: fixed;
     bottom: 20px;
@@ -272,7 +266,6 @@ html, body {
     to { transform: rotate(360deg); }
 }
 
-/* Botón volver */
 .cargados-back-button {
     margin-bottom: 12px;
 }
@@ -298,7 +291,6 @@ html, body {
     transform: translateY(-2px);
 }
 
-/* RESPONSIVE: en pantallas pequeñas pasa a columna */
 @media (max-width: 1200px) {
     .filters-grid {
         grid-template-columns: 1fr 1fr;

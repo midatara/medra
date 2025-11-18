@@ -1,4 +1,3 @@
-// resizeColumns.js (para pendientes)
 function initColumnResizing() {
     const table = document.querySelector('.pendientes-table');
     if (!table) return;

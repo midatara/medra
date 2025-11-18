@@ -17,7 +17,6 @@ const db = getFirestore(app);
 
 let groupedData = [];
 
-// === Funciones compartidas con historial (igualitas) ===
 function showLoading() {
     const loading = document.getElementById('loading');
     if (loading) loading.classList.add('show');
@@ -37,7 +36,6 @@ function showToast(message, type = 'success') {
     toast.textContent = message;
     container.appendChild(toast);
 
-    // Forzar reflow para animación
     requestAnimationFrame(() => toast.classList.add('show'));
 
     setTimeout(() => {
@@ -56,7 +54,6 @@ function formatDate(dateStr) {
     return `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
 }
 
-// === Carga de datos ===
 async function loadPendientes() {
     showLoading();
     try {
@@ -89,7 +86,6 @@ async function loadPendientes() {
             grupo.totalItems += Number(reg.totalItems || 0);
             grupo.registrosIds.push(reg.id);
 
-            // Mantener estado más "avanzado" si existe
             if (reg.estado && reg.estado !== 'PENDIENTE') {
                 grupo.estado = reg.estado;
             }
@@ -108,7 +104,6 @@ async function loadPendientes() {
     }
 }
 
-// === Renderizado ===
 function renderTable() {
     const tbody = document.querySelector('#pendientesTable tbody');
     if (!tbody) return;
@@ -167,7 +162,7 @@ async function marcarComoCargado() {
         await Promise.all(updates);
 
         showToast(`Se marcaron ${checked.length} paciente(s) como CARGADO`, 'success');
-        await loadPendientes(); // recargar
+        await loadPendientes();
     } catch (err) {
         console.error(err);
         showToast('Error al actualizar estado: ' + err.message, 'error');
@@ -176,7 +171,6 @@ async function marcarComoCargado() {
     }
 }
 
-// === Eventos ===
 document.addEventListener('DOMContentLoaded', () => {
     const selectAll = document.getElementById('selectAll');
     const marcarBtn = document.getElementById('marcarCargadosBtn');
@@ -197,7 +191,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Autenticación
     onAuthStateChanged(auth, user => {
         if (!user) {
             window.location.replace('../../../index.html');

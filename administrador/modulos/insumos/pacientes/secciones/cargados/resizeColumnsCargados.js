@@ -1,5 +1,3 @@
-// resizeColumnsCargados.js  →  Ahora funciona IGUAL que en pendientes.html
-
 function initColumnResizing() {
     const table = document.querySelector('.cargados-table');
     if (!table) return;
@@ -47,10 +45,8 @@ function initColumnResizing() {
         }
     }
 
-    // Aplicar anchos iniciales guardados (si existen)
     applySavedColumnWidths();
 
-    // Inicializar anchos actuales
     headers.forEach((header, index) => {
         const width = parseInt(header.style.width) || header.offsetWidth;
         updateColumnCells(index, width);
@@ -96,7 +92,6 @@ function initColumnResizing() {
         }
     });
 
-    // === Observer para cuando se renderiza la tabla de nuevo ===
     const tbody = table.querySelector('tbody');
     if (tbody) {
         const observer = new MutationObserver(() => {
@@ -142,10 +137,9 @@ function saveColumnWidths() {
     localStorage.setItem('cargados-column-widths', JSON.stringify(widths));
 }
 
-// Inicializar al cargar
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         applySavedColumnWidths();
         initColumnResizing();
-    }, 150); // Un poquito más de tiempo por si la tabla tarda en renderizarse
+    }, 150); 
 });
