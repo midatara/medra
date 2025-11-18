@@ -72,7 +72,7 @@ function renderTable() {
     tbody.innerHTML = '';
 
     if (registrosPendientes.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="13" style="text-align:center;padding:40px;color:#999;">
+        tbody.innerHTML = `<tr><td colspan="14" style="text-align:center;padding:40px;color:#999;">
             No hay insumos pendientes de imputar
         </td></tr>`;
         return;
@@ -85,12 +85,13 @@ function renderTable() {
             <td>${reg.admision || ''}</td>
             <td>${reg.codigo || ''}</td>
             <td style="text-align:center">${reg.cantidad || ''}</td>
-            <td></td> <!-- Venta (vacía por ahora) -->
+            <td></td>
             <td>${formatDate(reg.fechaCX)}</td>
             <td>${reg.prevision || ''}</td>
             <td>${reg.convenio || ''}</td>
             <td>${reg.paciente || ''}</td>
             <td>${reg.descripcion || ''}</td>
+            <td>${reg.proveedor || ''}</td>
             <td class="total-cell">$${formatNumber(reg.totalItems)}</td>
             <td>${reg.atributo || ''}</td>
             <td><span class="estado-badge" data-estado="${reg.estado || 'PENDIENTE'}">${reg.estado || 'PENDIENTE'}</span></td>

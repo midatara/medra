@@ -151,9 +151,10 @@ html, body {
 .imputar-table th:nth-child(8),  .imputar-table td:nth-child(8)  { width: 100px; }   
 .imputar-table th:nth-child(9),  .imputar-table td:nth-child(9)  { width: 220px; } 
 .imputar-table th:nth-child(10), .imputar-table td:nth-child(10) { width: 300px; }  
-.imputar-table th:nth-child(11), .imputar-table td:nth-child(11) { width: 120px; text-align: right; } 
-.imputar-table th:nth-child(12), .imputar-table td:nth-child(12) { width: 130px; }    
-.imputar-table th:nth-child(13), .imputar-table td:nth-child(13) { width: 100px; }    
+.imputar-table th:nth-child(11), .imputar-table td:nth-child(11) { width: 180px; }  
+.imputar-table th:nth-child(12), .imputar-table td:nth-child(12) { width: 120px; text-align: right; } 
+.imputar-table th:nth-child(13), .imputar-table td:nth-child(13) { width: 130px; }    
+.imputar-table th:nth-child(14), .imputar-table td:nth-child(14) { width: 100px; }    
 
 .total-cell {
     font-weight: bold;
