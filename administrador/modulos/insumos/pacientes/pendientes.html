@@ -10,28 +10,31 @@
 <body>
     <div class="pendientes-main-container">
         <h1 class="pendientes-title">Pacientes Pendientes de Carga</h1>
-        <div class="pendientes-controls">
-            <button id="marcarCargadosBtn" class="btn-primary" disabled>
-                <i class="fas fa-check-double"></i> Marcar como CARGADO
-            </button>
-            <button id="refreshBtn" class="btn-secondary">
-                <i class="fas fa-sync-alt"></i> Actualizar
-            </button>
+
+        <div class="pendientes-controls-container">
+            <div class="pendientes-buttons">
+                <button id="marcarCargadosBtn" class="btn-primary" disabled>
+                    <i class="fas fa-check-double"></i> Marcar como CARGADO
+                </button>
+                <button id="refreshBtn" class="btn-secondary">
+                    <i class="fas fa-sync-alt"></i> Actualizar
+                </button>
+            </div>
         </div>
 
         <div class="pendientes-table-container">
             <table class="pendientes-table" id="pendientesTable">
                 <thead>
                     <tr>
-                        <th><input type="checkbox" id="selectAll"></th>
-                        <th>Estado</th>
-                        <th>Previsión</th>
-                        <th>Admisión</th>
-                        <th>Paciente</th>
-                        <th>Médico</th>
-                        <th>Fecha CX</th>
-                        <th>Proveedor</th>
-                        <th>Total</th>
+                        <th><input type="checkbox" id="selectAll"><div class="resize-handle"></div></th>
+                        <th>Estado<div class="resize-handle"></div></th>
+                        <th>Previsión<div class="resize-handle"></div></th>
+                        <th>Admisión<div class="resize-handle"></div></th>
+                        <th>Paciente<div class="resize-handle"></div></th>
+                        <th>Médico<div class="resize-handle"></div></th>
+                        <th>Fecha CX<div class="resize-handle"></div></th>
+                        <th>Proveedor<div class="resize-handle"></div></th>
+                        <th>Total<div class="resize-handle"></div></th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -47,5 +50,6 @@
     <div class="pendientes-toast-container" id="toastContainer"></div>
 
     <script type="module" src="pendientes.js"></script>
+    <script type="module" src="resizeColumns.js"></script>
 </body>
 </html>
