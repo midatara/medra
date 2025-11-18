@@ -135,15 +135,14 @@ html, body {
     background-color: #f8f9fa;
 }
 
-.pendientes-table th:nth-child(1), .pendientes-table td:nth-child(1) { width: 50px; }
-.pendientes-table th:nth-child(2), .pendientes-table td:nth-child(2) { width: 100px; }
-.pendientes-table th:nth-child(3), .pendientes-table td:nth-child(3) { width: 100px; }
-.pendientes-table th:nth-child(4), .pendientes-table td:nth-child(4) { width: 80px; }
-.pendientes-table th:nth-child(5), .pendientes-table td:nth-child(5) { width: 220px; }
-.pendientes-table th:nth-child(6), .pendientes-table td:nth-child(6) { width: 200px; }
-.pendientes-table th:nth-child(7), .pendientes-table td:nth-child(7) { width: 90px; }
-.pendientes-table th:nth-child(8), .pendientes-table td:nth-child(8) { width: 180px; }
-.pendientes-table th:nth-child(9), .pendientes-table td:nth-child(9) { width: 120px; text-align: right; }
+.pendientes-table th:nth-child(1), .pendientes-table td:nth-child(1) { width: 100px; } /* Estado */
+.pendientes-table th:nth-child(2), .pendientes-table td:nth-child(2) { width: 100px; } /* Previsión */
+.pendientes-table th:nth-child(3), .pendientes-table td:nth-child(3) { width: 90px; }  /* Admisión */
+.pendientes-table th:nth-child(4), .pendientes-table td:nth-child(4) { width: 240px; } /* Paciente */
+.pendientes-table th:nth-child(5), .pendientes-table td:nth-child(5) { width: 220px; } /* Médico */
+.pendientes-table th:nth-child(6), .pendientes-table td:nth-child(6) { width: 100px; } /* Fecha CX */
+.pendientes-table th:nth-child(7), .pendientes-table td:nth-child(7) { width: 200px; } /* Proveedor */
+.pendientes-table th:nth-child(8), .pendientes-table td:nth-child(8) { width: 130px; text-align: right; } /* Total */
 
 .total-cell {
     font-weight: bold;

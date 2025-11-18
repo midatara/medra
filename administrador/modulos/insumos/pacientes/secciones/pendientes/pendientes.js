@@ -1,6 +1,6 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { getFirestore, collection, getDocs, updateDoc, doc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { getFirestore, collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const firebaseConfig = {
     apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
@@ -78,13 +78,11 @@ async function loadPendientes() {
                     proveedor: reg.proveedor || '',
                     prevision: reg.prevision || '',
                     estado: reg.estado || 'PENDIENTE',
-                    totalItems: 0,
-                    registrosIds: []
+                    totalItems: 0
                 });
             }
             const grupo = map.get(key);
             grupo.totalItems += Number(reg.totalItems || 0);
-            grupo.registrosIds.push(reg.id);
 
             if (reg.estado && reg.estado !== 'PENDIENTE') {
                 grupo.estado = reg.estado;
@@ -95,7 +93,6 @@ async function loadPendientes() {
             .sort((a, b) => (b.totalItems || 0) - (a.totalItems || 0));
 
         renderTable();
-        updateMarcarButton();
     } catch (err) {
         console.error(err);
         showToast('Error al cargar pendientes: ' + err.message, 'error');
@@ -111,16 +108,15 @@ function renderTable() {
     tbody.innerHTML = '';
 
     if (groupedData.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:30px; color:#999; font-size:13px;">
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:30px; color:#999; font-size:13px;">
             No hay pacientes pendientes de carga
         </td></tr>`;
         return;
     }
 
-    groupedData.forEach((grupo, index) => {
+    groupedData.forEach(grupo => {
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td><input type="checkbox" class="row-checkbox" data-index="${index}"></td>
             <td><span class="estado-badge" data-estado="${grupo.estado}">${grupo.estado || 'PENDIENTE'}</span></td>
             <td>${grupo.prevision || ''}</td>
             <td>${grupo.admision}</td>
@@ -134,62 +130,10 @@ function renderTable() {
     });
 }
 
-function updateMarcarButton() {
-    const checked = document.querySelectorAll('.row-checkbox:checked').length;
-    const btn = document.getElementById('marcarCargadosBtn');
-    if (btn) btn.disabled = checked === 0;
-}
-
-async function marcarComoCargado() {
-    const checked = document.querySelectorAll('.row-checkbox:checked');
-    if (checked.length === 0) return;
-
-    showLoading();
-    const idsToUpdate = [];
-
-    checked.forEach(cb => {
-        const index = parseInt(cb.dataset.index);
-        const grupo = groupedData[index];
-        if (grupo?.registrosIds) {
-            idsToUpdate.push(...grupo.registrosIds);
-        }
-    });
-
-    try {
-        const updates = idsToUpdate.map(id =>
-            updateDoc(doc(db, 'consigna_historial', id), { estado: 'CARGADO' })
-        );
-        await Promise.all(updates);
-
-        showToast(`Se marcaron ${checked.length} paciente(s) como CARGADO`, 'success');
-        await loadPendientes();
-    } catch (err) {
-        console.error(err);
-        showToast('Error al actualizar estado: ' + err.message, 'error');
-    } finally {
-        hideLoading();
-    }
-}
-
 document.addEventListener('DOMContentLoaded', () => {
-    const selectAll = document.getElementById('selectAll');
-    const marcarBtn = document.getElementById('marcarCargadosBtn');
     const refreshBtn = document.getElementById('refreshBtn');
-    const tbody = document.querySelector('#pendientesTable tbody');
 
-    selectAll?.addEventListener('change', () => {
-        document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = selectAll.checked);
-        updateMarcarButton();
-    });
-
-    marcarBtn?.addEventListener('click', marcarComoCargado);
     refreshBtn?.addEventListener('click', loadPendientes);
-
-    tbody?.addEventListener('change', e => {
-        if (e.target.classList.contains('row-checkbox')) {
-            updateMarcarButton();
-        }
-    });
 
     onAuthStateChanged(auth, user => {
         if (!user) {
