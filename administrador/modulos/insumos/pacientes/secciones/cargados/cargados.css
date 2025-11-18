@@ -235,3 +235,51 @@ html, body {
 .btn-back i {
     font-size: 14px;
 }
+
+.filters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+    margin-bottom: 12px;
+    align-items: end;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    font-size: 11px;
+}
+
+.filter-group label {
+    margin-bottom: 4px;
+    font-weight: bold;
+    color: #444;
+}
+
+.filter-group select,
+.filter-group input {
+    padding: 6px 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 11px;
+}
+
+.scope-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: 10px 0;
+    font-size: 11px;
+    color: #555;
+}
+
+.scope-buttons label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+}
+
+.scope-buttons input[type="radio"] {
+    margin: 0;
+}

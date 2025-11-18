@@ -19,7 +19,50 @@
 
         <h1 class="cargados-title">Pacientes con Insumos Cargados</h1>
 
+        <!-- FILTROS AVANZADOS -->
         <div class="cargados-controls-container">
+            <div class="filters-grid">
+                <div class="filter-group">
+                    <label>Año</label>
+                    <select id="yearSelect"></select>
+                </div>
+                <div class="filter-group">
+                    <label>Mes</label>
+                    <select id="monthSelect"></select>
+                </div>
+                <div class="filter-group">
+                    <label>Admisión</label>
+                    <input type="text" id="filterAdmision" placeholder="Buscar admisión...">
+                </div>
+                <div class="filter-group">
+                    <label>Paciente</label>
+                    <input type="text" id="filterPaciente" placeholder="Buscar paciente...">
+                </div>
+                <div class="filter-group">
+                    <label>Médico</label>
+                    <input type="text" id="filterMedico" placeholder="Buscar médico...">
+                </div>
+                <div class="filter-group">
+                    <label>Proveedor</label>
+                    <input type="text" id="filterProveedor" placeholder="Buscar proveedor...">
+                </div>
+            </div>
+
+            <div class="scope-buttons">
+                <label>
+                    <input type="radio" name="filterScope" value="currentMonth" checked>
+                    Solo mes/año seleccionado
+                </label>
+                <label>
+                    <input type="radio" name="filterScope" value="currentYear">
+                    Todo el año seleccionado
+                </label>
+                <label>
+                    <input type="radio" name="filterScope" value="all">
+                    Todos los registros
+                </label>
+            </div>
+
             <div class="cargados-buttons">
                 <button id="refreshBtn" class="btn-secondary">
                     <i class="fas fa-sync-alt"></i> Actualizar
@@ -53,6 +96,6 @@
     <div class="cargados-toast-container" id="toastContainer"></div>
 
     <script type="module" src="cargados.js"></script>
-    <script type="module" src="resizeColumns.js"></script>
+    <script type="module" src="resizeColumnsCargados.js"></script>
 </body>
 </html>
