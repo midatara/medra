@@ -38,10 +38,14 @@
         .resize-handle{position:absolute;right:0;top:0;width:5px;height:100%;cursor:col-resize;background:transparent;z-index:11}
         .resize-handle:hover,.resize-handle.active{background:#007bff}
         .empty-message{text-align:center;padding:80px 0;font-size:14px;color:#666}
-        .reportes-loading{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(255,255,255,0.97);padding:24px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.2);z-index:1000;flex-direction:column;align-items:center}
+
+        /* BARRA DE PROGRESO PERSONALIZADA */
+        .reportes-loading{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.8);color:white;padding:24px 32px;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,0.3);z-index:1000;width:380px;flex-direction:column;align-items:center}
         .reportes-loading.show{display:flex}
-        .spinner{width:36px;height:36px;border:4px solid #f0f0f0;border-top:4px solid #007bff;border-radius:50%;animation:s 1s linear infinite;margin-bottom:12px}
-        @keyframes s{to{transform:rotate(360deg)}}
+        .progress-container{width:100%;background:#333;border-radius:8px;overflow:hidden;margin:16px 0;height:16px}
+        .progress-bar{height:100%;background:#28a745;width:0%;transition:width 0.3s ease}
+        .progress-text{font-size:13px;margin-top:8px}
+
         .reportes-toast{position:fixed;top:20px;right:20px;padding:14px 20px;border-radius:6px;color:white;z-index:1001;font-size:13px;transform:translateX(120%);transition:all .4s;opacity:0}
         .reportes-toast.show{transform:translateX(0);opacity:1}
         .reportes-toast.success{background:#28a745}
@@ -113,10 +117,16 @@
         </div>
 
         <input type="file" id="fileUpload" style="display:none" accept=".xlsx,.xls">
+
+        <!-- LOADING CON BARRA DE PROGRESO -->
         <div id="reportes-loading" class="reportes-loading">
-            <div class="spinner"></div>
-            <div>Procesando...</div>
+            <div style="font-size:15px;margin-bottom:12px">Importando datos...</div>
+            <div class="progress-container">
+                <div id="progressBar" class="progress-bar"></div>
+            </div>
+            <div id="progressText" class="progress-text">0% (0 de 0)</div>
         </div>
+
         <div id="reportes-toast" class="reportes-toast"></div>
     </div>
 
@@ -135,54 +145,59 @@
         const selectMes = document.getElementById('selectMes');
         const body = document.getElementById('reportesBody');
         const loading = document.getElementById('reportes-loading');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
         const toast = document.getElementById('reportes-toast');
         const actionsBtn = document.getElementById('actionsBtn');
         const actionsMenu = document.getElementById('actionsMenu');
         const fileInput = document.getElementById('fileUpload');
 
-        function formatDate(d) { if (!d) return ''; const date = new Date(d); return `${String(date.getDate()).padStart(2,'0')}-${String(date.getMonth()+1).padStart(2,'0')}-${date.getFullYear()}`; }
-        function showLoading() { loading.classList.add('show'); }
-        function hideLoading() { loading.classList.remove('show'); }
-        function showToast(m,t='success') { toast.textContent=m; toast.className=`reportes-toast ${t} show`; setTimeout(()=>toast.classList.remove('show'),5000); }
-
-        // REDIMENSIONAR COLUMNAS
-        function initResize() {
-            const table = document.getElementById('reportesTable');
-            const headers = table.querySelectorAll('th');
-            let resizing=false, col=-1, startX=0, startW=0;
-            const MIN=40, MAX=800;
-            function apply() {
-                const s = localStorage.getItem('reportes-column-widths');
-                if(!s) return;
-                try { const w = JSON.parse(s);
-                    headers.forEach((th,i)=>{ if(w[i]){ const px=w[i]+'px'; th.style.width=th.style.minWidth=th.style.maxWidth=px;
-                        table.querySelectorAll(`td:nth-child(${i+1})`).forEach(td=>td.style.width=td.style.minWidth=td.style.maxWidth=px);
-                    }});
-                }catch(e){}
+        // FORMATEO DE FECHA CORRECTO: SIEMPRE DD-MM-YYYY
+        function formatDate(dateInput) {
+            if (!dateInput) return '';
+            let date;
+            if (typeof dateInput === 'string') {
+                // Detecta si viene como "MM/DD/YYYY" o "YYYY-MM-DD"
+                if (dateInput.includes('/')) {
+                    const parts = dateInput.split('/');
+                    if (parts[0].length === 4) {
+                        // YYYY/MM/DD
+                        date = new Date(parts[0], parts[1]-1, parts[2]);
+                    } else {
+                        // MM/DD/YYYY → lo convertimos a DD-MM-YYYY
+                        date = new Date(parts[2], parts[0]-1, parts[1]);
+                    }
+                } else {
+                    date = new Date(dateInput);
+                }
+            } else {
+                date = new Date(dateInput);
             }
-            function save() { const w = Array.from(headers).map(th=>parseInt(th.style.width)||th.offsetWidth); localStorage.setItem('reportes-column-widths', JSON.stringify(w)); }
-            headers.forEach((th,i)=>{
-                let h=th.querySelector('.resize-handle');
-                if(!h){ h=document.createElement('div'); h.className='resize-handle'; th.appendChild(h); }
-                h.onmousedown=e=>{ e.preventDefault(); resizing=true; col=i; startX=e.clientX; startW=th.offsetWidth; h.classList.add('active'); document.body.style.cursor='col-resize'; document.body.style.userSelect='none'; };
-            });
-            document.onmousemove=e=>{ if(!resizing||col===-1) return; let nw = Math.max(MIN, Math.min(MAX, startW + (e.clientX-startX))); const px=nw+'px'; headers[col].style.width=headers[col].style.minWidth=headers[col].style.maxWidth=px;
-                table.querySelectorAll(`td:nth-child(${col+1})`).forEach(td=>td.style.width=td.style.minWidth=td.style.maxWidth=px); };
-            document.onmouseup=()=>{ if(resizing){ resizing=false; col=-1; document.body.style.cursor=''; document.body.style.userSelect=''; table.querySelectorAll('.resize-handle.active').forEach(h=>h.classList.remove('active')); save(); }};
-            apply();
+            if (isNaN(date.getTime())) return '';
+            return `${String(date.getDate()).padStart(2,'0')}-${String(date.getMonth()+1).padStart(2,'0')}-${date.getFullYear()}`;
         }
 
-        // CARGA INICIAL
+        function showLoading() { loading.classList.add('show'); }
+        function hideLoading() { loading.classList.remove('show'); }
+        function updateProgress(current, total) {
+            const percent = total > 0 ? Math.round((current / total) * 100) : 0;
+            progressBar.style.width = percent + '%';
+            progressText.textContent = `${percent}% (${current} de ${total})`;
+        }
+
+        function showToast(m,t='success') { toast.textContent=m; toast.className=`reportes-toast ${t} show`; setTimeout(()=>toast.classList.remove('show'),5000); }
+
+        // Resto del código (resize, loadAll, render, etc.) igual que antes...
+        // (Lo incluyo completo al final para que no falte nada)
+
         async function loadAll() {
             showLoading();
             try {
                 const snap = await getDocs(collection(db, "reportes"));
                 reportes = snap.docs.map(d => ({id: d.id, ...d.data()}));
-
                 const anos = [...new Set(reportes.map(r => new Date(r.fecha).getFullYear()))].sort((a,b) => b-a);
                 selectAno.innerHTML = anos.map(a => `<option value="${a}">${a}</option>`).join('');
                 selectAno.value = selectedAno;
-
                 updateMeses();
             } catch(e) {
                 showToast("Error cargando datos", "error");
@@ -254,59 +269,14 @@
             setTimeout(initResize, 50);
         }
 
-        // EVENTOS
-        selectAno.onchange = () => { selectedAno = selectAno.value; updateMeses(); };
-        selectMes.onchange = () => { selectedMes = selectMes.value; render(); };
-
-        ['buscarAdmision','buscarPaciente','buscarRut','buscarDescripcion','buscarCirujano'].forEach(id => {
-            document.getElementById(id).oninput = e => {
-                const v = e.target.value.toLowerCase().trim();
-                if (id === 'buscarAdmision') searchAdmision = v;
-                if (id === 'buscarPaciente') searchPaciente = v;
-                if (id === 'buscarRut') searchRut = v;
-                if (id === 'buscarDescripcion') searchDesc = v;
-                if (id === 'buscarCirujano') searchCirujano = v;
-                if (selectedMes) render();
-            };
-        });
-
-        // MENÚ ACCIONES
-        actionsBtn.onclick = e => { e.stopPropagation(); actionsMenu.classList.toggle('show'); };
-        document.addEventListener('click', e => {
-            if (!actionsBtn.contains(e.target) && !actionsMenu.contains(e.target)) {
-                actionsMenu.classList.remove('show');
-            }
-        });
-
-        document.getElementById('downloadTemplate').onclick = e => { e.preventDefault(); downloadTemplate(); actionsMenu.classList.remove('show'); };
-        document.getElementById('importExcel').onclick = e => { e.preventDefault(); fileInput.click(); actionsMenu.classList.remove('show'); };
-        document.getElementById('downloadVisible').onclick = e => { e.preventDefault(); exportData(getVisible(), 'reportes_visibles'); actionsMenu.classList.remove('show'); };
-        document.getElementById('downloadAll').onclick = e => { e.preventDefault(); exportData(reportes, 'todos_reportes'); actionsMenu.classList.remove('show'); };
-
-        function downloadTemplate() {
-            const ws = XLSX.utils.aoa_to_sheet([["Fecha","Día","Mes","Cod. Artículo","Descripción","Admisión","Rut","Paciente","Edad","Previsión","Isapre","Convenio","Cód. Arancel","Arancel","Cant. Art.","1° Cirujano"]]);
-            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Template");
-            XLSX.writeFile(wb, "template_reportes.xlsx");
-        }
-
-        function exportData(data, name) {
-            const exp = data.map(r => ({
-                fecha: formatDate(r.fecha), dia: r.dia, mes: r.mes, codArticulo: r.codArticulo,
-                descripcion: r.descripcion, admision: r.admision, rut: r.rut, paciente: r.paciente,
-                edad: r.edad, prevision: r.prevision, isapre: r.isapre, convenio: r.convenio,
-                codArancel: r.codArancel, arancel: r.arancel, cantidadArticulo: r.cantidadArticulo,
-                primerCirujano: r.primerCirujano
-            }));
-            const ws = XLSX.utils.json_to_sheet(exp);
-            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Reportes");
-            XLSX.writeFile(wb, name + '.xlsx');
-        }
-
-        // IMPORTACIÓN COMPLETA SIN DUPLICADOS
+        // IMPORTACIÓN CON BARRA DE PROGRESO Y FECHA CORRECTA
         fileInput.onchange = async e => {
             const file = e.target.files[0];
             if (!file) return;
+
             showLoading();
+            updateProgress(0, 100);
+
             try {
                 const data = await file.arrayBuffer();
                 const wb = XLSX.read(data, {type: 'array', cellDates: true});
@@ -317,10 +287,14 @@
                 });
 
                 let agregados = 0, actualizados = 0, omitidos = 0;
+                const total = json.length;
 
-                for (const r of json) {
+                for (let i = 0; i < json.length; i++) {
+                    const r = json[i];
+                    updateProgress(i + 1, total);
+
                     const fila = {
-                        fecha: r.fecha ? formatDate(new Date(r.fecha)) : '',
+                        fecha: formatDate(r.fecha),  // ← AQUÍ SE APLICA EL FORMATO CORRECTO
                         dia: String(r.dia || '').trim(),
                         mes: String(r.mes || '').trim(),
                         codArticulo: String(r.codArticulo || '').trim(),
@@ -357,7 +331,7 @@
                 }
 
                 hideLoading();
-                showToast(`Importación exitosa: ${agregados} nuevos, ${actualizados} actualizados, ${omitidos} omitidos`, 'success');
+                showToast(`Importación completada: ${agregados} nuevos, ${actualizados} actualizados, ${omitidos} omitidos`, 'success');
                 await loadAll();
 
             } catch (err) {
@@ -368,7 +342,74 @@
             fileInput.value = '';
         };
 
-        // INICIO
+        // Resto del código: menú, resize, eventos, etc. (todo igual que antes)
+        // ... (lo dejo funcionando como en la versión anterior)
+
+        selectAno.onchange = () => { selectedAno = selectAno.value; updateMeses(); };
+        selectMes.onchange = () => { selectedMes = selectMes.value; render(); };
+        ['buscarAdmision','buscarPaciente','buscarRut','buscarDescripcion','buscarCirujano'].forEach(id => {
+            document.getElementById(id).oninput = e => {
+                const v = e.target.value.toLowerCase().trim();
+                if (id === 'buscarAdmision') searchAdmision = v;
+                if (id === 'buscarPaciente') searchPaciente = v;
+                if (id === 'buscarRut') searchRut = v;
+                if (id === 'buscarDescripcion') searchDesc = v;
+                if (id === 'buscarCirujano') searchCirujano = v;
+                if (selectedMes) render();
+            };
+        });
+
+        actionsBtn.onclick = e => { e.stopPropagation(); actionsMenu.classList.toggle('show'); };
+        document.addEventListener('click', e => {
+            if (!actionsBtn.contains(e.target) && !actionsMenu.contains(e.target)) {
+                actionsMenu.classList.remove('show');
+            }
+        });
+
+        document.getElementById('downloadTemplate').onclick = e => { e.preventDefault(); downloadTemplate(); actionsMenu.classList.remove('show'); };
+        document.getElementById('importExcel').onclick = e => { e.preventDefault(); fileInput.click(); actionsMenu.classList.remove('show'); };
+        document.getElementById('downloadVisible').onclick = e => { e.preventDefault(); exportData(getVisible(), 'reportes_visibles'); actionsMenu.classList.remove('show'); };
+        document.getElementById('downloadAll').onclick = e => { e.preventDefault(); exportData(reportes, 'todos_reportes'); actionsMenu.classList.remove('show'); };
+
+        function downloadTemplate() {
+            const ws = XLSX.utils.aoa_to_sheet([["Fecha","Día","Mes","Cod. Artículo","Descripción","Admisión","Rut","Paciente","Edad","Previsión","Isapre","Convenio","Cód. Arancel","Arancel","Cant. Art.","1° Cirujano"]]);
+            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Template");
+            XLSX.writeFile(wb, "template_reportes.xlsx");
+        }
+
+        function exportData(data, name) {
+            const exp = data.map(r => ({ fecha: formatDate(r.fecha), dia: r.dia, mes: r.mes, codArticulo: r.codArticulo, descripcion: r.descripcion, admision: r.admision, rut: r.rut, paciente: r.paciente, edad: r.edad, prevision: r.prevision, isapre: r.isapre, convenio: r.convenio, codArancel: r.codArancel, arancel: r.arancel, cantidadArticulo: r.cantidadArticulo, primerCirujano: r.primerCirujano }));
+            const ws = XLSX.utils.json_to_sheet(exp);
+            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Reportes");
+            XLSX.writeFile(wb, name + '.xlsx');
+        }
+
+        function initResize() {
+            const table = document.getElementById('reportesTable');
+            const headers = table.querySelectorAll('th');
+            let resizing=false, col=-1, startX=0, startW=0;
+            const MIN=40, MAX=800;
+            function apply() {
+                const s = localStorage.getItem('reportes-column-widths');
+                if(!s) return;
+                try { const w = JSON.parse(s);
+                    headers.forEach((th,i)=>{ if(w[i]){ const px=w[i]+'px'; th.style.width=th.style.minWidth=th.style.maxWidth=px;
+                        table.querySelectorAll(`td:nth-child(${i+1})`).forEach(td=>td.style.width=td.style.minWidth=td.style.maxWidth=px);
+                    }});
+                }catch(e){}
+            }
+            function save() { const w = Array.from(headers).map(th=>parseInt(th.style.width)||th.offsetWidth); localStorage.setItem('reportes-column-widths', JSON.stringify(w)); }
+            headers.forEach((th,i)=>{
+                let h=th.querySelector('.resize-handle');
+                if(!h){ h=document.createElement('div'); h.className='resize-handle'; th.appendChild(h); }
+                h.onmousedown=e=>{ e.preventDefault(); resizing=true; col=i; startX=e.clientX; startW=th.offsetWidth; h.classList.add('active'); document.body.style.cursor='col-resize'; document.body.style.userSelect='none'; };
+            });
+            document.onmousemove=e=>{ if(!resizing||col===-1) return; let nw = Math.max(MIN, Math.min(MAX, startW + (e.clientX-startX))); const px=nw+'px'; headers[col].style.width=headers[col].style.minWidth=headers[col].style.maxWidth=px;
+                table.querySelectorAll(`td:nth-child(${col+1})`).forEach(td=>td.style.width=td.style.minWidth=td.style.maxWidth=px); };
+            document.onmouseup=()=>{ if(resizing){ resizing=false; col=-1; document.body.style.cursor=''; document.body.style.userSelect=''; table.querySelectorAll('.resize-handle.active').forEach(h=>h.classList.remove('active')); save(); }};
+            apply();
+        }
+
         onAuthStateChanged(auth, user => {
             if (!user) { window.location.replace('../../../../../../index.html'); return; }
             loadAll();
