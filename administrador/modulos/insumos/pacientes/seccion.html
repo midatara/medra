@@ -28,8 +28,10 @@
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 20px;
             margin-top: 30px;
+            position: relative;
         }
         .option-card {
+            position: relative;
             background: white;
             padding: 25px;
             border-radius: 12px;
@@ -58,6 +60,48 @@
             font-size: 13px;
             color: #666;
         }
+
+        /* Badge rojo con número de pendientes */
+        .pendientes-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: #e74c3c;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            min-width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 6px;
+            box-shadow: 0 2px 6px rgba(231, 76, 60, 0.4);
+            transition: all 0.3s ease;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 10;
+        }
+        .pendientes-badge.show {
+            opacity: 1;
+        }
+
+        /* Alerta visual cuando hay pendientes */
+        .option-card.alerta-pendientes {
+            background: #ffeaea;
+            border-color: #e74c3c !important;
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.25);
+        }
+        .option-card.alerta-pendientes i {
+            color: #e74c3c;
+        }
+        .option-card.alerta-pendientes h3 {
+            color: #c0392b;
+        }
+        .option-card.alerta-pendientes p {
+            color: #a53232;
+        }
     </style>
 </head>
 <body>
@@ -68,10 +112,11 @@
 
     <div class="options-grid">
 
-         <div class="option-card" onclick="parent.loadContent('modulos/insumos/pacientes/pendientes.html')">
+        <div class="option-card" id="pendientesCard" onclick="parent.loadContent('modulos/insumos/pacientes/pendientes.html')">
             <i class="fas fa-clock"></i>
             <h3>Pacientes Pendientes</h3>
             <p>Pacientes con imputación pendiente</p>
+            <span id="pendientesBadge" class="pendientes-badge">0</span>
         </div>
 
         <div class="option-card" onclick="parent.loadContent('modulos/insumos/pacientes/cargados.html')">
@@ -87,6 +132,75 @@
         </div>
     </div>
 </div>
+
+<!-- Script contador de pendientes -->
+<script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+    import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+    import { getFirestore, collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
+        authDomain: "datara-salud.firebaseapp.com",
+        projectId: "datara-salud",
+        storageBucket: "datara-salud.firebasestorage.app",
+        messagingSenderId: "198886910481",
+        appId: "1:198886910481:web:abbc345203a423a6329fb0"
+    };
+
+    // Inicializamos Firebase con nombre único para no chocar con otros módulos
+    const app = initializeApp(firebaseConfig, 'seccion-pendientes-counter');
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    async function actualizarContadorPendientes() {
+        try {
+            const snapshot = await getDocs(collection(db, 'consigna_historial'));
+            const grupos = new Map();
+
+            snapshot.forEach(doc => {
+                const d = doc.data();
+                if (d.estado === 'CARGADO') return;
+
+                const key = `${d.admision || ''}|||${d.proveedor || ''}`;
+                grupos.set(key, true);
+            });
+
+            const cantidad = grupos.size;
+
+            const card = document.getElementById('pendientesCard');
+            const badge = document.getElementById('pendientesBadge');
+
+            if (!card || !badge) return;
+
+            if (cantidad > 0) {
+                badge.textContent = cantidad > 99 ? '99+' : cantidad;
+                badge.classList.add('show');
+                card.classList.add('alerta-pendientes');
+            } else {
+                badge.classList.remove('show');
+                card.classList.remove('alerta-pendientes');
+                badge.textContent = '0';
+            }
+        } catch (err) {
+            console.error('Error al contar pacientes pendientes:', err);
+        }
+    }
+
+    // Ejecutar cuando el usuario esté autenticado
+    onAuthStateChanged(auth, user => {
+        if (user) {
+            actualizarContadorPendientes();
+            // Refrescar cada 30 segundos (opcional pero recomendado)
+            setInterval(actualizarContadorPendientes, 30000);
+        }
+    });
+
+    // En caso de que ya esté logueado al cargar
+    if (auth.currentUser) {
+        actualizarContadorPendientes();
+    }
+</script>
 
 </body>
 </html>
