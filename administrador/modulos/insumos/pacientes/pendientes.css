@@ -242,3 +242,33 @@ html, body {
         width: 100%;
     }
 }
+
+/* Botón Volver - estilo coherente con el módulo */
+.pendientes-back-button {
+    margin-bottom: 10px;
+}
+
+.btn-back {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    transition: all 0.2s ease;
+}
+
+.btn-back:hover {
+    background: #5a6268;
+    transform: translateY(-1px);
+}
+
+.btn-back i {
+    font-size: 14px;
+}

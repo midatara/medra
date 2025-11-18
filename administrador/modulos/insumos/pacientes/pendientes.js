@@ -1,6 +1,6 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { getFirestore, collection, getDocs, query, where, updateDoc, doc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { getFirestore, collection, getDocs, updateDoc, doc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const firebaseConfig = {
     apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
@@ -17,33 +17,46 @@ const db = getFirestore(app);
 
 let groupedData = [];
 
+// === Funciones compartidas con historial (igualitas) ===
 function showLoading() {
-    document.getElementById('loading').classList.add('show');
+    const loading = document.getElementById('loading');
+    if (loading) loading.classList.add('show');
 }
 
 function hideLoading() {
-    document.getElementById('loading').classList.remove('show');
+    const loading = document.getElementById('loading');
+    if (loading) loading.classList.remove('show');
 }
 
 function showToast(message, type = 'success') {
     const container = document.getElementById('toastContainer');
+    if (!container) return;
+
     const toast = document.createElement('div');
-    toast.className = `pendientes-toast ${type} show`;
+    toast.className = `pendientes-toast ${type}`;
     toast.textContent = message;
     container.appendChild(toast);
-    setTimeout(() => toast.remove(), 4000);
+
+    // Forzar reflow para animación
+    requestAnimationFrame(() => toast.classList.add('show'));
+
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, 5000);
 }
 
 function formatNumber(num) {
-    return num.toLocaleString('es-CL', { minimumFractionDigits: 0 });
+    return Number(num || 0).toLocaleString('es-CL', { minimumFractionDigits: 0 });
 }
 
 function formatDate(dateStr) {
     if (!dateStr) return '';
     const [y, m, d] = dateStr.split('-');
-    return `${d}/${m}/${y}`;
+    return `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
 }
 
+// === Carga de datos ===
 async function loadPendientes() {
     showLoading();
     try {
@@ -52,16 +65,11 @@ async function loadPendientes() {
 
         snapshot.forEach(doc => {
             const d = doc.data();
-            if (d.estado === 'CARGADO') return; 
-
-            rawData.push({
-                id: doc.id,
-                ...d
-            });
+            if (d.estado === 'CARGADO') return;
+            rawData.push({ id: doc.id, ...d });
         });
 
         const map = new Map();
-
         rawData.forEach(reg => {
             const key = `${reg.admision || ''}|||${reg.proveedor || ''}`;
             if (!map.has(key)) {
@@ -77,35 +85,38 @@ async function loadPendientes() {
                     registrosIds: []
                 });
             }
-
             const grupo = map.get(key);
             grupo.totalItems += Number(reg.totalItems || 0);
             grupo.registrosIds.push(reg.id);
 
-            if (!grupo.estado || grupo.estado === 'PENDIENTE') {
-                grupo.estado = reg.estado || 'PENDIENTE';
+            // Mantener estado más "avanzado" si existe
+            if (reg.estado && reg.estado !== 'PENDIENTE') {
+                grupo.estado = reg.estado;
             }
         });
 
-        groupedData = Array.from(map.values()).sort((a, b) => {
-            return (b.totalItems || 0) - (a.totalItems || 0);
-        });
+        groupedData = Array.from(map.values())
+            .sort((a, b) => (b.totalItems || 0) - (a.totalItems || 0));
 
         renderTable();
         updateMarcarButton();
     } catch (err) {
+        console.error(err);
         showToast('Error al cargar pendientes: ' + err.message, 'error');
     } finally {
         hideLoading();
     }
 }
 
+// === Renderizado ===
 function renderTable() {
     const tbody = document.querySelector('#pendientesTable tbody');
+    if (!tbody) return;
+
     tbody.innerHTML = '';
 
     if (groupedData.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:20px; color:#999;">
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:30px; color:#999; font-size:13px;">
             No hay pacientes pendientes de carga
         </td></tr>`;
         return;
@@ -115,7 +126,7 @@ function renderTable() {
         const row = document.createElement('tr');
         row.innerHTML = `
             <td><input type="checkbox" class="row-checkbox" data-index="${index}"></td>
-            <td><span class="estado-badge">${grupo.estado || 'PENDIENTE'}</span></td>
+            <td><span class="estado-badge" data-estado="${grupo.estado}">${grupo.estado || 'PENDIENTE'}</span></td>
             <td>${grupo.prevision || ''}</td>
             <td>${grupo.admision}</td>
             <td>${grupo.paciente}</td>
@@ -130,56 +141,68 @@ function renderTable() {
 
 function updateMarcarButton() {
     const checked = document.querySelectorAll('.row-checkbox:checked').length;
-    document.getElementById('marcarCargadosBtn').disabled = checked === 0;
+    const btn = document.getElementById('marcarCargadosBtn');
+    if (btn) btn.disabled = checked === 0;
 }
 
 async function marcarComoCargado() {
-    const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
-    if (checkedBoxes.length === 0) return;
+    const checked = document.querySelectorAll('.row-checkbox:checked');
+    if (checked.length === 0) return;
 
     showLoading();
     const idsToUpdate = [];
 
-    checkedBoxes.forEach(cb => {
-        const index = cb.dataset.index;
+    checked.forEach(cb => {
+        const index = parseInt(cb.dataset.index);
         const grupo = groupedData[index];
-        if (grupo && grupo.registrosIds) {
+        if (grupo?.registrosIds) {
             idsToUpdate.push(...grupo.registrosIds);
         }
     });
 
     try {
-        await Promise.all(
-            idsToUpdate.map(id => updateDoc(doc(db, 'consigna_historial', id), { estado: 'CARGADO' }))
+        const updates = idsToUpdate.map(id =>
+            updateDoc(doc(db, 'consigna_historial', id), { estado: 'CARGADO' })
         );
+        await Promise.all(updates);
 
-        showToast(`Se marcaron ${checkedBoxes.length} paciente(s) como CARGADO`, 'success');
-        loadPendientes(); 
+        showToast(`Se marcaron ${checked.length} paciente(s) como CARGADO`, 'success');
+        await loadPendientes(); // recargar
     } catch (err) {
-        showToast('Error al actualizar: ' + err.message, 'error');
+        console.error(err);
+        showToast('Error al actualizar estado: ' + err.message, 'error');
     } finally {
         hideLoading();
     }
 }
 
-document.getElementById('selectAll').addEventListener('change', function () {
-    document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = this.checked);
-    updateMarcarButton();
-});
+// === Eventos ===
+document.addEventListener('DOMContentLoaded', () => {
+    const selectAll = document.getElementById('selectAll');
+    const marcarBtn = document.getElementById('marcarCargadosBtn');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const tbody = document.querySelector('#pendientesTable tbody');
 
-document.getElementById('marcarCargadosBtn').addEventListener('click', marcarComoCargado);
-document.getElementById('refreshBtn').addEventListener('click', loadPendientes);
-
-document.querySelector('#pendientesTable tbody').addEventListener('change', e => {
-    if (e.target.classList.contains('row-checkbox')) {
+    selectAll?.addEventListener('change', () => {
+        document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = selectAll.checked);
         updateMarcarButton();
-    }
-});
+    });
 
-onAuthStateChanged(auth, user => {
-    if (!user) {
-        window.location.replace('../../../index.html');
-    } else {
-        loadPendientes();
-    }
+    marcarBtn?.addEventListener('click', marcarComoCargado);
+    refreshBtn?.addEventListener('click', loadPendientes);
+
+    tbody?.addEventListener('change', e => {
+        if (e.target.classList.contains('row-checkbox')) {
+            updateMarcarButton();
+        }
+    });
+
+    // Autenticación
+    onAuthStateChanged(auth, user => {
+        if (!user) {
+            window.location.replace('../../../index.html');
+        } else {
+            loadPendientes();
+        }
+    });
 });
