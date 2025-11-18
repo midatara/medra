@@ -61,7 +61,7 @@
             color: #666;
         }
 
-        /* Badge rojo con número de pendientes */
+        /* Badge rojo */
         .pendientes-badge {
             position: absolute;
             top: 12px;
@@ -87,7 +87,7 @@
             opacity: 1;
         }
 
-        /* Alerta visual cuando hay pendientes */
+        /* Alerta cuando hay pendientes */
         .option-card.alerta-pendientes {
             background: #ffeaea;
             border-color: #e74c3c !important;
@@ -133,7 +133,6 @@
     </div>
 </div>
 
-<!-- Script contador de pendientes -->
 <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
     import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
@@ -148,25 +147,30 @@
         appId: "1:198886910481:web:abbc345203a423a6329fb0"
     };
 
-    // Inicializamos Firebase con nombre único para no chocar con otros módulos
-    const app = initializeApp(firebaseConfig, 'seccion-pendientes-counter');
+    const app = initializeApp(firebaseConfig, 'seccion-pendientes');
     const auth = getAuth(app);
     const db = getFirestore(app);
 
     async function actualizarContadorPendientes() {
         try {
             const snapshot = await getDocs(collection(db, 'consigna_historial'));
-            const grupos = new Map();
+            const gruposPendientes = new Map();
 
             snapshot.forEach(doc => {
-                const d = doc.data();
-                if (d.estado === 'CARGADO') return;
+                const data = doc.data();
+                const estado = (data.estado || '').trim().toUpperCase();
 
-                const key = `${d.admision || ''}|||${d.proveedor || ''}`;
-                grupos.set(key, true);
+                // Si el estado es CARGADO → ignorar
+                if (estado === 'CARGADO') return;
+
+                // Cualquier otro estado (PENDIENTE, INGRESADO, MODIFICAR, vacío, etc.) → cuenta como pendiente
+                const key = `${data.admision || ''}|||${data.proveedor || ''}`;
+                if (!gruposPendientes.has(key)) {
+                    gruposPendientes.set(key, true);
+                }
             });
 
-            const cantidad = grupos.size;
+            const cantidad = gruposPendientes.size;
 
             const card = document.getElementById('pendientesCard');
             const badge = document.getElementById('pendientesBadge');
@@ -178,25 +182,26 @@
                 badge.classList.add('show');
                 card.classList.add('alerta-pendientes');
             } else {
+                badge.textContent = '0';
                 badge.classList.remove('show');
                 card.classList.remove('alerta-pendientes');
-                badge.textContent = '0';
             }
+
         } catch (err) {
-            console.error('Error al contar pacientes pendientes:', err);
+            console.error('Error contando pacientes pendientes:', err);
         }
     }
 
-    // Ejecutar cuando el usuario esté autenticado
+    // Ejecutar al autenticarse
     onAuthStateChanged(auth, user => {
         if (user) {
             actualizarContadorPendientes();
-            // Refrescar cada 30 segundos (opcional pero recomendado)
+            // Actualizar cada 30 segundos para mantenerlo vivo
             setInterval(actualizarContadorPendientes, 30000);
         }
     });
 
-    // En caso de que ya esté logueado al cargar
+    // Si ya está logueado al cargar la página
     if (auth.currentUser) {
         actualizarContadorPendientes();
     }
