@@ -67,25 +67,20 @@ function calcularVenta(registro) {
     const atributo = (registro.atributo || '').toUpperCase().trim();
     const prevision = (registro.prevision || '').toUpperCase().trim();
 
-    if (!precio || !cantidad) return '';
+    if (!precio || precio === 0 || !cantidad) return null;
 
     let margenUsado = 0;
 
     if (atributo === "CONSIGNACION") {
         margenUsado = parsePorcentaje(registro.margen);
     } else if (atributo === "COTIZACION") {
-        if (prevision === "ISL") {
-            margenUsado = 1.00; // 100%
-        } else {
-            margenUsado = 0.30; // 30%
-        }
+        margenUsado = prevision === "ISL" ? 1.00 : 0.30;
     } else {
-        return ''; // cualquier otro atributo → vacío
+        return null;
     }
 
     const precioConMargen = precio * (1 + margenUsado);
-    const totalVenta = precioConMargen * cantidad;
-    return Math.round(totalVenta);
+    return Math.round(precioConMargen * cantidad);
 }
 
 async function loadPendientes() {
@@ -93,43 +88,52 @@ async function loadPendientes() {
     try {
         const snapshot = await getDocs(collection(db, 'consigna_historial'));
         registrosPendientes = [];
-        const promesas = [];
+        const actualizaciones = [];
 
         snapshot.forEach(documento => {
             const data = documento.data();
             if (data.estado === 'CARGADO') return;
 
-            const reg = { id: documento.id, ...data };
+            const id = documento.id;
+            const ref = doc(db, 'consigna_historial', id); // Referencia correcta
+            const reg = { id, ...data };
 
-            // Calcular y guardar margen si no existe
+            // 1. Calcular margen si no existe
             if (!reg.margen && reg.precioUnitario !== undefined) {
                 const nuevoMargen = calcularMargen(reg.precioUnitario);
                 reg.margen = nuevoMargen;
-                promesas.push(updateDoc(documento.ref, { margen: nuevoMargen }));
+                actualizaciones.push(updateDoc(ref, { margen: nuevoMargen }));
             }
 
-            // Calcular y guardar venta si no existe
+            // 2. Calcular venta si no existe
             const ventaCalculada = calcularVenta(reg);
-            if (ventaCalculada && !reg.ventaCalculada) {
+            if (ventaCalculada !== null && !reg.ventaCalculada) {
                 reg.ventaCalculada = ventaCalculada;
-                promesas.push(updateDoc(documento.ref, { ventaCalculada }));
-            } else if (ventaCalculada) {
-                reg.ventaCalculada = ventaCalculada; // ya existe, solo lo usamos
+                actualizaciones.push(updateDoc(ref, { ventaCalculada }));
+            } else if (ventaCalculada !== null) {
+                reg.ventaCalculada = ventaCalculada;
             }
 
             registrosPendientes.push(reg);
         });
 
-        if (promesas.length > 0) {
-            await Promise.allSettled(promesas);
+        // Ejecutar todas las actualizaciones (no bloquea la UI)
+        if (actualizaciones.length > 0) {
+            Promise.allSettled(actualizaciones).then(results => {
+                const exitosas = results.filter(r => r.status === 'fulfilled').length;
+                if (exitosas > 0) {
+                    showToast(`Actualizados ${exitosas} registros (margen/venta)`, 'success');
+                }
+            });
         }
 
         registrosPendientes.sort((a, b) => (b.fechaCX || '').localeCompare(a.fechaCX || ''));
         renderTable();
         updateMarcarButton();
+
     } catch (e) {
-        console.error(e);
-        showToast('Error al cargar datos: ' + e.message, 'error');
+        console.error("Error en loadPendientes:", e);
+        showToast('Error al cargar: ' + e.message, 'error');
     } finally {
         hideLoading();
     }
@@ -169,6 +173,8 @@ function renderTable() {
         tbody.appendChild(row);
     });
 }
+
+// ... resto del código igual (updateMarcarButton, marcarComoCargado, DOMContentLoaded)
 
 function updateMarcarButton() {
     const checked = document.querySelectorAll('.row-checkbox:checked').length;
