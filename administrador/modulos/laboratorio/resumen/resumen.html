@@ -257,7 +257,7 @@
 
         let ingresos = [];
         let anos = new Set();
-        const GOAL_AMOUNT = 50000000; // Meta de 50,000,000 CLP por mes
+        const GOAL_AMOUNT = 50000000; 
 
         const meses = [
             'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -276,7 +276,6 @@
         function parseDateDDMMYYYY(dateStr) {
             if (!dateStr) return null;
             if (typeof dateStr === 'object' && 'toDate' in dateStr) {
-                // Handle Firestore Timestamp
                 const date = dateStr.toDate();
                 return date && !isNaN(date) ? date : null;
             }
@@ -347,7 +346,6 @@
                         let fechaIngreso = data.fechaIngreso;
                         let fechaSalida = data.fechaSalida;
 
-                        // Convert Timestamp to DD-MM-YYYY string if necessary
                         if (fechaIngreso && typeof fechaIngreso === 'object' && 'toDate' in fechaIngreso) {
                             fechaIngreso = formatDateToDDMMYYYY(fechaIngreso.toDate());
                             console.warn(`Documento ${doc.id} tiene fechaIngreso como Timestamp: ${data.fechaIngreso}. Convertido a: ${fechaIngreso}`);

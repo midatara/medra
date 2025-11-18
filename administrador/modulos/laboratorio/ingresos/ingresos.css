@@ -118,7 +118,7 @@ html, body {
     background-color: white;
     min-width: 200px;
     box-shadow: 2px 8px 16px rgba(0,0,0,0.2);
-    z-index: 20; /* Actualizado para asegurar que el menú esté por encima del encabezado de la tabla */
+    z-index: 20; 
     border-radius: 4px;
     overflow: hidden;
     flex-direction: column;
@@ -315,7 +315,7 @@ html, body {
     cursor: pointer;
     font-size: 11px;
     border-radius: 4px;
-    color: #333; /* Agregado para asegurar que el texto de botones no activos sea visible */
+    color: #333; 
 }
 
 .ingresos-page-numbers button.active {
@@ -326,7 +326,7 @@ html, body {
 
 .ingresos-page-numbers button:hover:not(.active) {
     background-color: #f0f0f0;
-    color: #333; /* Agregado para mantener el texto visible en hover */
+    color: #333; 
 }
 
 .ingresos-page-numbers .ingresos-dots {

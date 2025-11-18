@@ -83,7 +83,6 @@ function formatNumberWithThousandsSeparator(number) {
     return cleaned ? Number(cleaned).toLocaleString('es-CL') : '';
 }
 
-// NUEVA FUNCIÓN: Convierte YYYY-MM-DD → DD-MM-YYYY sin problema de zona horaria
 function inputDateToDDMMYYYY(inputValue) {
     if (!inputValue) return '';
     const [year, month, day] = inputValue.split('-').map(Number);
@@ -393,7 +392,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target === historyModal) closeHistoryModalHandler();
     });
 
-    // === EDITAR INGRESO (CORREGIDO) ===
     editForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         if (!currentEditId) return;
@@ -736,7 +734,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // === NUEVO INGRESO (CORREGIDO) ===
     if (ingresarBtn) {
         ingresarBtn.addEventListener('click', async (e) => {
             e.preventDefault();
