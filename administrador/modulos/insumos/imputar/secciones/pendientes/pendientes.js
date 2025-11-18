@@ -19,7 +19,6 @@ let registrosPendientes = [];
 
 function showLoading() { document.getElementById('loading')?.classList.add('show'); }
 function hideLoading() { document.getElementById('loading')?.classList.remove('show'); }
-
 function showToast(msg, type = 'success') {
     const container = document.getElementById('toastContainer');
     const toast = document.createElement('div');
