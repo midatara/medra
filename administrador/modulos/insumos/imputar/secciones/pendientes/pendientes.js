@@ -72,27 +72,28 @@ function renderTable() {
     tbody.innerHTML = '';
 
     if (registrosPendientes.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="12" style="text-align:center;padding:40px;color:#999;">
+        tbody.innerHTML = `<tr><td colspan="13" style="text-align:center;padding:40px;color:#999;">
             No hay insumos pendientes de imputar
         </td></tr>`;
         return;
     }
 
-    registrosPendientes.forEach((reg, i) => {
+    registrosPendientes.forEach(reg => {
         const row = document.createElement('tr');
         row.innerHTML = `
             <td><input type="checkbox" class="row-checkbox" data-id="${reg.id}"></td>
-            <td><span class="estado-badge" data-estado="${reg.estado || 'PENDIENTE'}">${reg.estado || 'PENDIENTE'}</span></td>
+            <td>${reg.admision || ''}</td>
+            <td>${reg.codigo || ''}</td>
+            <td style="text-align:center">${reg.cantidad || ''}</td>
+            <td></td> <!-- Venta (vacía por ahora) -->
+            <td>${formatDate(reg.fechaCX)}</td>
             <td>${reg.prevision || ''}</td>
             <td>${reg.convenio || ''}</td>
-            <td>${reg.admision || ''}</td>
             <td>${reg.paciente || ''}</td>
-            <td>${formatDate(reg.fechaCX)}</td>
-            <td>${reg.codigo || ''}</td>
             <td>${reg.descripcion || ''}</td>
-            <td style="text-align:center">${reg.cantidad || ''}</td>
             <td class="total-cell">$${formatNumber(reg.totalItems)}</td>
             <td>${reg.atributo || ''}</td>
+            <td><span class="estado-badge" data-estado="${reg.estado || 'PENDIENTE'}">${reg.estado || 'PENDIENTE'}</span></td>
         `;
         tbody.appendChild(row);
     });
