@@ -161,38 +161,61 @@
         const actionsMenu = document.getElementById('actionsMenu');
         const fileInput = document.getElementById('fileUpload');
 
-        // FUNCIÓN CORRECTA PARA CONVERTIR CUALQUIER FECHA A "DD-MM-YYYY"
+        // FUNCIÓN ULTRA-CONFIABLE PARA CONVERTIR CUALQUIER FECHA A "DD-MM-YYYY"
         function toDDMMYYYY(input) {
-            if (!input) return '';
-            
-            let date;
-            
-            if (input instanceof Date) {
-                date = input;
-            } else if (typeof input === 'number') {
-                date = new Date(input);
-            } else if (typeof input === 'string') {
-                // Si ya está en formato DD-MM-YYYY → devolver tal cual
-                if (/^\d{2}-\d{2}-\d{4}$/.test(input.trim())) {
-                    return input.trim();
-                }
-                // Si viene como "01/10/2025" o "1/10/2025"
-                if (input.includes('/')) {
-                    const parts = input.trim().split('/');
-                    if (parts.length === 3) {
-                        const day = parts[0].padStart(2, '0');
-                        const month = parts[1].padStart(2, '0');
-                        const year = parts[2];
+            if (!input && input !== 0) return '';
+
+            let day, month, year;
+
+            // 1. Ya viene bien formateada como string DD-MM-YYYY o DD/MM/YYYY
+            if (typeof input === 'string') {
+                const cleaned = input.trim();
+                const match = cleaned.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+                if (match) {
+                    day = match[1].padStart(2, '0');
+                    month = match[2].padStart(2, '0');
+                    year = match[3];
+                    if (parseInt(month) <= 12 && parseInt(day) <= 31) {
                         return `${day}-${month}-${year}`;
                     }
                 }
             }
-            
-            // Último recurso: usar Excel serial date o Date normal
-            if (date && !isNaN(date.getTime())) {
-                return `${String(date.getDate()).padStart(2,'0')}-${String(date.getMonth()+1).padStart(2,'0')}-${date.getFullYear()}`;
+
+            // 2. Fecha como número (serial date de Excel)
+            if (typeof input === 'number') {
+                const utc_days = Math.floor(input - 25569);
+                const utc_value = utc_days * 86400000;
+                const dateInfo = new Date(utc_value);
+                const tzOffset = dateInfo.getTimezoneOffset() * 60000;
+                const corrected = new Date(utc_value + tzOffset);
+
+                day = String(corrected.getDate()).padStart(2, '0');
+                month = String(corrected.getMonth() + 1).padStart(2, '0');
+                year = corrected.getFullYear();
+                return `${day}-${month}-${year}`;
             }
-            
+
+            // 3. Objeto Date (SheetJS con cellDates: true)
+            if (input instanceof Date && !isNaN(input)) {
+                day = String(input.getDate()).padStart(2, '0');
+                month = String(input.getMonth() + 1).padStart(2, '0');
+                year = input.getFullYear();
+                return `${day}-${month}-${year}`;
+            }
+
+            // 4. Último intento: string con formato raro pero válido
+            if (typeof input === 'string') {
+                const parts = input.split(/[\/\-\.]/);
+                if (parts.length === 3) {
+                    let d = parts[0].padStart(2, '0');
+                    let m = parts[1].padStart(2, '0');
+                    let y = parts[2];
+                    if (y.length === 4 && parseInt(m) <= 12 && parseInt(d) <= 31) {
+                        return `${d}-${m}-${y}`;
+                    }
+                }
+            }
+
             return '';
         }
 
@@ -327,7 +350,7 @@
             setTimeout(() => { hideTableLoading(); initResize(); }, 100);
         }
 
-        // IMPORTACIÓN CORRECTA
+        // IMPORTACIÓN 100% CORREGIDA PARA FECHAS
         fileInput.onchange = async e => {
             const file = e.target.files[0];
             if (!file) return;
@@ -340,7 +363,10 @@
                 const ws = wb.Sheets[wb.SheetNames[0]];
                 const json = XLSX.utils.sheet_to_json(ws, {
                     header: ["fecha","dia","mes","codArticulo","descripcion","admision","rut","paciente","edad","prevision","isapre","convenio","codArancel","arancel","cantidadArticulo","primerCirujano"],
-                    range: 1, defval: '', raw: false
+                    range: 1,
+                    defval: '',
+                    raw: false,
+                    dateNF: 'dd-mm-yyyy'  // ESTO ES CLAVE: fuerza formato chileno
                 });
 
                 let agregados = 0, actualizados = 0, omitidos = 0;
@@ -351,7 +377,7 @@
                     const r = json[i];
 
                     const fila = {
-                        fecha: toDDMMYYYY(r.fecha),  // AQUÍ ESTÁ LA CLAVE
+                        fecha: toDDMMYYYY(r.fecha),
                         dia: String(r.dia || '').trim(),
                         mes: String(r.mes || '').trim(),
                         codArticulo: String(r.codArticulo || '').trim(),
@@ -399,7 +425,6 @@
             fileInput.value = '';
         };
 
-        // Eventos menú, resize, filtros... (todo igual)
         selectAno.onchange = () => { selectedAno = selectAno.value; updateMeses(); };
         selectMes.onchange = () => { selectedMes = selectMes.value; render(); };
         ['buscarAdmision','buscarPaciente','buscarRut','buscarDescripcion','buscarCirujano'].forEach(id => {
