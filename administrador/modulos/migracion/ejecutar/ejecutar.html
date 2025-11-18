@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Migrar Ingresos Lab</title>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f0f0f0; }
+    .container { max-width: 600px; margin: auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+    h1 { text-align: center; color: #1a73e8; }
+    button { padding: 12px 24px; font-size: 16px; background: #1a73e8; color: white; border: none; border-radius: 6px; cursor: pointer; width: 100%; margin-top: 20px; }
+    button:disabled { background: #ccc; cursor: not-allowed; }
+    .log { margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 6px; height: 300px; overflow-y: auto; font-family: monospace; font-size: 13px; }
+    .success { color: green; }
+    .error { color: red; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Migración Ingresos</h1>
+    <p>Esto copiará todos los datos de:</p>
+    <ul>
+      <li><strong>ingresos_lab</strong> → <strong>laboratorio_ingresos</strong></li>
+      <li><strong>ingresos_lab_historial</strong> → <strong>laboratorio_ingresos_historial</strong></li>
+    </ul>
+    <p><strong>Se mantienen los mismos IDs. Es seguro ejecutarlo varias veces.</strong></p>
+    <button id="btnMigrar">INICIAR MIGRACIÓN</button>
+    <div id="log" class="log">Listo para comenzar...</div>
+  </div>
+
+  <script>
+    // TU CONFIGURACIÓN DE FIREBASE (la misma que tienes en ingresos.js)
+    const firebaseConfig = {
+      apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
+      authDomain: "datara-salud.firebaseapp.com",
+      projectId: "datara-salud",
+      storageBucket: "datara-salud.firebasestorage.app",
+      messagingSenderId: "198886910481",
+      appId: "1:198886910481:web:abbc345203a423a6329fb0"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const log = document.getElementById('log');
+    const btn = document.getElementById('btnMigrar');
+
+    function addLog(text, type = '') {
+      const div = document.createElement('div');
+      div.textContent = text;
+      if (type) div.className = type;
+      log.appendChild(div);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    async function migrarColeccion(origen, destino) {
+      addLog(`Iniciando migración: ${origen} → ${destino}`);
+      const snapshot = await db.collection(origen).get();
+      addLog(`Encontrados ${snapshot.size} documentos.`);
+
+      let count = 0;
+      const batchSize = 400; // Límite seguro de Firestore
+      let batch = db.batch();
+
+      for (const doc of snapshot.docs) {
+        const refDestino = db.collection(destino).doc(doc.id);
+        batch.set(refDestino, doc.data());
+
+        count++;
+        if (count % batchSize === 0 || count === snapshot.size) {
+          await batch.commit();
+          addLog(`Commit: ${count} documentos copiados...`);
+          batch = db.batch(); // Nuevo batch
+        }
+      }
+
+      addLog(`¡Completado! ${origen} → ${destino}`, 'success');
+    }
+
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      addLog('Conectando a Firebase...');
+
+      try {
+        // Migrar ingresos
+        await migrarColeccion('ingresos_lab', 'laboratorio_ingresos');
+        
+        // Migrar historial
+        await migrarColeccion('ingresos_lab_historial', 'laboratorio_ingresos_historial');
+
+        addLog('¡MIGRACIÓN COMPLETA!', 'success');
+        addLog('Ya puedes cambiar el nombre en ingresos.js', 'success');
+        addLog('Puedes cerrar esta página.');
+      } catch (err) {
+        addLog('ERROR: ' + err.message, 'error');
+        console.error(err);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
