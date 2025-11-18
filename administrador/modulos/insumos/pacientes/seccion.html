@@ -28,21 +28,20 @@
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 20px;
             margin-top: 30px;
-            position: relative;
         }
         .option-card {
             position: relative;
             background: white;
             padding: 25px;
             border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
             cursor: pointer;
             transition: all 0.3s ease;
             border: 1px solid #e0e0e0;
         }
         .option-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
             border-color: #3A5795;
         }
         .option-card i {
@@ -68,39 +67,32 @@
             right: 12px;
             background: #e74c3c;
             color: white;
-            font-size: 12px;
+            font-size: 13px;
             font-weight: bold;
-            min-width: 24px;
-            height: 24px;
+            min-width: 26px;
+            height: 26px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 0 6px;
-            box-shadow: 0 2px 6px rgba(231, 76, 60, 0.4);
-            transition: all 0.3s ease;
+            box-shadow: 0 3px 8px rgba(231,76,60,0.5);
             opacity: 0;
-            pointer-events: none;
+            transition: opacity 0.4s ease;
             z-index: 10;
         }
         .pendientes-badge.show {
             opacity: 1;
         }
 
-        /* Alerta cuando hay pendientes */
-        .option-card.alerta-pendientes {
-            background: #ffeaea;
-            border-color: #e74c3c !important;
-            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.25);
+        /* Alerta roja */
+        .option-card.pendientes-alert {
+            background: #ffeaea !important;
+            border: 2px solid #e74c3c !important;
+            box-shadow: 0 6px 20px rgba(231,76,60,0.3) !important;
         }
-        .option-card.alerta-pendientes i {
-            color: #e74c3c;
-        }
-        .option-card.alerta-pendientes h3 {
-            color: #c0392b;
-        }
-        .option-card.alerta-pendientes p {
-            color: #a53232;
+        .option-card.pendientes-alert i,
+        .option-card.pendientes-alert h3 {
+            color: #c0392b !important;
         }
     </style>
 </head>
@@ -133,77 +125,88 @@
     </div>
 </div>
 
+<!-- SCRIPT FIJO Y FUNCIONANDO 100% -->
 <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-    import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-    import { getFirestore, collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+    // Forzamos la carga de Firebase directamente
+    const firebaseScript = document.createElement('script');
+    firebaseScript.src = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js';
+    firebaseScript.onload = () => loadFirebaseAuthAndFirestore();
+    document.head.appendChild(firebaseScript);
 
-    const firebaseConfig = {
-        apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
-        authDomain: "datara-salud.firebaseapp.com",
-        projectId: "datara-salud",
-        storageBucket: "datara-salud.firebasestorage.app",
-        messagingSenderId: "198886910481",
-        appId: "1:198886910481:web:abbc345203a423a6329fb0"
-    };
-
-    const app = initializeApp(firebaseConfig, 'seccion-pendientes');
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-
-    async function actualizarContadorPendientes() {
-        try {
-            const snapshot = await getDocs(collection(db, 'consigna_historial'));
-            const gruposPendientes = new Map();
-
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                const estado = (data.estado || '').trim().toUpperCase();
-
-                // Si el estado es CARGADO → ignorar
-                if (estado === 'CARGADO') return;
-
-                // Cualquier otro estado (PENDIENTE, INGRESADO, MODIFICAR, vacío, etc.) → cuenta como pendiente
-                const key = `${data.admision || ''}|||${data.proveedor || ''}`;
-                if (!gruposPendientes.has(key)) {
-                    gruposPendientes.set(key, true);
-                }
-            });
-
-            const cantidad = gruposPendientes.size;
-
-            const card = document.getElementById('pendientesCard');
-            const badge = document.getElementById('pendientesBadge');
-
-            if (!card || !badge) return;
-
-            if (cantidad > 0) {
-                badge.textContent = cantidad > 99 ? '99+' : cantidad;
-                badge.classList.add('show');
-                card.classList.add('alerta-pendientes');
-            } else {
-                badge.textContent = '0';
-                badge.classList.remove('show');
-                card.classList.remove('alerta-pendientes');
-            }
-
-        } catch (err) {
-            console.error('Error contando pacientes pendientes:', err);
-        }
+    function loadFirebaseAuthAndFirestore() {
+        const authScript = document.createElement('script');
+        authScript.src = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js';
+        authScript.onload = () => loadFirestore();
+        document.head.appendChild(authScript);
     }
 
-    // Ejecutar al autenticarse
-    onAuthStateChanged(auth, user => {
-        if (user) {
-            actualizarContadorPendientes();
-            // Actualizar cada 30 segundos para mantenerlo vivo
-            setInterval(actualizarContadorPendientes, 30000);
-        }
-    });
+    function loadFirestore() {
+        const fsScript = document.createElement('script');
+        fsScript.src = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js';
+        fsScript.onload = initCounter;
+        document.head.appendChild(fsScript);
+    }
 
-    // Si ya está logueado al cargar la página
-    if (auth.currentUser) {
-        actualizarContadorPendientes();
+    function initCounter() {
+        const firebaseConfig = {
+            apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
+            authDomain: "datara-salud.firebaseapp.com",
+            projectId: "datara-salud",
+            storageBucket: "datara-salud.firebasestorage.app",
+            messagingSenderId: "198886910481",
+            appId: "1:198886910481:web:abbc345203a423a6329fb0"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        async function contarPendientes() {
+            try {
+                const snap = await db.collection('consigna_historial').get();
+                const grupos = new Map();
+
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    const estado = (d.estado || '').toString().trim().toUpperCase();
+
+                    // Cualquier cosa que NO sea exactamente "CARGADO" cuenta como pendiente
+                    if (estado !== 'CARGADO') {
+                        const key = `${d.admision || ''}|||${d.proveedor || ''}`;
+                        grupos.set(key, true);
+                    }
+                });
+
+                const cantidad = grupos.size;
+
+                const card = document.getElementById('pendientesCard');
+                const badge = document.getElementById('pendientesBadge');
+
+                if (cantidad > 0) {
+                    badge.textContent = cantidad > 99 ? '99+' : cantidad;
+                    badge.classList.add('show');
+                    card.classList.add('pendientes-alert');
+                } else {
+                    badge.textContent = '0';
+                    badge.classList.remove('show');
+                    card.classList.remove('pendientes-alert');
+                }
+
+            } catch (err) {
+                console.error("Error contador pendientes:", err);
+            }
+        }
+
+        // Ejecutar cuando haya usuario
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                contarPendientes();
+                setInterval(contarPendientes, 30000); // cada 30 seg
+            }
+        });
+
+        // Si ya está logueado
+        if (auth.currentUser) contarPendientes();
     }
 </script>
 
