@@ -62,7 +62,6 @@ async function loadPendientes() {
 
         snapshot.forEach(doc => {
             const d = doc.data();
-            if (d.estado === 'CARGADO') return;
             rawData.push({ id: doc.id, ...d });
         });
 
@@ -77,19 +76,25 @@ async function loadPendientes() {
                     fechaCX: reg.fechaCX || '',
                     proveedor: reg.proveedor || '',
                     prevision: reg.prevision || '',
-                    estado: reg.estado || 'PENDIENTE',
-                    totalItems: 0
+                    totalItems: 0,
+                    todosCargados: true,
+                    registrosIds: []
                 });
             }
             const grupo = map.get(key);
             grupo.totalItems += Number(reg.totalItems || 0);
-
-            if (reg.estado && reg.estado !== 'PENDIENTE') {
-                grupo.estado = reg.estado;
+            grupo.registrosIds.push(reg.id);
+            if (reg.estado !== 'CARGADO') {
+                grupo.todosCargados = false;
             }
         });
 
         groupedData = Array.from(map.values())
+            .map(grupo => ({
+                ...grupo,
+                condicion: grupo.todosCargados ? 'LISTO' : 'PENDIENTE'
+            }))
+            .filter(grupo => grupo.condicion === 'PENDIENTE')
             .sort((a, b) => (b.totalItems || 0) - (a.totalItems || 0));
 
         renderTable();
@@ -117,7 +122,7 @@ function renderTable() {
     groupedData.forEach(grupo => {
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td><span class="estado-badge" data-estado="${grupo.estado}">${grupo.estado || 'PENDIENTE'}</span></td>
+            <td><span class="estado-badge" data-condicion="${grupo.condicion}">${grupo.condicion}</span></td>
             <td>${grupo.prevision || ''}</td>
             <td>${grupo.admision}</td>
             <td>${grupo.paciente}</td>
