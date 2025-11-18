@@ -105,7 +105,7 @@ async function getOrdenByCodigo(codigo) {
 
 async function getIngresoByUniqueKey(numeroFactura, excludeId = null) {
     if (!numeroFactura) return null;
-    const q = query(collection(db, "ingresos_lab"), where("numeroFactura", "==", numeroFactura.trim()));
+    const q = query(collection(db, "laboratorio_ingresos"), where("numeroFactura", "==", numeroFactura.trim()));
     const querySnapshot = await getDocs(q);
     if (!querySnapshot.empty) {
         const doc = querySnapshot.docs[0];
@@ -117,7 +117,7 @@ async function getIngresoByUniqueKey(numeroFactura, excludeId = null) {
 
 async function logAction(ingresoId, action, oldData = null, newData = null) {
     if (!window.currentUserData) return;
-    await addDoc(collection(db, "ingresos_lab_historial"), {
+    await addDoc(collection(db, "laboratorio_ingresos_historial"), {
         ingresoId,
         action,
         timestamp: new Date(),
@@ -131,7 +131,7 @@ async function logAction(ingresoId, action, oldData = null, newData = null) {
 
 async function fixInvalidDateFormats() {
     try {
-        const querySnapshot = await getDocs(collection(db, "ingresos_lab"));
+        const querySnapshot = await getDocs(collection(db, "laboratorio_ingresos"));
         let fixedCount = 0;
         showLoading();
         for (const doc of querySnapshot.docs) {
@@ -347,7 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.openHistoryModal = function (id, numeroFactura) {
         historyTitle.textContent = `HISTORIAL INGRESO ${numeroFactura}`;
         showLoading();
-        const q = query(collection(db, "ingresos_lab_historial"), where("ingresoId", "==", id), orderBy("timestamp", "desc"));
+        const q = query(collection(db, "laboratorio_ingresos_historial"), where("ingresoId", "==", id), orderBy("timestamp", "desc"));
         getDocs(q).then((querySnapshot) => {
             hideLoading();
             let html = '';
@@ -421,7 +421,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     showToast('El número de factura ya existe.', 'error');
                     return;
                 }
-                await updateDoc(doc(db, "ingresos_lab", currentEditId), {
+                await updateDoc(doc(db, "laboratorio_ingresos", currentEditId), {
                     ...processedRow,
                     createdAt: new Date()
                 });
@@ -446,11 +446,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         showLoading();
         try {
-            const ingresoDoc = await getDoc(doc(db, "ingresos_lab", currentDeleteId));
+            const ingresoDoc = await getDoc(doc(db, "laboratorio_ingresos", currentDeleteId));
             if (ingresoDoc.exists()) {
                 const ingresoData = ingresoDoc.data();
                 await logAction(currentDeleteId, 'delete', ingresoData);
-                await deleteDoc(doc(db, "ingresos_lab", currentDeleteId));
+                await deleteDoc(doc(db, "laboratorio_ingresos", currentDeleteId));
                 hideLoading();
                 showToast(`Ingreso ${currentDeleteNumeroFactura} eliminado exitosamente`, 'success');
                 closeDeleteModalHandler();
@@ -773,7 +773,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                const docRef = await addDoc(collection(db, "ingresos_lab"), processedRow);
+                const docRef = await addDoc(collection(db, "laboratorio_ingresos"), processedRow);
                 await logAction(docRef.id, 'create', null, processedRow);
 
                 hideLoading();
@@ -864,7 +864,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadIngresos() {
         showLoading();
         try {
-            const querySnapshot = await getDocs(collection(db, "ingresos_lab"));
+            const querySnapshot = await getDocs(collection(db, "laboratorio_ingresos"));
             ingresos = [];
             anos = new Set();
             mesesPorAno = {};
@@ -1327,9 +1327,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     };
 
                     if (useBatch) {
-                        const ingresoRef = doc(collection(db, "ingresos_lab"));
+                        const ingresoRef = doc(collection(db, "laboratorio_ingresos"));
                         batch.set(ingresoRef, processedRow);
-                        batch.set(doc(collection(db, "ingresos_lab_historial")), {
+                        batch.set(doc(collection(db, "laboratorio_ingresos_historial")), {
                             ingresoId: ingresoRef.id,
                             action: 'create',
                             timestamp: new Date(),
@@ -1341,8 +1341,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
                         batchCount += 2;
                     } else {
-                        const ingresoRef = await addDoc(collection(db, "ingresos_lab"), processedRow);
-                        await addDoc(collection(db, "ingresos_lab_historial"), {
+                        const ingresoRef = await addDoc(collection(db, "laboratorio_ingresos"), processedRow);
+                        await addDoc(collection(db, "laboratorio_ingresos_historial"), {
                             ingresoId: ingresoRef.id,
                             action: 'create',
                             timestamp: new Date(),

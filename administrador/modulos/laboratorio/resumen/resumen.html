@@ -339,7 +339,7 @@
             async function loadIngresos() {
                 showLoading();
                 try {
-                    const querySnapshot = await getDocs(collection(db, "ingresos_lab"));
+                    const querySnapshot = await getDocs(collection(db, "laboratorio_ingresos"));
                     ingresos = [];
                     anos = new Set();
                     querySnapshot.forEach((doc) => {
