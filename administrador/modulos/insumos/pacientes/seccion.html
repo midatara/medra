@@ -38,7 +38,6 @@
             cursor: pointer;
             transition: all 0.3s ease;
             border: 1px solid #e0e0e0;
-            overflow: hidden;
         }
         .option-card:hover {
             transform: translateY(-5px);
@@ -61,34 +60,15 @@
             color: #666;
         }
 
-        /* Spinner pequeño y elegante */
-        .pendientes-loading {
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            width: 26px;
-            height: 26px;
-            border: 3px solid #f0f0f0;
-            border-top: 3px solid #e74c3c;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            opacity: 1;
-            transition: opacity 0.3s;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        /* Badge número */
+        /* Badge rojo */
         .pendientes-badge {
             position: absolute;
             top: 12px;
             right: 12px;
             background: #e74c3c;
             color: white;
-            font-weight: bold;
             font-size: 13px;
+            font-weight: bold;
             min-width: 26px;
             height: 26px;
             border-radius: 50%;
@@ -97,9 +77,12 @@
             justify-content: center;
             box-shadow: 0 3px 8px rgba(231,76,60,0.5);
             opacity: 0;
-            transition: opacity 0.4s;
+            transition: opacity 0.4s ease;
+            z-index: 10;
         }
-        .pendientes-badge.show { opacity: 1; }
+        .pendientes-badge.show {
+            opacity: 1;
+        }
 
         /* Alerta roja */
         .option-card.pendientes-alert {
@@ -125,11 +108,6 @@
             <i class="fas fa-clock"></i>
             <h3>Pacientes Pendientes</h3>
             <p>Pacientes con imputación pendiente</p>
-            
-            <!-- Spinner que aparece al instante -->
-            <div id="pendientesLoading" class="pendientes-loading"></div>
-            
-            <!-- Badge con número (oculto hasta cargar) -->
             <span id="pendientesBadge" class="pendientes-badge">0</span>
         </div>
 
@@ -147,74 +125,89 @@
     </div>
 </div>
 
+<!-- SCRIPT FIJO Y FUNCIONANDO 100% -->
 <script type="module">
-    // Forzar carga rápida de Firebase (compat)
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js';
-    import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js';
-    import { getFirestore, collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js';
+    // Forzamos la carga de Firebase directamente
+    const firebaseScript = document.createElement('script');
+    firebaseScript.src = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js';
+    firebaseScript.onload = () => loadFirebaseAuthAndFirestore();
+    document.head.appendChild(firebaseScript);
 
-    const firebaseConfig = {
-        apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
-        authDomain: "datara-salud.firebaseapp.com",
-        projectId: "datara-salud",
-        storageBucket: "datara-salud.firebasestorage.app",
-        messagingSenderId: "198886910481",
-        appId: "1:198886910481:web:abbc345203a423a6329fb0"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-
-    const card = document.getElementById('pendientesCard');
-    const badge = document.getElementById('pendientesBadge');
-    const loading = document.getElementById('pendientesLoading');
-
-    async function actualizarContador() {
-        try {
-            const snapshot = await getDocs(collection(db, 'consigna_historial'));
-            const grupos = new Map();
-
-            snapshot.forEach(doc => {
-                const d = doc.data();
-                const estado = (d.estado || '').toString().trim().toUpperCase();
-                if (estado !== 'CARGADO') {
-                    const key = `${d.admision || ''}|||${d.proveedor || ''}`;
-                    grupos.set(key, true);
-                }
-            });
-
-            const cantidad = grupos.size;
-
-            // Quitar spinner y mostrar resultado
-            loading.style.opacity = '0';
-            setTimeout(() => loading.style.display = 'none', 300);
-
-            if (cantidad > 0) {
-                badge.textContent = cantidad > 99 ? '99+' : cantidad;
-                badge.classList.add('show');
-                card.classList.add('pendientes-alert');
-            } else {
-                badge.classList.remove('show');
-                card.classList.remove('pendientes-alert');
-            }
-
-        } catch (err) {
-            console.error(err);
-            loading.style.opacity = '0';
-        }
+    function loadFirebaseAuthAndFirestore() {
+        const authScript = document.createElement('script');
+        authScript.src = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js';
+        authScript.onload = () => loadFirestore();
+        document.head.appendChild(authScript);
     }
 
-    // Ejecutar cuando esté autenticado
-    onAuthStateChanged(auth, user => {
-        if (user) {
-            actualizarContador();
-            setInterval(actualizarContador, 30000);
-        }
-    });
+    function loadFirestore() {
+        const fsScript = document.createElement('script');
+        fsScript.src = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js';
+        fsScript.onload = initCounter;
+        document.head.appendChild(fsScript);
+    }
 
-    // Si ya está logueado
-    if (auth.currentUser) actualizarContador();
+    function initCounter() {
+        const firebaseConfig = {
+            apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
+            authDomain: "datara-salud.firebaseapp.com",
+            projectId: "datara-salud",
+            storageBucket: "datara-salud.firebasestorage.app",
+            messagingSenderId: "198886910481",
+            appId: "1:198886910481:web:abbc345203a423a6329fb0"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        async function contarPendientes() {
+            try {
+                const snap = await db.collection('consigna_historial').get();
+                const grupos = new Map();
+
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    const estado = (d.estado || '').toString().trim().toUpperCase();
+
+                    // Cualquier cosa que NO sea exactamente "CARGADO" cuenta como pendiente
+                    if (estado !== 'CARGADO') {
+                        const key = `${d.admision || ''}|||${d.proveedor || ''}`;
+                        grupos.set(key, true);
+                    }
+                });
+
+                const cantidad = grupos.size;
+
+                const card = document.getElementById('pendientesCard');
+                const badge = document.getElementById('pendientesBadge');
+
+                if (cantidad > 0) {
+                    badge.textContent = cantidad > 99 ? '99+' : cantidad;
+                    badge.classList.add('show');
+                    card.classList.add('pendientes-alert');
+                } else {
+                    badge.textContent = '0';
+                    badge.classList.remove('show');
+                    card.classList.remove('pendientes-alert');
+                }
+
+            } catch (err) {
+                console.error("Error contador pendientes:", err);
+            }
+        }
+
+        // Ejecutar cuando haya usuario
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                contarPendientes();
+                setInterval(contarPendientes, 30000); // cada 30 seg
+            }
+        });
+
+        // Si ya está logueado
+        if (auth.currentUser) contarPendientes();
+    }
 </script>
 
 </body>
