@@ -56,7 +56,7 @@
 </head>
 <body>
     <div class="reportes-main-container">
-        <h1 class="reportes-title">Importación de Reportes</h1>
+        <h1 class="reportes-title">Importación de Reportes (Debug Mode)</h1>
 
         <div class="reportes-controls">
             <div class="reportes-filters">
@@ -157,11 +157,17 @@
         const fileInput = document.getElementById('fileUpload');
 
         function toDDMMYYYY(valor) {
-            if (!valor && valor !== 0) return '';
+            console.log('🔍 toDDMMYYYY recibió:', valor, 'Tipo:', typeof valor);
+            
+            if (!valor && valor !== 0) {
+                console.log('❌ Valor vacío o null');
+                return '';
+            }
             
             // Caso 1: String con formato DD-MM-YYYY o DD/MM/YYYY
             if (typeof valor === 'string') {
                 const str = valor.trim();
+                console.log('📝 Procesando string:', str);
                 
                 // Formato DD-MM-YYYY o DD/MM/YYYY
                 const m1 = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
@@ -170,7 +176,9 @@
                     const mm = m1[2].padStart(2, '0');
                     const y = m1[3];
                     if (parseInt(mm) >= 1 && parseInt(mm) <= 12 && parseInt(d) >= 1 && parseInt(d) <= 31) {
-                        return `${d}-${mm}-${y}`;
+                        const resultado = `${d}-${mm}-${y}`;
+                        console.log('✅ Formato DD-MM-YYYY detectado:', resultado);
+                        return resultado;
                     }
                 }
                 
@@ -181,23 +189,34 @@
                     const mm = m2[2].padStart(2, '0');
                     const d = m2[3].padStart(2, '0');
                     if (parseInt(mm) >= 1 && parseInt(mm) <= 12 && parseInt(d) >= 1 && parseInt(d) <= 31) {
-                        return `${d}-${mm}-${y}`;
+                        const resultado = `${d}-${mm}-${y}`;
+                        console.log('✅ Formato YYYY-MM-DD detectado:', resultado);
+                        return resultado;
                     }
                 }
+                
+                console.log('❌ String no coincide con ningún formato conocido');
             }
             
             // Caso 2: Número serial de Excel (días desde 1900-01-01)
             if (typeof valor === 'number') {
+                console.log('🔢 Procesando número serial de Excel:', valor);
                 const epoch1900 = new Date(Date.UTC(1899, 11, 30));
                 const fecha = new Date(epoch1900.getTime() + valor * 86400000);
-                return `${String(fecha.getUTCDate()).padStart(2,'0')}-${String(fecha.getUTCMonth()+1).padStart(2,'0')}-${fecha.getUTCFullYear()}`;
+                const resultado = `${String(fecha.getUTCDate()).padStart(2,'0')}-${String(fecha.getUTCMonth()+1).padStart(2,'0')}-${fecha.getUTCFullYear()}`;
+                console.log('✅ Número convertido a fecha:', resultado);
+                return resultado;
             }
             
             // Caso 3: Objeto Date
             if (valor instanceof Date && !isNaN(valor)) {
-                return `${String(valor.getDate()).padStart(2,'0')}-${String(valor.getMonth()+1).padStart(2,'0')}-${valor.getFullYear()}`;
+                console.log('📅 Procesando objeto Date:', valor);
+                const resultado = `${String(valor.getDate()).padStart(2,'0')}-${String(valor.getMonth()+1).padStart(2,'0')}-${valor.getFullYear()}`;
+                console.log('✅ Date convertido:', resultado);
+                return resultado;
             }
             
+            console.log('❌ Tipo no reconocido');
             return '';
         }
 
@@ -308,19 +327,31 @@
         fileInput.onchange = async e => {
             const file = e.target.files[0];
             if (!file) return;
+            
+            console.log('📂 Archivo seleccionado:', file.name);
             showImportLoading();
             updateProgress(0,100);
 
             try {
                 const data = await file.arrayBuffer();
-                const wb = XLSX.read(data, { type: 'array', cellDates: true });
+                console.log('📊 Leyendo Excel...');
+                const wb = XLSX.read(data, { type: 'array', cellDates: false, raw: true });
                 const ws = wb.Sheets[wb.SheetNames[0]];
+                
+                console.log('📋 Hoja de cálculo:', wb.SheetNames[0]);
+                
+                // Leer el JSON con raw: true para obtener los valores originales
                 const json = XLSX.utils.sheet_to_json(ws, {
                     header: ["fecha","dia","mes","codArticulo","descripcion","admision","rut","paciente","edad","prevision","isapre","convenio","codArancel","arancel","cantidadArticulo","primerCirujano"],
                     range: 1,
                     defval: '',
-                    raw: false
+                    raw: true
                 });
+
+                console.log('📦 Total de registros:', json.length);
+                if (json.length > 0) {
+                    console.log('🔍 Primera fila completa:', json[0]);
+                }
 
                 let agregados=0, actualizados=0, omitidos=0;
                 const total = json.length;
@@ -328,6 +359,13 @@
                 for (let i=0; i<json.length; i++) {
                     updateProgress(i+1,total);
                     const r = json[i];
+                    
+                    if (i === 0) {
+                        console.log('═══════════════════════════════');
+                        console.log('📋 PRIMER REGISTRO - ANÁLISIS:');
+                        console.log('═══════════════════════════════');
+                    }
+                    
                     const fila = {
                         fecha: toDDMMYYYY(r.fecha),
                         dia: String(r.dia||'').trim(),
@@ -346,8 +384,17 @@
                         cantidadArticulo: String(r.cantidadArticulo||'').trim(),
                         primerCirujano: String(r.primerCirujano||'').trim()
                     };
+                    
+                    if (i === 0) {
+                        console.log('📝 Objeto final a guardar:', fila);
+                        console.log('═══════════════════════════════');
+                    }
 
-                    if (!fila.admision || !fila.codArticulo) { omitidos++; continue; }
+                    if (!fila.admision || !fila.codArticulo) { 
+                        omitidos++; 
+                        if (i === 0) console.log('⚠️ Registro omitido: falta admisión o codArticulo');
+                        continue; 
+                    }
 
                     const q = query(collection(db,"reportes"), where("admision","==",fila.admision), where("codArticulo","==",fila.codArticulo));
                     const snap = await getDocs(q);
@@ -358,10 +405,15 @@
                         if (cambios) {
                             await updateDoc(doc(db,"reportes",snap.docs[0].id),{...fila, updatedAt:new Date()});
                             actualizados++;
-                        } else omitidos++;
+                            if (i === 0) console.log('✏️ Registro actualizado');
+                        } else {
+                            omitidos++;
+                            if (i === 0) console.log('⏭️ Registro sin cambios');
+                        }
                     } else {
                         await addDoc(collection(db,"reportes"),{...fila, createdAt:new Date()});
                         agregados++;
+                        if (i === 0) console.log('➕ Registro nuevo agregado');
                     }
                 }
 
@@ -371,7 +423,7 @@
             } catch(err) {
                 hideImportLoading();
                 showToast('Error al importar: '+err.message,'error');
-                console.error(err);
+                console.error('❌ Error completo:', err);
             }
             fileInput.value='';
         };
