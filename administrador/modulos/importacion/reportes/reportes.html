@@ -38,19 +38,16 @@
         .resize-handle{position:absolute;right:0;top:0;width:5px;height:100%;cursor:col-resize;background:transparent;z-index:11}
         .resize-handle:hover,.resize-handle.active{background:#007bff}
         .empty-message{text-align:center;padding:80px 0;font-size:14px;color:#666}
-
         .table-loading{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(255,255,255,0.95);padding:30px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.2);z-index:10;display:none;flex-direction:column;align-items:center}
         .table-loading.show{display:flex}
         .spinner-table{width:40px;height:40px;border:5px solid #f0f0f0;border-top:5px solid #007bff;border-radius:50%;animation:s 1s linear infinite;margin-bottom:12px}
         @keyframes s{to{transform:rotate(360deg)}}
-
         .import-loading{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:1000;justify-content:center;align-items:center;flex-direction:column;color:white}
         .import-loading.show{display:flex}
         .import-loading h3{margin:0 0 20px 0;font-size:18px}
         .progress-container{width:60%;max-width:500px;background:#444;border-radius:8px;overflow:hidden;height:20px;margin:15px 0}
         .progress-bar{height:100%;background:#28a745;width:0%;transition:width 0.3s ease}
         .progress-text{font-size:14px;margin-top:8px}
-
         .reportes-toast{position:fixed;top:20px;right:20px;padding:14px 20px;border-radius:6px;color:white;z-index:1001;font-size:13px;transform:translateX(120%);transition:all .4s;opacity:0}
         .reportes-toast.show{transform:translateX(0);opacity:1}
         .reportes-toast.success{background:#28a745}
@@ -94,9 +91,7 @@
             </div>
 
             <div class="reportes-actions">
-                <button id="actionsBtn">
-                    Acciones
-                </button>
+                <button id="actionsBtn">Acciones</button>
                 <div id="actionsMenu" class="reportes-dropdown">
                     <a href="#" id="downloadTemplate">Formato de importación</a>
                     <a href="#" id="importExcel">Importar Excel</a>
@@ -161,51 +156,25 @@
         const actionsMenu = document.getElementById('actionsMenu');
         const fileInput = document.getElementById('fileUpload');
 
-        // FUNCIÓN ULTRA-CONFIABLE PARA CONVERTIR CUALQUIER FECHA A "DD-MM-YYYY"
-        // FUNCIÓN 100% CONFIABLE – USADA EN PRODUCCIÓN EN CLÍNICAS CHILENAS
-        function toDDMMYYYY(input) {
-            if (!input && input !== 0) return '';
-
-            // Si ya es string en formato correcto → devolver tal cual
-            if (typeof input === 'string') {
-                const trimmed = input.trim();
-                if (/^\d{1,2}[-\/]\d{1,2}[-\/]\d{4}$/.test(trimmed)) {
-                    const parts = trimmed.split(/[-\/]/);
-                    const d = parts[0].padStart(2, '0');
-                    const m = parts[1].padStart(2, '0');
-                    const y = parts[2];
-                    if (parseInt(m) <= 12 && parseInt(d) <= 31) {
-                        return `${d}-${m}-${y}`;
-                    }
+        function toDDMMYYYY(valor) {
+            if (!valor && valor !== 0) return '';
+            if (typeof valor === 'string') {
+                const m = valor.trim().match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+                if (m) {
+                    const d = m[1].padStart(2, '0');
+                    const mm = m[2].padStart(2, '0');
+                    const y = m[3];
+                    if (parseInt(mm) <= 12 && parseInt(d) <= 31) return `${d}-${mm}-${y}`;
                 }
             }
-
-            // SI ES NÚMERO → es fecha serial de Excel (lo más común)
-            if (typeof input === 'number') {
-                // Excel cree que 1900 fue bisiesto → corrección necesaria
-                const utc_days = Math.floor(input - 25569);
-                const utc_value = utc_days * 86400000; // ms desde 1970
-                const date = new Date(utc_value);
-
-                // Corrección zona horaria (crucial en Chile)
-                const offset = date.getTimezoneOffset() * 60000;
-                const localDate = new Date(utc_value + offset);
-
-                const day = String(localDate.getDate()).padStart(2, '0');
-                const month = String(localDate.getMonth() + 1).padStart(2, '0');
-                const year = localDate.getFullYear();
-
-                return `${day}-${month}-${year}`;
+            if (typeof valor === 'number') {
+                const epoch1900 = new Date(Date.UTC(1899, 11, 30));
+                const fecha = new Date(epoch1900.getTime() + valor * 86400000);
+                return `${String(fecha.getUTCDate()).padStart(2,'0')}-${String(fecha.getUTCMonth()+1).padStart(2,'0')}-${fecha.getUTCFullYear()}`;
             }
-
-            // SI ES OBJETO Date
-            if (input instanceof Date && !isNaN(input)) {
-                const day = String(input.getDate()).padStart(2, '0');
-                const month = String(input.getMonth() + 1).padStart(2, '0');
-                const year = input.getFullYear();
-                return `${day}-${month}-${year}`;
+            if (valor instanceof Date && !isNaN(valor)) {
+                return `${String(valor.getDate()).padStart(2,'0')}-${String(valor.getMonth()+1).padStart(2,'0')}-${valor.getFullYear()}`;
             }
-
             return '';
         }
 
@@ -213,14 +182,9 @@
         function hideTableLoading() { tableLoading.classList.remove('show'); }
         function showImportLoading() { importLoading.classList.add('show'); }
         function hideImportLoading() { importLoading.classList.remove('show'); }
-        function updateProgress(current, total) {
-            const percent = total > 0 ? Math.round((current / total) * 100) : 0;
-            progressBar.style.width = percent + '%';
-            progressText.textContent = `${percent}% (${current} de ${total})`;
-        }
+        function updateProgress(c,t) { const p = t>0?Math.round((c/t)*100):0; progressBar.style.width=p+'%'; progressText.textContent=`${p}% (${c} de ${t})`; }
         function showToast(m,t='success') { toast.textContent=m; toast.className=`reportes-toast ${t} show`; setTimeout(()=>toast.classList.remove('show'),5000); }
 
-        // === RESIZE COLUMNAS ===
         function initResize() {
             const table = document.getElementById('reportesTable');
             const headers = table.querySelectorAll('th');
@@ -251,34 +215,30 @@
             try {
                 const snap = await getDocs(collection(db, "reportes"));
                 reportes = snap.docs.map(d => ({id: d.id, ...d.data()}));
-                
                 const anos = [...new Set(reportes.map(r => {
                     const f = r.fecha || '';
-                    const parts = f.split('-');
-                    return parts.length === 3 ? parseInt(parts[2]) : new Date().getFullYear();
-                }))].sort((a,b) => b-a);
-                
-                selectAno.innerHTML = anos.map(a => `<option value="${a}">${a}</option>`).join('');
+                    const p = f.split('-');
+                    return p.length === 3 ? parseInt(p[2]) : new Date().getFullYear();
+                }))].sort((a,b)=>b-a);
+                selectAno.innerHTML = anos.map(a=>`<option value="${a}">${a}</option>`).join('');
                 selectAno.value = selectedAno;
                 updateMeses();
-            } catch(e) {
-                showToast("Error cargando datos", "error");
-            }
+            } catch(e) { showToast("Error cargando datos","error"); }
         }
 
         function updateMeses() {
             const meses = new Set();
             reportes.forEach(r => {
                 const f = r.fecha || '';
-                const parts = f.split('-');
-                if (parts.length === 3 && parseInt(parts[2]) == selectedAno) {
-                    const monthName = new Date(parseInt(parts[2]), parseInt(parts[1])-1).toLocaleString('es-CL', {month: 'long'});
-                    meses.add(monthName);
+                const p = f.split('-');
+                if (p.length===3 && parseInt(p[2])==selectedAno) {
+                    const m = new Date(parseInt(p[2]), parseInt(p[1])-1).toLocaleString('es-CL',{month:'long'});
+                    meses.add(m);
                 }
             });
             const orden = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-            const sorted = [...meses].sort((a,b) => orden.indexOf(a) - orden.indexOf(b));
-            selectMes.innerHTML = '<option value="">Selecciona mes</option>' + sorted.map(m => `<option value="${m}">${m.charAt(0).toUpperCase() + m.slice(1)}</option>`).join('');
+            const sorted = [...meses].sort((a,b)=>orden.indexOf(a)-orden.indexOf(b));
+            selectMes.innerHTML = '<option value="">Selecciona mes</option>' + sorted.map(m=>`<option value="${m}">${m.charAt(0).toUpperCase()+m.slice(1)}</option>`).join('');
             selectedMes = '';
             render();
         }
@@ -287,17 +247,16 @@
             if (!selectedMes) return [];
             return reportes.filter(r => {
                 const f = r.fecha || '';
-                const parts = f.split('-');
-                if (parts.length !== 3) return false;
-                const year = parseInt(parts[2]);
-                const monthName = new Date(year, parseInt(parts[1])-1).toLocaleString('es-CL', {month: 'long'});
-                if (year != selectedAno || monthName !== selectedMes) return false;
-                const a = (r.admision||'').toLowerCase().includes(searchAdmision);
-                const p = (r.paciente||'').toLowerCase().includes(searchPaciente);
-                const ru = (r.rut||'').toLowerCase().includes(searchRut);
-                const de = (r.descripcion||'').toLowerCase().includes(searchDesc);
-                const c = (r.primerCirujano||'').toLowerCase().includes(searchCirujano);
-                return a && p && ru && de && c;
+                const p = f.split('-');
+                if (p.length!==3) return false;
+                const y = parseInt(p[2]);
+                const m = new Date(y, parseInt(p[1])-1).toLocaleString('es-CL',{month:'long'});
+                if (y != selectedAno || m !== selectedMes) return false;
+                return (r.admision||'').toLowerCase().includes(searchAdmision) &&
+                       (r.paciente||'').toLowerCase().includes(searchPaciente) &&
+                       (r.rut||'').toLowerCase().includes(searchRut) &&
+                       (r.descripcion||'').toLowerCase().includes(searchDesc) &&
+                       (r.primerCirujano||'').toLowerCase().includes(searchCirujano);
             });
         }
 
@@ -310,99 +269,75 @@
                 return;
             }
             const data = getVisible();
-            if (data.length === 0) {
+            if (data.length===0) {
                 body.innerHTML = '<tr><td colspan="16" class="empty-message">No hay resultados</td></tr>';
                 hideTableLoading();
                 return;
             }
             data.forEach(r => {
                 const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${r.fecha || ''}</td>
-                    <td>${r.dia||''}</td>
-                    <td>${r.mes||''}</td>
-                    <td>${r.codArticulo||''}</td>
-                    <td>${r.descripcion||''}</td>
-                    <td>${r.admision||''}</td>
-                    <td>${r.rut||''}</td>
-                    <td>${r.paciente||''}</td>
-                    <td>${r.edad||''}</td>
-                    <td>${r.prevision||''}</td>
-                    <td>${r.isapre||''}</td>
-                    <td>${r.convenio||''}</td>
-                    <td>${r.codArancel||''}</td>
-                    <td>${r.arancel||''}</td>
-                    <td>${r.cantidadArticulo||''}</td>
-                    <td>${r.primerCirujano||''}</td>
-                `;
+                tr.innerHTML = `<td>${r.fecha||''}</td><td>${r.dia||''}</td><td>${r.mes||''}</td><td>${r.codArticulo||''}</td><td>${r.descripcion||''}</td><td>${r.admision||''}</td><td>${r.rut||''}</td><td>${r.paciente||''}</td><td>${r.edad||''}</td><td>${r.prevision||''}</td><td>${r.isapre||''}</td><td>${r.convenio||''}</td><td>${r.codArancel||''}</td><td>${r.arancel||''}</td><td>${r.cantidadArticulo||''}</td><td>${r.primerCirujano||''}</td>`;
                 body.appendChild(tr);
             });
-            setTimeout(() => { hideTableLoading(); initResize(); }, 100);
+            setTimeout(()=>{ hideTableLoading(); initResize(); },100);
         }
 
-        // IMPORTACIÓN 100% CORREGIDA PARA FECHAS
         fileInput.onchange = async e => {
             const file = e.target.files[0];
             if (!file) return;
             showImportLoading();
-            updateProgress(0, 100);
+            updateProgress(0,100);
 
             try {
                 const data = await file.arrayBuffer();
-                const wb = XLSX.read(data, { 
-                    type: 'array', 
-                    cellDates: true,
-                    dateNF: false  // ← importante: desactiva cualquier formato automático
-                });
+                const wb = XLSX.read(data, { type: 'array', cellDates: true });
                 const ws = wb.Sheets[wb.SheetNames[0]];
                 const json = XLSX.utils.sheet_to_json(ws, {
                     header: ["fecha","dia","mes","codArticulo","descripcion","admision","rut","paciente","edad","prevision","isapre","convenio","codArancel","arancel","cantidadArticulo","primerCirujano"],
                     range: 1,
                     defval: '',
-                    raw: false,
-                    dateNF: 'dd-mm-yyyy'  // ESTO ES CLAVE: fuerza formato chileno
+                    raw: false
                 });
 
-                let agregados = 0, actualizados = 0, omitidos = 0;
+                let agregados=0, actualizados=0, omitidos=0;
                 const total = json.length;
 
-                for (let i = 0; i < json.length; i++) {
-                    updateProgress(i + 1, total);
+                for (let i=0; i<json.length; i++) {
+                    updateProgress(i+1,total);
                     const r = json[i];
-
                     const fila = {
                         fecha: toDDMMYYYY(r.fecha),
-                        dia: String(r.dia || '').trim(),
-                        mes: String(r.mes || '').trim(),
-                        codArticulo: String(r.codArticulo || '').trim(),
-                        descripcion: String(r.descripcion || '').trim(),
-                        admision: String(r.admision || '').trim(),
-                        rut: String(r.rut || '').trim(),
-                        paciente: String(r.paciente || '').trim(),
-                        edad: String(r.edad || '').trim(),
-                        prevision: String(r.prevision || '').trim(),
-                        isapre: String(r.isapre || '').trim(),
-                        convenio: String(r.convenio || '').trim(),
-                        codArancel: String(r.codArancel || '').trim(),
-                        arancel: String(r.arancel || '').trim(),
-                        cantidadArticulo: String(r.cantidadArticulo || '').trim(),
-                        primerCirujano: String(r.primerCirujano || '').trim()
+                        dia: String(r.dia||'').trim(),
+                        mes: String(r.mes||'').trim(),
+                        codArticulo: String(r.codArticulo||'').trim(),
+                        descripcion: String(r.descripcion||'').trim(),
+                        admision: String(r.admision||'').trim(),
+                        rut: String(r.rut||'').trim(),
+                        paciente: String(r.paciente||'').trim(),
+                        edad: String(r.edad||'').trim(),
+                        prevision: String(r.prevision||'').trim(),
+                        isapre: String(r.isapre||'').trim(),
+                        convenio: String(r.convenio||'').trim(),
+                        codArancel: String(r.codArancel||'').trim(),
+                        arancel: String(r.arancel||'').trim(),
+                        cantidadArticulo: String(r.cantidadArticulo||'').trim(),
+                        primerCirujano: String(r.primerCirujano||'').trim()
                     };
 
                     if (!fila.admision || !fila.codArticulo) { omitidos++; continue; }
 
-                    const q = query(collection(db, "reportes"), where("admision", "==", fila.admision), where("codArticulo", "==", fila.codArticulo));
+                    const q = query(collection(db,"reportes"), where("admision","==",fila.admision), where("codArticulo","==",fila.codArticulo));
                     const snap = await getDocs(q);
 
                     if (!snap.empty) {
                         const existente = snap.docs[0].data();
-                        const hayCambios = Object.keys(fila).some(k => String(fila[k]) !== String(existente[k] || '').trim());
-                        if (hayCambios) {
-                            await updateDoc(doc(db, "reportes", snap.docs[0].id), {...fila, updatedAt: new Date()});
+                        const cambios = Object.keys(fila).some(k=>String(fila[k])!==String(existente[k]||'').trim());
+                        if (cambios) {
+                            await updateDoc(doc(db,"reportes",snap.docs[0].id),{...fila, updatedAt:new Date()});
                             actualizados++;
                         } else omitidos++;
                     } else {
-                        await addDoc(collection(db, "reportes"), {...fila, createdAt: new Date()});
+                        await addDoc(collection(db,"reportes"),{...fila, createdAt:new Date()});
                         agregados++;
                     }
                 }
@@ -410,56 +345,53 @@
                 hideImportLoading();
                 showToast(`Importación completada: ${agregados} nuevos, ${actualizados} actualizados, ${omitidos} omitidos`, 'success');
                 await loadAll();
-
-            } catch (err) {
+            } catch(err) {
                 hideImportLoading();
-                showToast('Error al importar: ' + err.message, 'error');
+                showToast('Error al importar: '+err.message,'error');
                 console.error(err);
             }
-            fileInput.value = '';
+            fileInput.value='';
         };
 
         selectAno.onchange = () => { selectedAno = selectAno.value; updateMeses(); };
         selectMes.onchange = () => { selectedMes = selectMes.value; render(); };
-        ['buscarAdmision','buscarPaciente','buscarRut','buscarDescripcion','buscarCirujano'].forEach(id => {
-            document.getElementById(id).oninput = e => {
+        ['buscarAdmision','buscarPaciente','buscarRut','buscarDescripcion','buscarCirujano'].forEach(id=>{
+            document.getElementById(id).oninput = e=>{
                 const v = e.target.value.toLowerCase().trim();
-                if (id === 'buscarAdmision') searchAdmision = v;
-                if (id === 'buscarPaciente') searchPaciente = v;
-                if (id === 'buscarRut') searchRut = v;
-                if (id === 'buscarDescripcion') searchDesc = v;
-                if (id === 'buscarCirujano') searchCirujano = v;
-                if (selectedMes) render();
+                if(id==='buscarAdmision') searchAdmision=v;
+                if(id==='buscarPaciente') searchPaciente=v;
+                if(id==='buscarRut') searchRut=v;
+                if(id==='buscarDescripcion') searchDesc=v;
+                if(id==='buscarCirujano') searchCirujano=v;
+                if(selectedMes) render();
             };
         });
 
-        actionsBtn.onclick = e => { e.stopPropagation(); actionsMenu.classList.toggle('show'); };
-        document.addEventListener('click', e => {
-            if (!actionsBtn.contains(e.target) && !actionsMenu.contains(e.target)) {
-                actionsMenu.classList.remove('show');
-            }
+        actionsBtn.onclick = e=>{ e.stopPropagation(); actionsMenu.classList.toggle('show'); };
+        document.addEventListener('click', e=>{
+            if(!actionsBtn.contains(e.target) && !actionsMenu.contains(e.target)) actionsMenu.classList.remove('show');
         });
 
-        document.getElementById('downloadTemplate').onclick = e => { e.preventDefault(); downloadTemplate(); actionsMenu.classList.remove('show'); };
-        document.getElementById('importExcel').onclick = e => { e.preventDefault(); fileInput.click(); actionsMenu.classList.remove('show'); };
-        document.getElementById('downloadVisible').onclick = e => { e.preventDefault(); exportData(getVisible(), 'reportes_visibles'); actionsMenu.classList.remove('show'); };
-        document.getElementById('downloadAll').onclick = e => { e.preventDefault(); exportData(reportes, 'todos_reportes'); actionsMenu.classList.remove('show'); };
+        document.getElementById('downloadTemplate').onclick = e=>{ e.preventDefault(); downloadTemplate(); actionsMenu.classList.remove('show'); };
+        document.getElementById('importExcel').onclick = e=>{ e.preventDefault(); fileInput.click(); actionsMenu.classList.remove('show'); };
+        document.getElementById('downloadVisible').onclick = e=>{ e.preventDefault(); exportData(getVisible(),'reportes_visibles'); actionsMenu.classList.remove('show'); };
+        document.getElementById('downloadAll').onclick = e=>{ e.preventDefault(); exportData(reportes,'todos_reportes'); actionsMenu.classList.remove('show'); };
 
         function downloadTemplate() {
             const ws = XLSX.utils.aoa_to_sheet([["Fecha","Día","Mes","Cod. Artículo","Descripción","Admisión","Rut","Paciente","Edad","Previsión","Isapre","Convenio","Cód. Arancel","Arancel","Cant. Art.","1° Cirujano"]]);
-            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Template");
-            XLSX.writeFile(wb, "template_reportes.xlsx");
+            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Template");
+            XLSX.writeFile(wb,"template_reportes.xlsx");
         }
 
-        function exportData(data, name) {
-            const exp = data.map(r => ({ fecha: r.fecha || '', dia: r.dia, mes: r.mes, codArticulo: r.codArticulo, descripcion: r.descripcion, admision: r.admision, rut: r.rut, paciente: r.paciente, edad: r.edad, prevision: r.prevision, isapre: r.isapre, convenio: r.convenio, codArancel: r.codArancel, arancel: r.arancel, cantidadArticulo: r.cantidadArticulo, primerCirujano: r.primerCirujano }));
+        function exportData(data,name) {
+            const exp = data.map(r=>({fecha:r.fecha||'',dia:r.dia,mes:r.mes,codArticulo:r.codArticulo,descripcion:r.descripcion,admision:r.admision,rut:r.rut,paciente:r.paciente,edad:r.edad,prevision:r.prevision,isapre:r.isapre,convenio:r.convenio,codArancel:r.codArancel,arancel:r.arancel,cantidadArticulo:r.cantidadArticulo,primerCirujano:r.primerCirujano}));
             const ws = XLSX.utils.json_to_sheet(exp);
-            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Reportes");
-            XLSX.writeFile(wb, name + '.xlsx');
+            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Reportes");
+            XLSX.writeFile(wb,name+'.xlsx');
         }
 
-        onAuthStateChanged(auth, user => {
-            if (!user) { window.location.replace('../../../../../../index.html'); return; }
+        onAuthStateChanged(auth, user=>{
+            if(!user){ window.location.replace('../../../../../../index.html'); return; }
             loadAll();
         });
 
