@@ -51,11 +51,10 @@ async function loadPendientes() {
 
         snapshot.forEach(doc => {
             const d = doc.data();
-            if (d.estado === 'CARGADO') return; // solo pendientes
+            if (d.estado === 'CARGADO') return;
             registrosPendientes.push({ id: doc.id, ...d });
         });
 
-        // Ordenar por fecha más reciente primero
         registrosPendientes.sort((a, b) => (b.fechaCX || '').localeCompare(a.fechaCX || ''));
 
         renderTable();
@@ -92,7 +91,7 @@ function renderTable() {
             <td>${reg.codigo || ''}</td>
             <td>${reg.descripcion || ''}</td>
             <td style="text-align:center">${reg.cantidad || ''}</td>
-            <td class="total-cell">$${format(reg.totalItems)}</td>
+            <td class="total-cell">$${formatNumber(reg.totalItems)}</td>
             <td>${reg.atributo || ''}</td>
         `;
         tbody.appendChild(row);
