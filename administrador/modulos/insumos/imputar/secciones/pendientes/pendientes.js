@@ -43,19 +43,49 @@ function formatDate(str) {
     return `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
 }
 
-// NUEVA FUNCIÓN: Calcula el margen según tu fórmula de Excel
+function parsePorcentaje(str) {
+    if (!str) return 0;
+    return parseInt(str.replace('%', ''), 10) / 100;
+}
+
 function calcularMargen(precioUnitario) {
     const p = Number(precioUnitario) || 0;
-    if (p < 301)     return "500%";
-    if (p < 1001)    return "400%";
-    if (p < 5001)    return "300%";
-    if (p < 10001)   return "250%";
-    if (p < 25001)   return "200%";
-    if (p < 50001)   return "160%";
-    if (p < 100001)  return "140%";
-    if (p < 200001)  return "80%";
-    if (p < 10000000)return "50%";
-    return "50%"; // por defecto
+    if (p < 301)      return "500%";
+    if (p < 1001)     return "400%";
+    if (p < 5001)     return "300%";
+    if (p < 10001)    return "250%";
+    if (p < 25001)    return "200%";
+    if (p < 50001)    return "160%";
+    if (p < 100001)   return "140%";
+    if (p < 200001)   return "80%";
+    return "50%";
+}
+
+function calcularVenta(registro) {
+    const precio = Number(registro.precioUnitario) || 0;
+    const cantidad = Number(registro.cantidad) || 1;
+    const atributo = (registro.atributo || '').toUpperCase().trim();
+    const prevision = (registro.prevision || '').toUpperCase().trim();
+
+    if (!precio || !cantidad) return '';
+
+    let margenUsado = 0;
+
+    if (atributo === "CONSIGNACION") {
+        margenUsado = parsePorcentaje(registro.margen);
+    } else if (atributo === "COTIZACION") {
+        if (prevision === "ISL") {
+            margenUsado = 1.00; // 100%
+        } else {
+            margenUsado = 0.30; // 30%
+        }
+    } else {
+        return ''; // cualquier otro atributo → vacío
+    }
+
+    const precioConMargen = precio * (1 + margenUsado);
+    const totalVenta = precioConMargen * cantidad;
+    return Math.round(totalVenta);
 }
 
 async function loadPendientes() {
@@ -63,39 +93,38 @@ async function loadPendientes() {
     try {
         const snapshot = await getDocs(collection(db, 'consigna_historial'));
         registrosPendientes = [];
+        const promesas = [];
 
-        const promesasActualizacion = [];
+        snapshot.forEach(documento => {
+            const data = documento.data();
+            if (data.estado === 'CARGADO') return;
 
-        snapshot.forEach(doc => {
-            const d = doc.data();
-            if (d.estado === 'CARGADO') return;
+            const reg = { id: documento.id, ...data };
 
-            const registro = { id: doc.id, ...d };
-
-            // Si no tiene margen, lo calculamos y guardamos
-            if (!registro.margen && registro.precioUnitario !== undefined) {
-                const margenCalculado = calcularMargen(registro.precioUnitario);
-                registro.margen = margenCalculado;
-
-                // Guardamos en Firestore (solo una vez)
-                promesasActualizacion.push(
-                    updateDoc(doc.ref, { margen: margenCalculado })
-                        .catch(err => console.warn(`No se pudo actualizar margen en ${doc.id}:`, err))
-                );
+            // Calcular y guardar margen si no existe
+            if (!reg.margen && reg.precioUnitario !== undefined) {
+                const nuevoMargen = calcularMargen(reg.precioUnitario);
+                reg.margen = nuevoMargen;
+                promesas.push(updateDoc(documento.ref, { margen: nuevoMargen }));
             }
 
-            registrosPendientes.push(registro);
+            // Calcular y guardar venta si no existe
+            const ventaCalculada = calcularVenta(reg);
+            if (ventaCalculada && !reg.ventaCalculada) {
+                reg.ventaCalculada = ventaCalculada;
+                promesas.push(updateDoc(documento.ref, { ventaCalculada }));
+            } else if (ventaCalculada) {
+                reg.ventaCalculada = ventaCalculada; // ya existe, solo lo usamos
+            }
+
+            registrosPendientes.push(reg);
         });
 
-        // Ejecutamos todas las actualizaciones en paralelo (sin bloquear la UI)
-        if (promesasActualizacion.length > 0) {
-            Promise.allSettled(promesasActualizacion).then(() => {
-                showToast(`Se calcularon márgenes en ${promesasActualizacion.length} registros nuevos`, 'success');
-            });
+        if (promesas.length > 0) {
+            await Promise.allSettled(promesas);
         }
 
         registrosPendientes.sort((a, b) => (b.fechaCX || '').localeCompare(a.fechaCX || ''));
-
         renderTable();
         updateMarcarButton();
     } catch (e) {
@@ -118,13 +147,14 @@ function renderTable() {
     }
 
     registrosPendientes.forEach(reg => {
+        const venta = reg.ventaCalculada ? formatNumber(reg.ventaCalculada) : '';
         const row = document.createElement('tr');
         row.innerHTML = `
             <td><input type="checkbox" class="row-checkbox" data-id="${reg.id}"></td>
             <td>${reg.admision || ''}</td>
             <td>${reg.codigo || ''}</td>
             <td style="text-align:center">${reg.cantidad || ''}</td>
-            <td></td>
+            <td style="text-align:right; font-weight:bold; color:#27ae60;">$${venta}</td>
             <td>${formatDate(reg.fechaCX)}</td>
             <td>${reg.prevision || ''}</td>
             <td>${reg.convenio || ''}</td>
@@ -150,7 +180,6 @@ async function marcarComoCargado() {
     if (checked.length === 0) return;
 
     const ids = Array.from(checked).map(cb => cb.dataset.id);
-
     showLoading();
     try {
         await Promise.all(ids.map(id => updateDoc(doc(db, 'consigna_historial', id), { estado: 'CARGADO' })));
