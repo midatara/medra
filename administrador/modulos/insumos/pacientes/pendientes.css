@@ -103,8 +103,8 @@ html, body {
 }
 
 .pendientes-table th {
-    background-color: #3A5795;
-    color: white;
+    background-color: #f2f2f2;
+    color: #333;
     font-size: 11px;
     position: sticky;
     top: 0;
