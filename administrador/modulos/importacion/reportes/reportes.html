@@ -56,7 +56,7 @@
 </head>
 <body>
     <div class="reportes-main-container">
-        <h1 class="reportes-title">Importación de Reportes (Debug Mode)</h1>
+        <h1 class="reportes-title">Importación de Reportes</h1>
 
         <div class="reportes-controls">
             <div class="reportes-filters">
@@ -157,66 +157,42 @@
         const fileInput = document.getElementById('fileUpload');
 
         function toDDMMYYYY(valor) {
-            console.log('🔍 toDDMMYYYY recibió:', valor, 'Tipo:', typeof valor);
-            
-            if (!valor && valor !== 0) {
-                console.log('❌ Valor vacío o null');
-                return '';
-            }
-            
-            // Caso 1: String con formato DD-MM-YYYY o DD/MM/YYYY
+            if (!valor && valor !== 0) return '';
+
             if (typeof valor === 'string') {
                 const str = valor.trim();
-                console.log('📝 Procesando string:', str);
-                
-                // Formato DD-MM-YYYY o DD/MM/YYYY
+
                 const m1 = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
                 if (m1) {
                     const d = m1[1].padStart(2, '0');
                     const mm = m1[2].padStart(2, '0');
                     const y = m1[3];
                     if (parseInt(mm) >= 1 && parseInt(mm) <= 12 && parseInt(d) >= 1 && parseInt(d) <= 31) {
-                        const resultado = `${d}-${mm}-${y}`;
-                        console.log('✅ Formato DD-MM-YYYY detectado:', resultado);
-                        return resultado;
+                        return `${d}-${mm}-${y}`;
                     }
                 }
-                
-                // Formato YYYY-MM-DD o YYYY/MM/DD
+
                 const m2 = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
                 if (m2) {
                     const y = m2[1];
                     const mm = m2[2].padStart(2, '0');
                     const d = m2[3].padStart(2, '0');
                     if (parseInt(mm) >= 1 && parseInt(mm) <= 12 && parseInt(d) >= 1 && parseInt(d) <= 31) {
-                        const resultado = `${d}-${mm}-${y}`;
-                        console.log('✅ Formato YYYY-MM-DD detectado:', resultado);
-                        return resultado;
+                        return `${d}-${mm}-${y}`;
                     }
                 }
-                
-                console.log('❌ String no coincide con ningún formato conocido');
             }
-            
-            // Caso 2: Número serial de Excel (días desde 1900-01-01)
+
             if (typeof valor === 'number') {
-                console.log('🔢 Procesando número serial de Excel:', valor);
                 const epoch1900 = new Date(Date.UTC(1899, 11, 30));
                 const fecha = new Date(epoch1900.getTime() + valor * 86400000);
-                const resultado = `${String(fecha.getUTCDate()).padStart(2,'0')}-${String(fecha.getUTCMonth()+1).padStart(2,'0')}-${fecha.getUTCFullYear()}`;
-                console.log('✅ Número convertido a fecha:', resultado);
-                return resultado;
+                return `${String(fecha.getUTCDate()).padStart(2,'0')}-${String(fecha.getUTCMonth()+1).padStart(2,'0')}-${fecha.getUTCFullYear()}`;
             }
-            
-            // Caso 3: Objeto Date
+
             if (valor instanceof Date && !isNaN(valor)) {
-                console.log('📅 Procesando objeto Date:', valor);
-                const resultado = `${String(valor.getDate()).padStart(2,'0')}-${String(valor.getMonth()+1).padStart(2,'0')}-${valor.getFullYear()}`;
-                console.log('✅ Date convertido:', resultado);
-                return resultado;
+                return `${String(valor.getDate()).padStart(2,'0')}-${String(valor.getMonth()+1).padStart(2,'0')}-${valor.getFullYear()}`;
             }
-            
-            console.log('❌ Tipo no reconocido');
+
             return '';
         }
 
@@ -224,32 +200,75 @@
         function hideTableLoading() { tableLoading.classList.remove('show'); }
         function showImportLoading() { importLoading.classList.add('show'); }
         function hideImportLoading() { importLoading.classList.remove('show'); }
-        function updateProgress(c,t) { const p = t>0?Math.round((c/t)*100):0; progressBar.style.width=p+'%'; progressText.textContent=`${p}% (${c} de ${t})`; }
-        function showToast(m,t='success') { toast.textContent=m; toast.className=`reportes-toast ${t} show`; setTimeout(()=>toast.classList.remove('show'),5000); }
+        function updateProgress(c,t) { 
+            const p = t>0 ? Math.round((c/t)*100) : 0; 
+            progressBar.style.width = p + '%'; 
+            progressText.textContent = `${p}% (${c} de ${t})`; 
+        }
+        function showToast(m,t='success') { 
+            toast.textContent = m; 
+            toast.className = `reportes-toast ${t} show`; 
+            setTimeout(() => toast.classList.remove('show'), 5000); 
+        }
 
         function initResize() {
             const table = document.getElementById('reportesTable');
             const headers = table.querySelectorAll('th');
-            let resizing=false, col=-1, startX=0, startW=0;
-            const MIN=40, MAX=800;
+            let resizing = false, col = -1, startX = 0, startW = 0;
+            const MIN = 40, MAX = 800;
+
             function apply() {
                 const s = localStorage.getItem('reportes-column-widths');
-                if(!s) return;
-                try { const w = JSON.parse(s);
-                    headers.forEach((th,i)=>{ if(w[i]){ const px=w[i]+'px'; th.style.width=th.style.minWidth=th.style.maxWidth=px;
-                        table.querySelectorAll(`td:nth-child(${i+1})`).forEach(td=>td.style.width=td.style.minWidth=td.style.maxWidth=px);
-                    }});
-                }catch(e){}
+                if (!s) return;
+                try {
+                    const w = JSON.parse(s);
+                    headers.forEach((th,i) => {
+                        if (w[i]) {
+                            const px = w[i] + 'px';
+                            th.style.width = th.style.minWidth = th.style.maxWidth = px;
+                            table.querySelectorAll(`td:nth-child(${i+1})`).forEach(td => 
+                                td.style.width = td.style.minWidth = td.style.maxWidth = px);
+                        }
+                    });
+                } catch(e) {}
             }
-            function save() { const w = Array.from(headers).map(th=>parseInt(th.style.width)||th.offsetWidth); localStorage.setItem('reportes-column-widths', JSON.stringify(w)); }
-            headers.forEach((th,i)=>{
-                let h=th.querySelector('.resize-handle');
-                if(!h){ h=document.createElement('div'); h.className='resize-handle'; th.appendChild(h); }
-                h.onmousedown=e=>{ e.preventDefault(); resizing=true; col=i; startX=e.clientX; startW=th.offsetWidth; h.classList.add('active'); document.body.style.cursor='col-resize'; document.body.style.userSelect='none'; };
+
+            function save() {
+                const w = Array.from(headers).map(th => parseInt(th.style.width) || th.offsetWidth);
+                localStorage.setItem('reportes-column-widths', JSON.stringify(w));
+            }
+
+            headers.forEach((th,i) => {
+                let h = th.querySelector('.resize-handle');
+                if (!h) { h = document.createElement('div'); h.className = 'resize-handle'; th.appendChild(h); }
+                h.onmousedown = e => {
+                    e.preventDefault();
+                    resizing = true; col = i; startX = e.clientX; startW = th.offsetWidth;
+                    h.classList.add('active');
+                    document.body.style.cursor = 'col-resize';
+                    document.body.style.userSelect = 'none';
+                };
             });
-            document.onmousemove=e=>{ if(!resizing||col===-1) return; let nw = Math.max(MIN, Math.min(MAX, startW + (e.clientX-startX))); const px=nw+'px'; headers[col].style.width=headers[col].style.minWidth=headers[col].style.maxWidth=px;
-                table.querySelectorAll(`td:nth-child(${col+1})`).forEach(td=>td.style.width=td.style.minWidth=td.style.maxWidth=px); };
-            document.onmouseup=()=>{ if(resizing){ resizing=false; col=-1; document.body.style.cursor=''; document.body.style.userSelect=''; table.querySelectorAll('.resize-handle.active').forEach(h=>h.classList.remove('active')); save(); }};
+
+            document.onmousemove = e => {
+                if (!resizing || col === -1) return;
+                let nw = Math.max(MIN, Math.min(MAX, startW + (e.clientX - startX)));
+                const px = nw + 'px';
+                headers[col].style.width = headers[col].style.minWidth = headers[col].style.maxWidth = px;
+                table.querySelectorAll(`td:nth-child(${col+1})`).forEach(td => 
+                    td.style.width = td.style.minWidth = td.style.maxWidth = px);
+            };
+
+            document.onmouseup = () => {
+                if (resizing) {
+                    resizing = false; col = -1;
+                    document.body.style.cursor = '';
+                    document.body.style.userSelect = '';
+                    table.querySelectorAll('.resize-handle.active').forEach(h => h.classList.remove('active'));
+                    save();
+                }
+            };
+
             apply();
         }
 
@@ -261,11 +280,13 @@
                     const f = r.fecha || '';
                     const p = f.split('-');
                     return p.length === 3 ? parseInt(p[2]) : new Date().getFullYear();
-                }))].sort((a,b)=>b-a);
-                selectAno.innerHTML = anos.map(a=>`<option value="${a}">${a}</option>`).join('');
+                }))].sort((a,b) => b-a);
+                selectAno.innerHTML = anos.map(a => `<option value="${a}">${a}</option>`).join('');
                 selectAno.value = selectedAno;
                 updateMeses();
-            } catch(e) { showToast("Error cargando datos","error"); }
+            } catch(e) {
+                showToast("Error cargando datos", "error");
+            }
         }
 
         function updateMeses() {
@@ -273,14 +294,15 @@
             reportes.forEach(r => {
                 const f = r.fecha || '';
                 const p = f.split('-');
-                if (p.length===3 && parseInt(p[2])==selectedAno) {
-                    const m = new Date(parseInt(p[2]), parseInt(p[1])-1).toLocaleString('es-CL',{month:'long'});
+                if (p.length === 3 && parseInt(p[2]) == selectedAno) {
+                    const m = new Date(parseInt(p[2]), parseInt(p[1])-1).toLocaleString('es-CL', {month: 'long'});
                     meses.add(m);
                 }
             });
             const orden = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-            const sorted = [...meses].sort((a,b)=>orden.indexOf(a)-orden.indexOf(b));
-            selectMes.innerHTML = '<option value="">Selecciona mes</option>' + sorted.map(m=>`<option value="${m}">${m.charAt(0).toUpperCase()+m.slice(1)}</option>`).join('');
+            const sorted = [...meses].sort((a,b) => orden.indexOf(a) - orden.indexOf(b));
+            selectMes.innerHTML = '<option value="">Selecciona mes</option>' + 
+                sorted.map(m => `<option value="${m}">${m.charAt(0).toUpperCase() + m.slice(1)}</option>`).join('');
             selectedMes = '';
             render();
         }
@@ -290,9 +312,9 @@
             return reportes.filter(r => {
                 const f = r.fecha || '';
                 const p = f.split('-');
-                if (p.length!==3) return false;
+                if (p.length !== 3) return false;
                 const y = parseInt(p[2]);
-                const m = new Date(y, parseInt(p[1])-1).toLocaleString('es-CL',{month:'long'});
+                const m = new Date(y, parseInt(p[1])-1).toLocaleString('es-CL', {month: 'long'});
                 if (y != selectedAno || m !== selectedMes) return false;
                 return (r.admision||'').toLowerCase().includes(searchAdmision) &&
                        (r.paciente||'').toLowerCase().includes(searchPaciente) &&
@@ -311,7 +333,7 @@
                 return;
             }
             const data = getVisible();
-            if (data.length===0) {
+            if (data.length === 0) {
                 body.innerHTML = '<tr><td colspan="16" class="empty-message">No hay resultados</td></tr>';
                 hideTableLoading();
                 return;
@@ -321,26 +343,21 @@
                 tr.innerHTML = `<td>${r.fecha||''}</td><td>${r.dia||''}</td><td>${r.mes||''}</td><td>${r.codArticulo||''}</td><td>${r.descripcion||''}</td><td>${r.admision||''}</td><td>${r.rut||''}</td><td>${r.paciente||''}</td><td>${r.edad||''}</td><td>${r.prevision||''}</td><td>${r.isapre||''}</td><td>${r.convenio||''}</td><td>${r.codArancel||''}</td><td>${r.arancel||''}</td><td>${r.cantidadArticulo||''}</td><td>${r.primerCirujano||''}</td>`;
                 body.appendChild(tr);
             });
-            setTimeout(()=>{ hideTableLoading(); initResize(); },100);
+            setTimeout(() => { hideTableLoading(); initResize(); }, 100);
         }
 
         fileInput.onchange = async e => {
             const file = e.target.files[0];
             if (!file) return;
             
-            console.log('📂 Archivo seleccionado:', file.name);
             showImportLoading();
-            updateProgress(0,100);
+            updateProgress(0, 100);
 
             try {
                 const data = await file.arrayBuffer();
-                console.log('📊 Leyendo Excel...');
                 const wb = XLSX.read(data, { type: 'array', cellDates: false, raw: true });
                 const ws = wb.Sheets[wb.SheetNames[0]];
                 
-                console.log('📋 Hoja de cálculo:', wb.SheetNames[0]);
-                
-                // Leer el JSON con raw: true para obtener los valores originales
                 const json = XLSX.utils.sheet_to_json(ws, {
                     header: ["fecha","dia","mes","codArticulo","descripcion","admision","rut","paciente","edad","prevision","isapre","convenio","codArancel","arancel","cantidadArticulo","primerCirujano"],
                     range: 1,
@@ -348,23 +365,12 @@
                     raw: true
                 });
 
-                console.log('📦 Total de registros:', json.length);
-                if (json.length > 0) {
-                    console.log('🔍 Primera fila completa:', json[0]);
-                }
-
-                let agregados=0, actualizados=0, omitidos=0;
+                let agregados = 0, actualizados = 0, omitidos = 0;
                 const total = json.length;
 
-                for (let i=0; i<json.length; i++) {
-                    updateProgress(i+1,total);
+                for (let i = 0; i < json.length; i++) {
+                    updateProgress(i + 1, total);
                     const r = json[i];
-                    
-                    if (i === 0) {
-                        console.log('═══════════════════════════════');
-                        console.log('📋 PRIMER REGISTRO - ANÁLISIS:');
-                        console.log('═══════════════════════════════');
-                    }
                     
                     const fila = {
                         fecha: toDDMMYYYY(r.fecha),
@@ -384,15 +390,9 @@
                         cantidadArticulo: String(r.cantidadArticulo||'').trim(),
                         primerCirujano: String(r.primerCirujano||'').trim()
                     };
-                    
-                    if (i === 0) {
-                        console.log('📝 Objeto final a guardar:', fila);
-                        console.log('═══════════════════════════════');
-                    }
 
                     if (!fila.admision || !fila.codArticulo) { 
                         omitidos++; 
-                        if (i === 0) console.log('⚠️ Registro omitido: falta admisión o codArticulo');
                         continue; 
                     }
 
@@ -401,19 +401,16 @@
 
                     if (!snap.empty) {
                         const existente = snap.docs[0].data();
-                        const cambios = Object.keys(fila).some(k=>String(fila[k])!==String(existente[k]||'').trim());
+                        const cambios = Object.keys(fila).some(k => String(fila[k]) !== String(existente[k]||'').trim());
                         if (cambios) {
-                            await updateDoc(doc(db,"reportes",snap.docs[0].id),{...fila, updatedAt:new Date()});
+                            await updateDoc(doc(db,"reportes",snap.docs[0].id), {...fila, updatedAt: new Date()});
                             actualizados++;
-                            if (i === 0) console.log('✏️ Registro actualizado');
                         } else {
                             omitidos++;
-                            if (i === 0) console.log('⏭️ Registro sin cambios');
                         }
                     } else {
-                        await addDoc(collection(db,"reportes"),{...fila, createdAt:new Date()});
+                        await addDoc(collection(db,"reportes"), {...fila, createdAt: new Date()});
                         agregados++;
-                        if (i === 0) console.log('➕ Registro nuevo agregado');
                     }
                 }
 
@@ -422,51 +419,58 @@
                 await loadAll();
             } catch(err) {
                 hideImportLoading();
-                showToast('Error al importar: '+err.message,'error');
-                console.error('❌ Error completo:', err);
+                showToast('Error al importar: ' + err.message, 'error');
             }
-            fileInput.value='';
+            fileInput.value = '';
         };
 
         selectAno.onchange = () => { selectedAno = selectAno.value; updateMeses(); };
         selectMes.onchange = () => { selectedMes = selectMes.value; render(); };
-        ['buscarAdmision','buscarPaciente','buscarRut','buscarDescripcion','buscarCirujano'].forEach(id=>{
-            document.getElementById(id).oninput = e=>{
+
+        ['buscarAdmision','buscarPaciente','buscarRut','buscarDescripcion','buscarCirujano'].forEach(id => {
+            document.getElementById(id).oninput = e => {
                 const v = e.target.value.toLowerCase().trim();
-                if(id==='buscarAdmision') searchAdmision=v;
-                if(id==='buscarPaciente') searchPaciente=v;
-                if(id==='buscarRut') searchRut=v;
-                if(id==='buscarDescripcion') searchDesc=v;
-                if(id==='buscarCirujano') searchCirujano=v;
-                if(selectedMes) render();
+                if (id === 'buscarAdmision') searchAdmision = v;
+                if (id === 'buscarPaciente') searchPaciente = v;
+                if (id === 'buscarRut') searchRut = v;
+                if (id === 'buscarDescripcion') searchDesc = v;
+                if (id === 'buscarCirujano') searchCirujano = v;
+                if (selectedMes) render();
             };
         });
 
-        actionsBtn.onclick = e=>{ e.stopPropagation(); actionsMenu.classList.toggle('show'); };
-        document.addEventListener('click', e=>{
-            if(!actionsBtn.contains(e.target) && !actionsMenu.contains(e.target)) actionsMenu.classList.remove('show');
+        actionsBtn.onclick = e => { e.stopPropagation(); actionsMenu.classList.toggle('show'); };
+        document.addEventListener('click', e => {
+            if (!actionsBtn.contains(e.target) && !actionsMenu.contains(e.target)) actionsMenu.classList.remove('show');
         });
 
-        document.getElementById('downloadTemplate').onclick = e=>{ e.preventDefault(); downloadTemplate(); actionsMenu.classList.remove('show'); };
-        document.getElementById('importExcel').onclick = e=>{ e.preventDefault(); fileInput.click(); actionsMenu.classList.remove('show'); };
-        document.getElementById('downloadVisible').onclick = e=>{ e.preventDefault(); exportData(getVisible(),'reportes_visibles'); actionsMenu.classList.remove('show'); };
-        document.getElementById('downloadAll').onclick = e=>{ e.preventDefault(); exportData(reportes,'todos_reportes'); actionsMenu.classList.remove('show'); };
+        document.getElementById('downloadTemplate').onclick = e => { e.preventDefault(); downloadTemplate(); actionsMenu.classList.remove('show'); };
+        document.getElementById('importExcel').onclick = e => { e.preventDefault(); fileInput.click(); actionsMenu.classList.remove('show'); };
+        document.getElementById('downloadVisible').onclick = e => { e.preventDefault(); exportData(getVisible(), 'reportes_visibles'); actionsMenu.classList.remove('show'); };
+        document.getElementById('downloadAll').onclick = e => { e.preventDefault(); exportData(reportes, 'todos_reportes'); actionsMenu.classList.remove('show'); };
 
         function downloadTemplate() {
             const ws = XLSX.utils.aoa_to_sheet([["Fecha","Día","Mes","Cod. Artículo","Descripción","Admisión","Rut","Paciente","Edad","Previsión","Isapre","Convenio","Cód. Arancel","Arancel","Cant. Art.","1° Cirujano"]]);
-            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Template");
-            XLSX.writeFile(wb,"template_reportes.xlsx");
+            const wb = XLSX.utils.book_new(); 
+            XLSX.utils.book_append_sheet(wb, ws, "Template");
+            XLSX.writeFile(wb, "template_reportes.xlsx");
         }
 
-        function exportData(data,name) {
-            const exp = data.map(r=>({fecha:r.fecha||'',dia:r.dia,mes:r.mes,codArticulo:r.codArticulo,descripcion:r.descripcion,admision:r.admision,rut:r.rut,paciente:r.paciente,edad:r.edad,prevision:r.prevision,isapre:r.isapre,convenio:r.convenio,codArancel:r.codArancel,arancel:r.arancel,cantidadArticulo:r.cantidadArticulo,primerCirujano:r.primerCirujano}));
+        function exportData(data, name) {
+            const exp = data.map(r => ({
+                fecha: r.fecha||'', dia: r.dia, mes: r.mes, codArticulo: r.codArticulo, descripcion: r.descripcion,
+                admision: r.admision, rut: r.rut, paciente: r.paciente, edad: r.edad, prevision: r.prevision,
+                isapre: r.isapre, convenio: r.convenio, codArancel: r.codArancel, arancel: r.arancel,
+                cantidadArticulo: r.cantidadArticulo, primerCirujano: r.primerCirujano
+            }));
             const ws = XLSX.utils.json_to_sheet(exp);
-            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Reportes");
-            XLSX.writeFile(wb,name+'.xlsx');
+            const wb = XLSX.utils.book_new(); 
+            XLSX.utils.book_append_sheet(wb, ws, "Reportes");
+            XLSX.writeFile(wb, name + '.xlsx');
         }
 
-        onAuthStateChanged(auth, user=>{
-            if(!user){ window.location.replace('../../../../../../index.html'); return; }
+        onAuthStateChanged(auth, user => {
+            if (!user) { window.location.replace('../../../../../../index.html'); return; }
             loadAll();
         });
 
