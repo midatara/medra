@@ -45,7 +45,6 @@ function initColumnResizing() {
         }
     }
 
-    // Aplicar anchos guardados
     const saved = localStorage.getItem('imputar-pendientes-column-widths');
     if (saved) {
         try {
@@ -57,7 +56,6 @@ function initColumnResizing() {
             });
         } catch (e) { console.error(e); }
     } else {
-        // Anchos iniciales si no hay guardados
         headers.forEach((header, i) => {
             const width = header.offsetWidth;
             updateColumnCells(i, width);
@@ -104,7 +102,6 @@ function initColumnResizing() {
         }
     });
 
-    // Observador para cuando se agregan filas dinámicamente
     const tbody = table.querySelector('tbody');
     if (tbody) {
         const observer = new MutationObserver(() => {
