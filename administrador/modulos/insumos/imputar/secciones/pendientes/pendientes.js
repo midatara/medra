@@ -43,17 +43,56 @@ function formatDate(str) {
     return `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
 }
 
+// NUEVA FUNCIÓN: Calcula el margen según tu fórmula de Excel
+function calcularMargen(precioUnitario) {
+    const p = Number(precioUnitario) || 0;
+    if (p < 301)     return "500%";
+    if (p < 1001)    return "400%";
+    if (p < 5001)    return "300%";
+    if (p < 10001)   return "250%";
+    if (p < 25001)   return "200%";
+    if (p < 50001)   return "160%";
+    if (p < 100001)  return "140%";
+    if (p < 200001)  return "80%";
+    if (p < 10000000)return "50%";
+    return "50%"; // por defecto
+}
+
 async function loadPendientes() {
     showLoading();
     try {
         const snapshot = await getDocs(collection(db, 'consigna_historial'));
         registrosPendientes = [];
 
+        const promesasActualizacion = [];
+
         snapshot.forEach(doc => {
             const d = doc.data();
             if (d.estado === 'CARGADO') return;
-            registrosPendientes.push({ id: doc.id, ...d });
+
+            const registro = { id: doc.id, ...d };
+
+            // Si no tiene margen, lo calculamos y guardamos
+            if (!registro.margen && registro.precioUnitario !== undefined) {
+                const margenCalculado = calcularMargen(registro.precioUnitario);
+                registro.margen = margenCalculado;
+
+                // Guardamos en Firestore (solo una vez)
+                promesasActualizacion.push(
+                    updateDoc(doc.ref, { margen: margenCalculado })
+                        .catch(err => console.warn(`No se pudo actualizar margen en ${doc.id}:`, err))
+                );
+            }
+
+            registrosPendientes.push(registro);
         });
+
+        // Ejecutamos todas las actualizaciones en paralelo (sin bloquear la UI)
+        if (promesasActualizacion.length > 0) {
+            Promise.allSettled(promesasActualizacion).then(() => {
+                showToast(`Se calcularon márgenes en ${promesasActualizacion.length} registros nuevos`, 'success');
+            });
+        }
 
         registrosPendientes.sort((a, b) => (b.fechaCX || '').localeCompare(a.fechaCX || ''));
 
@@ -94,7 +133,7 @@ function renderTable() {
             <td>${reg.proveedor || ''}</td>
             <td class="total-cell">$${formatNumber(reg.totalItems)}</td>
             <td>${reg.atributo || ''}</td>
-            <td></td>
+            <td style="text-align:center; font-weight:bold; color:#d35400;">${reg.margen || ''}</td>
             <td><span class="estado-badge" data-estado="${reg.estado || 'PENDIENTE'}">${reg.estado || 'PENDIENTE'}</span></td>
         `;
         tbody.appendChild(row);
