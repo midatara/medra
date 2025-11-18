@@ -14,70 +14,84 @@
     </script>
     <style>
         html,body{margin:0;padding:0;height:100%;font-family:Arial,sans-serif;background:#f4f4f4;overflow:hidden;font-size:12px}
-        .reportes-main-container{width:100%;height:100%;background:white;padding:5px 20px 20px 20px;box-sizing:border-box;overflow-y:auto;border-radius:8px;box-shadow:0 0 10px rgba(0,0,0,0.1);position:relative}
-        .reportes-title{text-align:start;margin:0 0 15px 0;font-size:18px}
-        .reportes-fields-container{display:flex;justify-content:space-between;gap:10px;margin-bottom:20px;align-items:center}
-        .reportes-search-section{display:flex;flex-direction:row;gap:20px;flex:1;flex-wrap:wrap}
-        .reportes-form-group{display:flex;flex-direction:column;gap:4px;min-width:140px}
-        .reportes-label{font-size:10px;font-weight:bold;color:#333}
+        .reportes-main-container{width:100%;height:100%;background:white;padding:20px;box-sizing:border-box;display:flex;flex-direction:column}
+        .reportes-title{margin:0 0 15px 0;font-size:18px}
+        .reportes-controls{display:flex;justify-content:space-between;align-items:end;gap:15px;margin-bottom:15px;flex-wrap:wrap}
+        .reportes-filters{display:flex;gap:12px;flex:1;flex-wrap:wrap}
+        .reportes-form-group{display:flex;flex-direction:column;min-width:140px}
+        .reportes-label{font-size:10px;font-weight:bold;color:#333;margin-bottom:4px}
         input,select{width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;font-size:11px;box-sizing:border-box}
-        input:focus,select:focus{box-shadow:0 0 12px rgba(0,123,255,0.5);outline:none}
-        .reportes-actions-menu{position:relative;text-align:right}
-        #actionsBtn{background:none;border:none;color:#007bff;cursor:pointer;font-size:12px;padding:8px 16px;display:inline-flex;align-items:center;gap:5px}
-        #actionsBtn:hover{color:#0056b3;text-decoration:underline}
-        .reportes-dropdown-menu{display:none;position:absolute;left:calc(-250px+20px);top:100%;background:white;min-width:250px;box-shadow:2px 8px 16px rgba(0,0,0,0.2);z-index:10;border-radius:4px;overflow:hidden}
-        .reportes-dropdown-menu a{color:black;padding:12px 16px;text-decoration:none;display:block;font-size:12px}
-        .reportes-dropdown-menu a:hover{background:#f1f1f1}
-        .reportes-table-container{width:100%;overflow:auto;margin-top:10px}
-        .reportes-table{width:100%;border-collapse:collapse;font-size:11px;border:1px solid #ddd}
-        .reportes-table th,.reportes-table td{padding:6px 4px;border:1px solid #ddd;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        input:focus,select:focus{outline:none;box-shadow:0 0 0 2px rgba(0,123,255,0.3)}
+        .reportes-actions button{background:none;border:none;color:#007bff;cursor:pointer;font-size:13px;padding:8px 12px;display:flex;align-items:center;gap:6px}
+        .reportes-actions button:hover{color:#0056b3;text-decoration:underline}
+        .reportes-dropdown{display:none;position:absolute;right:0;top:100%;background:white;border:1px solid #ddd;border-radius:4px;box-shadow:0 6px 12px rgba(0,0,0,0.15);z-index:10;min-width:200px}
+        .reportes-dropdown a{display:block;padding:10px 16px;font-size:12px;color:#333;text-decoration:none}
+        .reportes-dropdown a:hover{background:#f5f5f5}
+        .table-wrapper{height:700px;overflow:auto;border:1px solid #ddd;border-radius:4px;background:white}
+        .reportes-table{width:100%;min-width:1800px;border-collapse:collapse;font-size:11px}
+        .reportes-table th,.reportes-table td{padding:6px 4px;border:1px solid #ddd;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .reportes-table th{background:#f2f2f2;position:relative}
         .reportes-table tbody tr:hover{background:#f8f9fa}
         .resize-handle{position:absolute;right:0;top:0;width:5px;height:100%;cursor:col-resize;background:transparent;z-index:11;transition:background .2s}
         .resize-handle:hover,.resize-handle.active{background:#007bff}
-        .empty-message{text-align:center;color:#666;font-size:13px;margin:40px 0}
-        .reportes-loading{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:120px;height:80px;background:rgba(255,255,255,0.95);border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.2);z-index:1000;justify-content:center;align-items:center;flex-direction:column;padding:16px}
-        .reportes-loading.show{display:flex}
-        .reportes-loading-spinner{width:32px;height:32px;border:3px solid #e3f2fd;border-top:3px solid #007bff;border-radius:50%;animation:spin 1s linear infinite}
-        @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
-        .reportes-toast{position:fixed;top:20px;right:20px;background:#d4edda;color:#155724;padding:12px 20px;border-radius:6px;border:1px solid #c3e6cb;font-size:12px;z-index:1001;box-shadow:0 4px 12px rgba(0,0,0,0.15);opacity:0;transform:translateX(100%);transition:opacity .3s,transform .3s}
-        .reportes-toast.show{opacity:1;transform:translateX(0)}
-        .reportes-toast.error{background:#f8d7da;color:#721c24;border:1px solid #f5c6cb}
-        @media (max-width:768px){
-            .reportes-search-section{flex-direction:column}
-            .reportes-form-group{max-width:none}
-        }
+        .empty-message{text-align:center;padding:60px;font-size:14px;color:#666}
+        .reportes-loading{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(255,255,255,0.95);padding:20px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.2);z-index:1000}
+        .reportes-loading.show{display:block}
+        .spinner{width:32px;height:32px;border:4px solid #f0f0f0;border-top:4px solid #007bff;border-radius:50%;animation:s 1s linear infinite;margin-bottom:10px}
+        @keyframes s{to{transform:rotate(360deg)}}
+        .reportes-toast{position:fixed;top:20px;right:20px;padding:12px 20px;border-radius:6px;color:white;z-index:1001;font-size:12px;transform:translateX(100%);transition:transform .4s,opacity .4s;opacity:0}
+        .reportes-toast.show{transform:translateX(0);opacity:1}
+        .reportes-toast.success{background:#28d4edda;border:1px solid #c3e6cb}
+        .reportes-toast.error{background:#f8d7da;border:1px solid #f5c6cb;color:#721c24}
     </style>
 </head>
 <body>
     <div class="reportes-main-container">
         <h1 class="reportes-title">Importación de Reportes</h1>
 
-        <div class="reportes-fields-container">
-            <div class="reportes-search-section">
+        <div class="reportes-controls">
+            <div class="reportes-filters">
                 <div class="reportes-form-group">
                     <label class="reportes-label">Año</label>
                     <select id="selectAno"></select>
                 </div>
                 <div class="reportes-form-group">
                     <label class="reportes-label">Mes</label>
-                    <select id="selectMes">
-                        <option value="">Selecciona un mes</option>
-                    </select>
+                    <select id="selectMes"><option value="">Selecciona mes</option></select>
+                </div>
+                <div class="reportes-form-group">
+                    <label class="reportes-label">Admisión</label>
+                    <input type="text" id="buscarAdmision" placeholder="Buscar admisión">
+                </div>
+                <div class="reportes-form-group">
+                    <label class="reportes-label">Paciente</label>
+                    <input type="text" id="buscarPaciente" placeholder="Buscar paciente">
+                </div>
+                <div class="reportes-form-group">
+                    <label class="reportes-label">Rut</label>
+                    <input type="text" id="buscarRut" placeholder="Buscar rut">
+                </div>
+                <div class="reportes-form-group">
+                    <label class="reportes-label">Descripción</label>
+                    <input type="text" id="buscarDescripcion" placeholder="Buscar descripción">
+                </div>
+                <div class="reportes-form-group">
+                    <label class="reportes-label">1° Cirujano</label>
+                    <input type="text" id="buscarCirujano" placeholder="Buscar cirujano">
                 </div>
             </div>
-            <div class="reportes-actions-menu">
+            <div class="reportes-actions">
                 <button id="actionsBtn">Acciones</button>
-                <div id="actionsMenu" class="reportes-dropdown-menu">
+                <div id="actionsMenu" class="reportes-dropdown">
                     <a href="#" id="downloadTemplate">Formato de importación</a>
                     <a href="#" id="importExcel">Importar Excel</a>
+                    <a href="#" id="downloadVisible">Descargar visibles</a>
                     <a href="#" id="downloadAll">Descargar todos</a>
-                    <a href="#" id="downloadMes">Descargar mes actual</a>
                 </div>
             </div>
         </div>
 
-        <div class="reportes-table-container">
+        <div class="table-wrapper">
             <table id="reportesTable" class="reportes-table">
                 <thead>
                     <tr>
@@ -100,279 +114,229 @@
                     </tr>
                 </thead>
                 <tbody id="reportesBody">
-                    <tr><td colspan="16" class="empty-message">Selecciona un mes para ver los registros</td></tr>
+                    <tr><td colspan="16" class="empty-message">Selecciona un mes para cargar los registros</td></tr>
                 </tbody>
             </table>
         </div>
 
         <input type="file" id="fileUpload" style="display:none" accept=".xlsx,.xls">
         <div id="reportes-loading" class="reportes-loading">
-            <div class="reportes-loading-spinner"></div>
-            <div>Procesando...</div>
+            <div class="spinner"></div>
+            <div>Cargando...</div>
         </div>
         <div id="reportes-toast" class="reportes-toast"></div>
     </div>
 
     <script type="module">
-        const { initializeApp, getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence, getFirestore, collection, addDoc, getDocs, query, where, doc, updateDoc } = window.firebaseModules;
-        const firebaseConfig = {
-            apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
-            authDomain: "datara-salud.firebaseapp.com",
-            projectId: "datara-salud",
-            storageBucket: "datara-salud.firebasestorage.app",
-            messagingSenderId: "198886910481",
-            appId: "1:198886910481:web:abbc345203a423a6329fb0"
-        };
+        const { initializeApp, getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence, getFirestore, collection, getDocs, addDoc, query, where, doc, updateDoc } = window.firebaseModules;
+        const firebaseConfig = { apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek", authDomain: "datara-salud.firebaseapp.com", projectId: "datara-salud", storageBucket: "datara-salud.firebasestorage.app", messagingSenderId: "198886910481", appId: "1:198886910481:web:abbc345203a423a6329fb0" };
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
         setPersistence(auth, browserSessionPersistence);
 
-        let reportes = [];
-        let selectedAno = new Date().getFullYear();
-        let selectedMes = '';
+        let reportes = [], selectedAno = new Date().getFullYear(), selectedMes = '';
+        let searchAdmision = '', searchPaciente = '', searchRut = '', searchDesc = '', searchCirujano = '';
 
         const selectAno = document.getElementById('selectAno');
         const selectMes = document.getElementById('selectMes');
-        const reportesBody = document.getElementById('reportesBody');
+        const body = document.getElementById('reportesBody');
         const loading = document.getElementById('reportes-loading');
         const toast = document.getElementById('reportes-toast');
         const actionsBtn = document.getElementById('actionsBtn');
         const actionsMenu = document.getElementById('actionsMenu');
-        const fileUpload = document.getElementById('fileUpload');
+        const fileInput = document.getElementById('fileUpload');
 
-        function formatDate(date) {
-            if (!date) return '';
-            const d = new Date(date);
-            return `${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`;
-        }
-
+        function formatDate(d) { if (!d) return ''; const date = new Date(d); return `${String(date.getDate()).padStart(2,'0')}-${String(date.getMonth()+1).padStart(2,'0')}-${date.getFullYear()}`; }
         function showLoading() { loading.classList.add('show'); }
         function hideLoading() { loading.classList.remove('show'); }
-        function showToast(msg, type = 'success') {
-            toast.textContent = msg;
-            toast.className = `reportes-toast ${type} show`;
-            setTimeout(() => toast.classList.remove('show'), 4000);
-        }
+        function showToast(m,t='success') { toast.textContent=m; toast.className=`reportes-toast ${t} show`; setTimeout(()=>toast.classList.remove('show'),4000); }
 
-        function initColumnResizing() {
+        function initResize() {
             const table = document.getElementById('reportesTable');
-            if (!table) return;
             const headers = table.querySelectorAll('th');
-            let resizing = false, col = -1, startX = 0, startW = 0;
-            const MIN = 40, MAX = 800;
+            let resizing=false, col=-1, startX=0, startW=0;
+            const MIN=40, MAX=800;
 
-            function applyWidths() {
-                const saved = localStorage.getItem('reportes-column-widths');
-                if (!saved) return;
+            function apply() {
+                const s = localStorage.getItem('reportes-column-widths');
+                if(!s) return;
                 try {
-                    const w = JSON.parse(saved);
-                    headers.forEach((th, i) => {
-                        if (w[i]) {
-                            const px = w[i] + 'px';
-                            th.style.width = th.style.minWidth = th.style.maxWidth = px;
-                            table.querySelectorAll(`td:nth-child(${i+1})`).forEach(td => {
-                                td.style.width = td.style.minWidth = td.style.maxWidth = px;
-                            });
+                    const w = JSON.parse(s);
+                    headers.forEach((th,i)=>{
+                        if(w[i]){
+                            const px=w[i]+'px';
+                            th.style.width=th.style.minWidth=th.style.maxWidth=px;
+                            table.querySelectorAll(`td:nth-child(${i+1})`).forEach(td=>td.style.width=td.style.minWidth=td.style.maxWidth=px);
                         }
                     });
-                } catch(e) {}
+                }catch(e){}
             }
-
-            function saveWidths() {
-                const w = Array.from(headers).map(th => parseInt(th.style.width) || th.offsetWidth);
+            function save() {
+                const w = Array.from(headers).map(th=>parseInt(th.style.width)||th.offsetWidth);
                 localStorage.setItem('reportes-column-widths', JSON.stringify(w));
             }
-
-            headers.forEach((th, i) => {
-                let h = th.querySelector('.resize-handle');
-                if (!h) { h = document.createElement('div'); h.className = 'resize-handle'; th.appendChild(h); }
-                h.onmousedown = e => {
-                    e.preventDefault(); e.stopPropagation();
-                    resizing = true; col = i; startX = e.clientX; startW = th.offsetWidth;
-                    h.classList.add('active');
-                    document.body.style.cursor = 'col-resize';
-                    document.body.style.userSelect = 'none';
-                };
+            headers.forEach((th,i)=>{
+                let h=th.querySelector('.resize-handle');
+                if(!h){ h=document.createElement('div'); h.className='resize-handle'; th.appendChild(h); }
+                h.onmousedown=e=>{ e.preventDefault(); resizing=true; col=i; startX=e.clientX; startW=th.offsetWidth; h.classList.add('active'); document.body.style.cursor='col-resize'; document.body.style.userSelect='none'; };
             });
-
-            document.onmousemove = e => {
-                if (!resizing || col === -1) return;
-                let nw = Math.max(MIN, Math.min(MAX, startW + (e.clientX - startX)));
-                const th = headers[col];
-                const px = nw + 'px';
-                th.style.width = th.style.minWidth = th.style.maxWidth = px;
-                table.querySelectorAll(`td:nth-child(${col+1})`).forEach(td => {
-                    td.style.width = td.style.minWidth = td.style.maxWidth = px;
-                });
+            document.onmousemove=e=>{
+                if(!resizing||col===-1) return;
+                let nw = Math.max(MIN, Math.min(MAX, startW + (e.clientX-startX)));
+                const px=nw+'px';
+                headers[col].style.width=headers[col].style.minWidth=headers[col].style.maxWidth=px;
+                table.querySelectorAll(`td:nth-child(${col+1})`).forEach(td=>td.style.width=td.style.minWidth=td.style.maxWidth=px);
             };
-
-            document.onmouseup = () => {
-                if (resizing) {
-                    resizing = false; col = -1;
-                    document.body.style.cursor = ''; document.body.style.userSelect = '';
-                    table.querySelectorAll('.resize-handle.active').forEach(h => h.classList.remove('active'));
-                    saveWidths();
+            document.onmouseup=()=>{
+                if(resizing){
+                    resizing=false; col=-1;
+                    document.body.style.cursor=''; document.body.style.userSelect='';
+                    table.querySelectorAll('.resize-handle.active').forEach(h=>h.classList.remove('active'));
+                    save();
                 }
             };
-
-            applyWidths();
+            apply();
         }
 
-        async function loadData() {
+        async function loadAll() {
             showLoading();
-            try {
-                const snap = await getDocs(collection(db, "reportes"));
-                reportes = snap.docs.map(d => ({id: d.id, ...d.data()}));
-
-                const anos = [...new Set(reportes.map(r => new Date(r.fecha).getFullYear()))].sort((a,b)=>b-a);
-                selectAno.innerHTML = '<option value="">Todos</option>' + anos.map(a => `<option value="${a}">${a}</option>`).join('');
-                selectAno.value = selectedAno;
-
-                updateMeses();
-                hideLoading();
-            } catch(e) {
-                hideLoading();
-                showToast('Error cargando datos', 'error');
-            }
+            const snap = await getDocs(collection(db,'reportes'));
+            reportes = snap.docs.map(d=>({id:d.id,...d.data()}));
+            const anos = [...new Set(reportes.map(r=>new Date(r.fecha).getFullYear()))].sort((a,b)=>b-a);
+            selectAno.innerHTML = anos.map(a=>`<option value="${a}">${a}</option>`).join('');
+            selectAno.value = selectedAno;
+            updateMeses();
+            hideLoading();
         }
 
         function updateMeses() {
-            const mesesSet = new Set();
-            reportes.forEach(r => {
-                const date = new Date(r.fecha);
-                if (date.getFullYear() == selectedAno) {
-                    mesesSet.add(date.toLocaleString('es-CL', {month:'long'}));
-                }
+            const meses = new Set();
+            reportes.forEach(r=>{
+                const d=new Date(r.fecha);
+                if(d.getFullYear()==selectedAno) meses.add(d.toLocaleString('es-CL',{month:'long'}));
             });
-            const meses = Array.from(mesesSet).sort((a,b) => new Date('1 ' + a + ' 2020') - new Date('1 ' + b + ' 2020'));
-            selectMes.innerHTML = '<option value="">Selecciona un mes</option>' + meses.map(m => `<option value="${m}">${m.charAt(0).toUpperCase() + m.slice(1)}</option>`).join('');
-            if (!selectedMes || !meses.includes(selectedMes)) selectedMes = '';
-            selectMes.value = selectedMes;
-            renderTable();
-        }
-
-        function renderTable() {
-            reportesBody.innerHTML = '';
-            if (!selectedMes) {
-                reportesBody.innerHTML = '<tr><td colspan="16" class="empty-message">Selecciona un mes para ver los registros</td></tr>';
-                return;
-            }
-
-            const filtered = reportes.filter(r => {
-                const date = new Date(r.fecha);
-                return date.getFullYear() == selectedAno &&
-                       date.toLocaleString('es-CL', {month:'long'}) === selectedMes;
-            }).sort((a,b) => a.admision.localeCompare(b.admision));
-
-            if (filtered.length === 0) {
-                reportesBody.innerHTML = '<tr><td colspan="16" class="empty-message">No hay registros para este mes</td></tr>';
-                return;
-            }
-
-            filtered.forEach(r => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${formatDate(r.fecha)}</td>
-                    <td>${r.dia || ''}</td>
-                    <td>${r.mes || ''}</td>
-                    <td>${r.codArticulo || ''}</td>
-                    <td>${r.descripcion || ''}</td>
-                    <td>${r.admision || ''}</td>
-                    <td>${r.rut || ''}</td>
-                    <td>${r.paciente || ''}</td>
-                    <td>${r.edad || ''}</td>
-                    <td>${r.prevision || ''}</td>
-                    <td>${r.isapre || ''}</td>
-                    <td>${r.convenio || ''}</td>
-                    <td>${r.codArancel || ''}</td>
-                    <td>${r.arancel || ''}</td>
-                    <td>${r.cantidadArticulo || ''}</td>
-                    <td>${r.primerCirujano || ''}</td>
-                `;
-                reportesBody.appendChild(tr);
-            });
-
-            setTimeout(initColumnResizing, 50);
-        }
-
-        selectAno.onchange = () => {
-            selectedAno = selectAno.value || new Date().getFullYear();
+            const orden = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+            const sorted = [...meses].sort((a,b)=>orden.indexOf(a)-orden.indexOf(b));
+            selectMes.innerHTML = '<option value="">Selecciona mes</option>' + sorted.map(m=>`<option value="${m}">${m.charAt(0).toUpperCase()+m.slice(1)}</option>`).join('');
             selectedMes = '';
-            updateMeses();
-        };
-
-        selectMes.onchange = () => {
-            selectedMes = selectMes.value;
-            renderTable();
-        };
-
-        actionsBtn.onclick = () => actionsMenu.style.display = actionsMenu.style.display === 'block' ? 'none' : 'block';
-        window.onclick = e => { if (!actionsBtn.contains(e.target) && !actionsMenu.contains(e.target)) actionsMenu.style.display = 'none'; };
-
-        document.getElementById('downloadTemplate').onclick = e => { e.preventDefault(); downloadTemplate(); actionsMenu.style.display='none'; };
-        document.getElementById('importExcel').onclick = e => { e.preventDefault(); fileUpload.click(); actionsMenu.style.display='none'; };
-        document.getElementById('downloadAll').onclick = e => { e.preventDefault(); exportAll(); actionsMenu.style.display='none'; };
-        document.getElementById('downloadMes').onclick = e => { e.preventDefault(); exportMesActual(); actionsMenu.style.display='none'; };
-
-        function downloadTemplate() {
-            const ws = XLSX.utils.aoa_to_sheet([["Fecha","Día","Mes","Cod. Artículo","Descripción","Admisión","Rut","Paciente","Edad","Previsión","Isapre","Convenio","Cód. Arancel","Arancel","Cant. Art.","1° Cirujano"]]);
-            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Template");
-            XLSX.writeFile(wb, "template_reportes.xlsx");
+            render();
         }
 
-        function exportAll() {
-            const data = reportes.map(r => ({
-                fecha: formatDate(r.fecha), dia: r.dia, mes: r.mes, codArticulo: r.codArticulo,
-                descripcion: r.descripcion, admision: r.admision, rut: r.rut, paciente: r.paciente,
-                edad: r.edad, prevision: r.prevision, isapre: r.isapre, convenio: r.convenio,
-                codArancel: r.codArancel, arancel: r.arancel, cantidadArticulo: r.cantidadArticulo,
-                primerCirujano: r.primerCirujano
-            }));
-            const ws = XLSX.utils.json_to_sheet(data);
-            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Reportes");
-            XLSX.writeFile(wb, "todos_reportes.xlsx");
+        function getVisible() {
+            if(!selectedMes) return [];
+            return reportes.filter(r=>{
+                const d=new Date(r.fecha);
+                if(d.getFullYear()!=selectedAno || d.toLocaleString('es-CL',{month:'long'})!==selectedMes) return false;
+                const a=(r.admision||'').toLowerCase().includes(searchAdmision);
+                const p=(r.paciente||'').toLowerCase().includes(searchPaciente);
+                const ru=(r.rut||'').toLowerCase().includes(searchRut);
+                const de=(r.descripcion||'').toLowerCase().includes(searchDesc);
+                const c=(r.primerCirujano||'').toLowerCase().includes(searchCirujano);
+                return a&&p&&ru&&de&&c;
+            });
         }
 
-        function exportMesActual() {
-            if (!selectedMes) { showToast("Selecciona un mes primero", "error"); return; }
-            const filtered = reportes.filter(r => {
-                const d = new Date(r.fecha);
-                return d.getFullYear() == selectedAno && d.toLocaleString('es-CL',{month:'long'}) === selectedMes;
-            }).map(r => ({
-                fecha: formatDate(r.fecha), dia: r.dia, mes: r.mes, codArticulo: r.codArticulo,
-                descripcion: r.descripcion, admision: r.admision, rut: r.rut, paciente: r.paciente,
-                edad: r.edad, prevision: r.prevision, isapre: r.isapre, convenio: r.convenio,
-                codArancel: r.codArancel, arancel: r.arancel, cantidadArticulo: r.cantidadArticulo,
-                primerCirujano: r.primerCirujano
-            }));
-            const ws = XLSX.utils.json_to_sheet(filtered);
-            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Reportes");
-            XLSX.writeFile(wb, `reportes_${selectedAno}_${selectedMes}.xlsx`);
+        function render() {
+            body.innerHTML = '';
+            if(!selectedMes){
+                body.innerHTML = '<tr><td colspan="16" class="empty-message">Selecciona un mes para cargar los registros</td></tr>';
+                return;
+            }
+            const data = getVisible();
+            if(data.length===0){
+                body.innerHTML = '<tr><td colspan="16" class="empty-message">No hay resultados</td></tr>';
+                return;
+            }
+            data.forEach(r=>{
+                const tr=document.createElement('tr');
+                tr.innerHTML=`
+                    <td>${formatDate(r.fecha)}</td>
+                    <td>${r.dia||''}</td>
+                    <td>${r.mes||''}</td>
+                    <td>${r.codArticulo||''}</td>
+                    <td>${r.descripcion||''}</td>
+                    <td>${r.admision||''}</td>
+                    <td>${r.rut||''}</td>
+                    <td>${r.paciente||''}</td>
+                    <td>${r.edad||''}</td>
+                    <td>${r.prevision||''}</td>
+                    <td>${r.isapre||''}</td>
+                    <td>${r.convenio||''}</td>
+                    <td>${r.codArancel||''}</td>
+                    <td>${r.arancel||''}</td>
+                    <td>${r.cantidadArticulo||''}</td>
+                    <td>${r.primerCirujano||''}</td>
+                `;
+                body.appendChild(tr);
+            });
+            setTimeout(initResize,50);
         }
 
-        fileUpload.onchange = async e => {
-            const file = e.target.files[0];
-            if (!file) return;
-            showLoading();
-            try {
-                const data = await file.arrayBuffer();
-                const wb = XLSX.read(data, {type:'array', cellDates:true});
-                const ws = wb.Sheets[wb.SheetNames[0]];
-                const json = XLSX.utils.sheet_to_json(ws, {header:1, range:1});
-                // Aquí iría la lógica completa de importación si la necesitas de nuevo
-                showToast("Importación simulada (funcionalidad completa disponible)", "success");
-            } catch(err) { showToast("Error al importar", "error"); }
-            hideLoading();
-            fileUpload.value = '';
-        };
+        selectAno.onchange = () => { selectedAno = selectAno.value; updateMeses(); };
+        selectMes.onchange = () => { selectedMes = selectMes.value; render(); };
 
-        onAuthStateChanged(auth, user => {
-            if (!user) { window.location.replace('../../../../../../index.html'); return; }
-            loadData();
+        ['buscarAdmision','buscarPaciente','buscarRut','buscarDescripcion','buscarCirujano'].forEach(id=>{
+            document.getElementById(id).oninput = e=>{
+                const v = e.target.value.toLowerCase().trim();
+                if(id==='buscarAdmision') searchAdmision=v;
+                if(id==='buscarPaciente') searchPaciente=v;
+                if(id==='buscarRut') searchRut=v;
+                if(id==='buscarDescripcion') searchDesc=v;
+                if(id==='buscarCirujano') searchCirujano=v;
+                if(selectedMes) render();
+            };
         });
 
-        document.addEventListener('DOMContentLoaded', initColumnResizing);
+        actionsBtn.onclick = () => actionsMenu.style.display = actionsMenu.style.display==='block'?'none':'block';
+        window.onclick = e => { if(!actionsBtn.contains(e.target)&&!actionsMenu.contains(e.target)) actionsMenu.style.display='none'; };
+
+        document.getElementById('downloadTemplate').onclick = e=>{e.preventDefault();downloadTemplate();};
+        document.getElementById('importExcel').onclick = e=>{e.preventDefault();fileInput.click();};
+        document.getElementById('downloadVisible').onclick = e=>{e.preventDefault();exportData(getVisible(),'reportes_visibles');};
+        document.getElementById('downloadAll').onclick = e=>{e.preventDefault();exportData(reportes,'todos_reportes');};
+
+        function downloadTemplate(){
+            const ws = XLSX.utils.aoa_to_sheet([["Fecha","Día","Mes","Cod. Artículo","Descripción","Admisión","Rut","Paciente","Edad","Previsión","Isapre","Convenio","Cód. Arancel","Arancel","Cant. Art.","1° Cirujano"]]);
+            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Template");
+            XLSX.writeFile(wb,"template_reportes.xlsx");
+        }
+
+        function exportData(data,name){
+            const exp = data.map(r=>({
+                fecha:formatDate(r.fecha),dia:r.dia,mes:r.mes,codArticulo:r.codArticulo,
+                descripcion:r.descripcion,admision:r.admision,rut:r.rut,paciente:r.paciente,
+                edad:r.edad,prevision:r.prevision,isapre:r.isapre,convenio:r.convenio,
+                codArancel:r.codArancel,arancel:r.arancel,cantidadArticulo:r.cantidadArticulo,
+                primerCirujano:r.primerCirujano
+            }));
+            const ws = XLSX.utils.json_to_sheet(exp);
+            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Reportes");
+            XLSX.writeFile(wb, name+'.xlsx');
+        }
+
+        fileInput.onchange = async e=>{
+            const f=e.target.files[0];
+            if(!f) return;
+            showLoading();
+            try{
+                const data = await f.arrayBuffer();
+                const wb = XLSX.read(data,{type:'array',cellDates:true});
+                const ws = wb.Sheets[wb.SheetNames[0]];
+                const json = XLSX.utils.sheet_to_json(ws,{header:1,range:1});
+                showToast(`Archivo cargado: ${json.length} filas detectadas`,'success');
+                // Aquí puedes volver a poner toda la lógica de importación si la necesitas
+            }catch(err){showToast('Error al leer archivo','error');}
+            hideLoading();
+            fileInput.value='';
+        };
+
+        onAuthStateChanged(auth, user=>{
+            if(!user){ window.location.replace('../../../../../../index.html'); return; }
+            loadAll();
+        });
+
+        document.addEventListener('DOMContentLoaded', initResize);
     </script>
 </body>
 </html>
