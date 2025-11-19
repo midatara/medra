@@ -36,7 +36,7 @@ function showToast(msg, type = 'success') {
     toast.textContent = msg;
     container.appendChild(toast);
     requestAnimationFrame(() => toast.classList.add('show'));
-    setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 5000);
+    setTimeout(() => { toast.classToast.remove('show'); setTimeout(() => toast.remove(), 300); }, 5000);
 }
 
 function formatNumber(n) { return Number(n || 0).toLocaleString('es-CL'); }
@@ -57,59 +57,44 @@ function formatTraspasoAt(timestamp) {
 async function enrichPadItemsWithReferencia(items, registroId) {
     if (!items || items.length === 0) return items;
 
-    const cache = {};
     const enriched = await Promise.all(items.map(async item => {
         const codigo = (item.codigo || '').toString().trim();
-        if (!codigo || item.referenciaCompleta) return item;
-        if (cache[codigo]) return { ...item, ...cache[codigo] };
+        if (!codigo) return item;
 
         const q = query(collection(db, "referencias_implantes"), where("referencia", "==", codigo), limit(1));
         const snap = await getDocs(q);
 
         if (!snap.empty) {
             const ref = snap.docs[0].data();
-            const enrichedItem = {
+            return {
                 ...item,
                 referencia: ref.referencia || codigo,
                 descripcionRef: ref.descripcion || item.descripcion || '',
                 referenciaCompleta: true
             };
-            cache[codigo] = enrichedItem;
-            return enrichedItem;
         }
         return item;
     }));
 
+    // FORZAMOS REESCRITURA DE LA SUBCOLECCIÓN
     const padRef = doc(db, 'consigna_historial', registroId, 'pad_items', 'data');
-    const currentSnap = await getDoc(padRef);
-    if (currentSnap.exists()) {
-        const current = currentSnap.data();
-        const updated = current.items?.map(old => {
-            const match = enriched.find(e => (e.codigo || '').toString().trim() === (old.codigo || '').toString().trim());
-            return match || old;
-        }) || enriched;
+    await setDoc(padRef, {
+        docDelivery: items[0]?.docDelivery || 'forzado',
+        items: enriched,
+        cachedAt: new Date(),
+        enrichedAt: new Date(),
+        forzado: true
+    }, { merge: false });
 
-        if (JSON.stringify(current.items || []) !== JSON.stringify(updated)) {
-            await setDoc(padRef, { items: updated, enrichedAt: new Date() }, { merge: true });
-        }
-    }
-
+    console.log(`Subcolección REESCRITA para registro ${registroId} con descripciones correctas`);
     return enriched;
 }
 
 async function getPadItems(docDelivery, registroId) {
     if (!docDelivery) return [];
     const docDeliveryStr = docDelivery.toString().trim();
-    const padRef = doc(db, 'consigna_historial', registroId, 'pad_items', 'data');
-    const padSnap = await getDoc(padRef);
 
-    if (padSnap.exists()) {
-        const data = padSnap.data();
-        if (data.docDelivery === docDeliveryStr) {
-            return await enrichPadItemsWithReferencia(data.items || [], registroId);
-        }
-    }
-
+    // FORZAMOS IGNORAR CACHÉ Y REPROCESAR
     const guiasSnap = await getDocs(collection(db, 'guias_medtronic'));
     let foundItems = [];
 
@@ -130,17 +115,15 @@ async function getPadItems(docDelivery, registroId) {
         }
     });
 
-    const enriched = await enrichPadItemsWithReferencia(foundItems, registroId);
-
-    if (enriched.length > 0) {
-        await setDoc(padRef, {
-            docDelivery: docDeliveryStr,
-            items: enriched,
-            cachedAt: new Date(),
-            enrichedAt: new Date()
-        });
+    if (foundItems.length === 0) {
+        console.log(`No se encontró guía para DocDelivery ${docDeliveryStr}, intentando leer caché como fallback`);
+        const padRef = doc(db, 'consigna_historial', registroId, 'pad_items', 'data');
+        const snap = await getDoc(padRef);
+        if (snap.exists()) return snap.data().items || [];
+        return [];
     }
 
+    const enriched = await enrichPadItemsWithReferencia(foundItems, registroId);
     return enriched;
 }
 
@@ -283,7 +266,7 @@ async function renderTable(data) {
             const padItems = await getPadItems(docDelivery, r._id);
             padItems.forEach(item => {
                 const vencFormateado = item.vencimiento ? formatDate(item.vencimiento) : '';
-                const descripcionMostrada = item.descripcionRef || item.descripcion || '';
+                const descripcionMostrada = item.descripcionRef || item.descripcion || 'Sin descripción';
                 const referenciaMostrada = item.referencia || item.codigo;
 
                 const trChild = document.createElement('tr');
