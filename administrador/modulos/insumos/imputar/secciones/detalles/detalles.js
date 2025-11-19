@@ -66,10 +66,12 @@ async function loadGuiasMap() {
             const folioRef = (data.folioRef || '').toString().trim();
             if (!folioRef) return;
 
+            const folioGuia = data.folio || '';
             const detallesRaw = data.fullData?.Documento?.Detalle || [];
             const detalles = Array.isArray(detallesRaw) ? detallesRaw : detallesRaw ? [detallesRaw] : [];
 
             const items = detalles.map(det => ({
+                folio: folioGuia,
                 codigo: (det.CdgItem?.VlrCodigo || '').split(' ')[0] || '',
                 descripcion: det.DscItem || det.NmbItem || '',
                 cantidad: det.QtyItem ? Math.round(parseFloat(det.QtyItem)) : '',
@@ -175,7 +177,8 @@ function applyFiltersAndRender() {
     let filtered = getFilteredByDate(allData);
     filtered = applyTextFilters(filtered);
     filtered.sort((a, b) => (b.fechaCX || '').localeCompare(a.fechaCX || ''));
-    renderTable(filtered);
+ 
+   renderTable(filtered);
 }
 
 function renderTable(data) {
@@ -223,16 +226,28 @@ function renderTable(data) {
 
         if (docDelivery && guiasMap[docDelivery]) {
             guiasMap[docDelivery].forEach(item => {
-                const venc = item.vencimiento ? formatDate(item.vencimiento) : '';
-                const cant = item.cantidad ? `(x${item.cantidad})` : '';
+                const vencFormateado = item.vencimiento ? formatDate(item.vencimiento) : '';
                 const trChild = document.createElement('tr');
                 trChild.classList.add('fila-hija-pad');
                 trChild.innerHTML = `
                     <td><span class="estado-badge" data-estado="PAD">PAD</span></td>
-                    <td style="text-align:center;color:#999;font-style:italic;">—</td>
-                    <td colspan="16" style="padding-left:40px;background:#fff8e1;color:#d35400;font-weight:500;">
-                        <strong>${item.codigo}</strong> – ${item.descripcion} ${cant} ${venc ? `– Vence: ${venc}` : ''}
-                    </td>
+                    <td style="text-align:center;font-weight:600;color:#d35400;">${item.codigo}</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td style="text-align:center">${item.cantidad || ''}</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td style="text-align:center">${item.folio || ''}</td>
+                    <td style="font-weight:500;color:#d35400;">${item.descripcion}</td>
+                    <td style="text-align:center;color:#d35400;">${vencFormateado}</td>
                     <td>${docDeliveryRaw}</td>
                 `;
                 fragment.appendChild(trChild);

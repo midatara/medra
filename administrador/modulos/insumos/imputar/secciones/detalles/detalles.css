@@ -74,3 +74,17 @@ html,body{margin:0;padding:0;height:100%;font-family:Arial,sans-serif;background
 .fila-hija-pad { background:#fff8e1 !important; }
 .fila-hija-pad:hover { background:#ffebcc !important; }
 .fila-hija-pad td:first-child .estado-badge { background:#e67e22; }
+.fila-hija-pad {
+    background: #fff8e1 !important;
+    font-style: normal;
+}
+.fila-hija-pad:hover {
+    background: #ffebcc !important;
+}
+.fila-hija-pad td {
+    color: #d35400;
+}
+.fila-hija-pad .estado-badge[data-estado="PAD"] {
+    background: #e67e22;
+    color: white;
+}
