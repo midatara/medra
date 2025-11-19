@@ -131,7 +131,6 @@ function applyTextFilters(data) {
 }
 
 function applyFiltersAndRender() {
-    {
     let filtered = getFilteredByDate(allData);
     filtered = applyTextFilters(filtered);
     filtered.sort((a, b) => (b.fechaCX || '').localeCompare(a.fechaCX || ''));
@@ -164,19 +163,18 @@ function renderTable(data) {
             <td style="text-align:center">${r.cantidad || ''}</td>
             <td style="text-align:right">${formatNumber(r.precioUnitario)}</td>
             <td>${r.atributo || ''}</td>
-            <td></td> <!-- OC vacío -->
-            <td></td> <!-- Fecha Recepción vacía -->
-            <td>${fechaCXFormateada}</td> <!-- Fecha Carga = Fecha CX -->
-            <td style="text-align:center">0</td> <!-- Número Guía -->
-            <td></td> <!-- Lote vacío -->
-            <td></td> <!-- Fecha Vencimiento vacía -->
-            <td>${r.docDelivery || ''}</td> <!-- Doc. Delivery -->
+            <td></td>                              <!-- OC vacío -->
+            <td></td>                              <!-- Fecha Recepción vacía -->
+            <td>${fechaCXFormateada}</td>          <!-- Fecha Carga = Fecha CX -->
+            <td style="text-align:center">0</td>    <!-- Número Guía -->
+            <td></td>                              <!-- Lote vacío -->
+            <td></td>                              <!-- Fecha Vencimiento vacía -->
+            <td>${r.docDelivery || ''}</td>        <!-- Doc. Delivery -->
         `;
         tbody.appendChild(tr);
     });
 }
 
-// Resto del código igual (eventos, debounce, etc.)
 document.addEventListener('DOMContentLoaded', () => {
     yearSelect.addEventListener('change', () => {
         selectedYear = yearSelect.value || new Date().getFullYear().toString();
@@ -195,14 +193,20 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.querySelectorAll('input[name="filterScope"]').forEach(r => {
-        r.addEventListener('change', () => { filterScope = r.value; applyFiltersAndRender(); });
+        r.addEventListener('change', () => { 
+            filterScope = r.value; 
+            applyFiltersAndRender(); 
+        });
     });
 
     refreshBtn.addEventListener('click', loadData);
 
     onAuthStateChanged(auth, user => {
-        if (!user) window.location.replace('../../../index.html');
-        else loadData();
+        if (!user) {
+            window.location.replace('../../../index.html');
+        } else {
+            loadData();
+        }
     });
 });
 
