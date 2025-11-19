@@ -1,6 +1,6 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { getFirestore, collection, getDocs, doc, getDoc, setDoc, query, where, limit } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { getFirestore, collection, getDocs, doc, getDoc, query, where } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const firebaseConfig = {
     apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
@@ -22,6 +22,18 @@ let selectedYear = new Date().getFullYear().toString();
 let selectedMonth = String(new Date().getMonth() + 1).padStart(2, '0');
 let filterScope = 'currentMonth';
 
+// === FUNCIÓN CLAVE: buscar descripción directamente ===
+async function buscarDescripcion(codigo) {
+    if (!codigo) return '';
+    const cod = codigo.toString().trim();
+    const q = query(collection(db, "referencias_implantes"), where("referencia", "==", cod));
+    const snap = await getDocs(q);
+    if (!snap.empty) {
+        return snap.docs[0].data().descripcion || cod;
+    }
+    return cod; // si no encuentra, muestra el código
+}
+
 function showLoading() { document.getElementById('loading')?.classList.add('show'); }
 function hideLoading() { document.getElementById('loading')?.classList.remove('show'); }
 
@@ -29,44 +41,9 @@ function formatNumber(n) { return Number(n || 0).toLocaleString('es-CL'); }
 function formatDate(str) { if (!str) return ''; const [y, m, d] = str.split('-'); return `${d.padStart(2,'0')}/${m.padStart(2,'0')}/${y}`; }
 function formatTraspasoAt(ts) { if (!ts?.toDate) return ''; const d = ts.toDate(); return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; }
 
-async function enrichPadItems(items, registroId) {
-    if (!items || items.length === 0) return items;
-
-    const enriched = await Promise.all(items.map(async item => {
-        const codigo = (item.codigo || '').toString().trim();
-        if (!codigo) return { ...item, descripcionRef: item.descripcion || '' };
-
-        const q = query(collection(db, "referencias_implantes"), where("referencia", "==", codigo), limit(1));
-        const snap = await getDocs(q);
-
-        if (!snap.empty) {
-            const ref = snap.docs[0].data();
-            return {
-                ...item,
-                referencia: ref.referencia || codigo,
-                descripcionRef: ref.descripcion || item.descripcion || codigo,
-                referenciaCompleta: true
-            };
-        }
-        return { ...item, descripcionRef: item.descripcion || codigo };
-    }));
-
-    const padRef = doc(db, 'consigna_historial', registroId, 'pad_items', 'data');
-    await setDoc(padRef, { items: enriched, enrichedAt: new Date() }, { merge: true });
-
-    return enriched;
-}
-
-async function getPadItems(docDelivery, registroId) {
+async function getPadItems(docDelivery) {
     if (!docDelivery) return [];
     const str = docDelivery.toString().trim();
-    const padRef = doc(db, 'consigna_historial', registroId, 'pad_items', 'data');
-    const snap = await getDoc(padRef);
-
-    if (snap.exists() && snap.data().docDelivery === str && snap.data().items?.length > 0) {
-        return await enrichPadItems(snap.data().items, registroId);
-    }
-
     const guias = await getDocs(collection(db, 'guias_medtronic'));
     let items = [];
 
@@ -78,18 +55,13 @@ async function getPadItems(docDelivery, registroId) {
             items = det.map(x => ({
                 folio,
                 codigo: (x.CdgItem?.VlrCodigo || '').split(' ')[0] || '',
-                descripcion: x.DscItem || x.NmbItem || '',
+                descripcionOriginal: x.DscItem || x.NmbItem || '',
                 cantidad: x.QtyItem ? Math.round(parseFloat(x.QtyItem)) : 0,
                 vencimiento: x.FchVencim || ''
             })).filter(i => i.codigo);
         }
     });
-
-    const enriched = await enrichPadItems(items, registroId);
-    if (enriched.length > 0) {
-        await setDoc(padRef, { docDelivery: str, items: enriched, cachedAt: new Date(), enrichedAt: new Date() });
-    }
-    return enriched;
+    return items;
 }
 
 async function loadData() {
@@ -152,10 +124,10 @@ function getFilteredByDate(data) {
 
 function applyTextFilters(data) {
     const filters = {
-        adm: document.getElementById('filterAdmision').value.trim().toLowerCase(),
-        pac: document.getElementById('filterPaciente').value.trim().toLowerCase(),
-        prov: document.getElementById('filterProveedor').value.trim().toLowerCase(),
-        cod: document.getElementById('filterCodigo').value.trim().toLowerCase()
+        adm: document.getElementById('filterAdmision')?.value.trim().toLowerCase() || '',
+        pac: document.getElementById('filterPaciente')?.value.trim().toLowerCase() || '',
+        prov: document.getElementById('filterProveedor')?.value.trim().toLowerCase() || '',
+        cod: document.getElementById('filterCodigo')?.value.trim().toLowerCase() || ''
     };
     return data.filter(r => {
         return (!filters.adm || (r.admision || '').toLowerCase().includes(filters.adm)) &&
@@ -209,13 +181,14 @@ async function renderTable(data) {
         frag.appendChild(tr);
 
         if (r.docDelivery) {
-            const pad = await getPadItems(r.docDelivery, r._id);
-            pad.forEach(item => {
+            const padItems = await getPadItems(r.docDelivery);
+            for (const item of padItems) {
+                const descripcionReal = await buscarDescripcion(item.codigo);  // AQUÍ ESTÁ LA MAGIA
                 const trPad = document.createElement('tr');
                 trPad.classList.add('fila-hija-pad');
                 trPad.innerHTML = `
                     <td><span class="estado-badge" data-estado="PAD">PAD</span></td>
-                    <td style="text-align:center;font-weight:600;color:#d35400;">${item.referencia || item.codigo}</td>
+                    <td style="text-align:center;font-weight:600;color:#d35400;">${item.codigo}</td>
                     <td>${r.admision || ''}</td>
                     <td>${r.paciente || ''}</td>
                     <td>${r.medico || ''}</td>
@@ -230,12 +203,12 @@ async function renderTable(data) {
                     <td>${formatTraspasoAt(r.traspasoAt)}</td>
                     <td>${formatDate(r.fechaCX)}</td>
                     <td style="text-align:center">${item.folio || ''}</td>
-                    <td style="font-weight:500;color:#d35400;">${item.descripcionRef || item.descripcion || ''}</td>
+                    <td style="font-weight:500;color:#d35400;">${descripcionReal}</td>
                     <td style="text-align:center;color:#d35400;">${item.vencimiento ? formatDate(item.vencimiento) : ''}</td>
                     <td>${r.docDelivery || ''}</td>
                 `;
                 frag.appendChild(trPad);
-            });
+            }
         }
     }
     tbody.appendChild(frag);
