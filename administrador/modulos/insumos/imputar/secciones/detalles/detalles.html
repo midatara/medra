@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalles por Lote - Insumos</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="detalles.css">
+</head>
+<body>
+    <div class="detalles-main-container">
+        <div class="detalles-back-button">
+            <button onclick="parent.loadContent('modulos/insumos/imputar/secciones.html')" class="btn-back">
+                <i class="fas fa-arrow-left"></i>
+                <span>Volver al menú Imputar</span>
+            </button>
+        </div>
+
+        <h1 class="detalles-title">Detalles por Lote - Trazabilidad Completa</h1>
+        <p class="detalles-subtitle">Vista detallada con lotes, fechas de vencimiento y trazabilidad</p>
+
+        <div class="detalles-controls-container">
+            <div class="filters-grid">
+                <div class="filter-group">
+                    <label>Año</label>
+                    <select id="yearSelect"></select>
+                </div>
+                <div class="filter-group">
+                    <label>Mes</label>
+                    <select id="monthSelect"></select>
+                </div>
+                <div class="filter-group">
+                    <label>Admisión</label>
+                    <input type="text" id="filterAdmision" placeholder="Buscar admisión...">
+                </div>
+                <div class="filter-group">
+                    <label>Paciente</label>
+                    <input type="text" id="filterPaciente" placeholder="Buscar paciente...">
+                </div>
+                <div class="filter-group">
+                    <label>Proveedor</label>
+                    <input type="text" id="filterProveedor" placeholder="Buscar proveedor...">
+                </div>
+                <div class="filter-group">
+                    <label>Código</label>
+                    <input type="text" id="filterCodigo" placeholder="Buscar código...">
+                </div>
+            </div>
+
+            <div class="scope-buttons">
+                <label><input type="radio" name="filterScope" value="currentMonth" checked> Solo mes/año seleccionado</label>
+                <label><input type="radio" name="filterScope" value="currentYear"> Todo el año seleccionado</label>
+                <label><input type="radio" name="filterScope" value="all"> Todos los registros</label>
+            </div>
+
+            <div class="detalles-buttons">
+                <button id="refreshBtn" class="btn-secondary">
+                    <i class="fas fa-sync-alt"></i> Actualizar
+                </button>
+            </div>
+        </div>
+
+        <div class="detalles-table-container">
+            <div class="detalles-table-wrapper">
+                <table class="detalles-table" id="detallesTable">
+                    <thead>
+                        <tr>
+                            <th>Admisión<div class="resize-handle"></div></th>
+                            <th>Código<div class="resize-handle"></div></th>
+                            <th>Cantidad<div class="resize-handle"></div></th>
+                            <th>Venta<div class="resize-handle"></div></th>
+                            <th>Fecha CX<div class="resize-handle"></div></th>
+                            <th>Previsión<div class="resize-handle"></div></th>
+                            <th>Convenio<div class="resize-handle"></div></th>
+                            <th>Paciente<div class="resize-handle"></div></th>
+                            <th>Descripción<div class="resize-handle"></div></th>
+                            <th>Proveedor<div class="resize-handle"></div></th>
+                            <th>Total Items<div class="resize-handle"></div></th>
+                            <th>Atributo<div class="resize-handle"></div></th>
+                            <th>Margen<div class="resize-handle"></div></th>
+                            <th>Estado<div class="resize-handle"></div></th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="loading" class="loading-modal">
+            <div class="spinner"></div>
+            <span class="loading-text">Cargando...</span>
+        </div>
+    </div>
+
+    <div class="detalles-toast-container" id="toastContainer"></div>
+
+    <script type="module" src="detalles.js"></script>
+    <script type="module" src="resizeColumnsDetalles.js"></script>
+</body>
+</html>
