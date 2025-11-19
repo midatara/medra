@@ -55,41 +55,72 @@ function formatTraspasoAt(timestamp) {
 }
 
 async function enrichPadItemsWithReferencia(items, registroId) {
-    if (!items || items.length === 0) return items;
+    if (!items || items.length === 0) {
+        console.log('No hay ítems PAD para enriquecer');
+        return items;
+    }
+
+    console.log(`Enriqueciendo ${items.length} ítems PAD para registro ${registroId}`);
 
     const cache = {};
     const enriched = await Promise.all(items.map(async item => {
         const codigo = (item.codigo || '').toString().trim().toUpperCase();
-        if (!codigo || item.referenciaCompleta) return item;
-        if (cache[codigo]) return { ...item, ...cache[codigo] };
-
-        const q = query(collection(db, "referencias_implantes"), where("codigo", "==", codigo), limit(1));
-        const snap = await getDocs(q);
-
-        if (!snap.empty) {
-            const ref = snap.docs[0].data();
-            const enrichedItem = {
-                ...item,
-                referencia: ref.referencia || '',
-                descripcionRef: ref.descripcion || `${ref.referencia || ''} ${ref.detalles || ''}`.trim(),
-                precioUnitarioRef: ref.precioUnitario || '',
-                referenciaCompleta: true
-            };
-            cache[codigo] = enrichedItem;
-            return enrichedItem;
+        if (!codigo) {
+            console.log('Ítem sin código, se ignora:', item);
+            return item;
         }
-        return item;
+        if (item.referenciaCompleta) {
+            console.log(`Código ${codigo} ya está enriquecido`);
+            return item;
+        }
+        if (cache[codigo]) {
+            console.log(`Código ${codigo} encontrado en caché local`);
+            return { ...item, ...cache[codigo] };
+        }
+
+        console.log(`Buscando referencia para código: ${codigo}`);
+
+        try {
+            const q = query(collection(db, "referencias_implantes"), where("codigo", "==", codigo), limit(1));
+            const snap = await getDocs(q);
+
+            if (!snap.empty) {
+                const ref = snap.docs[0].data();
+                console.log(`ENCONTRADO en referencias_implantes → Código: ${codigo} | Ref: ${ref.referencia} | Desc: ${ref.descripcion}`);
+
+                const enrichedItem = {
+                    ...item,
+                    referencia: ref.referencia || '',
+                    descripcionRef: ref.descripcion || `${ref.referencia || ''} ${ref.detalles || ''}`.trim(),
+                    precioUnitarioRef: ref.precioUnitario || '',
+                    referenciaCompleta: true
+                };
+                cache[codigo] = enrichedItem;
+                return enrichedItem;
+            } else {
+                console.log(`NO encontrado en referencias_implantes → Código: ${codigo}`);
+                return item;
+            }
+        } catch (err) {
+            console.error(`Error buscando código ${codigo}:`, err);
+            return item;
+        }
     }));
 
     const padRef = doc(db, 'consigna_historial', registroId, 'pad_items', 'data');
-    const current = (await getDoc(padRef)).data() || {};
-    if (current.items) {
-        const updated = current.items.map(old => {
+    const currentSnap = await getDoc(padRef);
+    if (currentSnap.exists()) {
+        const current = currentSnap.data();
+        const updated = current.items?.map(old => {
             const match = enriched.find(e => (e.codigo || '').toString().trim().toUpperCase() === (old.codigo || '').toString().trim().toUpperCase());
             return match || old;
-        });
-        if (JSON.stringify(current.items) !== JSON.stringify(updated)) {
+        }) || enriched;
+
+        if (JSON.stringify(current.items || []) !== JSON.stringify(updated)) {
+            console.log(`Guardando datos enriquecidos en subcolección para registro ${registroId}`);
             await setDoc(padRef, { items: updated, enrichedAt: new Date() }, { merge: true });
+        } else {
+            console.log('No hay cambios para guardar en subcolección');
         }
     }
 
@@ -105,8 +136,13 @@ async function getPadItems(docDelivery, registroId) {
     if (padSnap.exists()) {
         const data = padSnap.data();
         if (data.docDelivery === docDeliveryStr) {
+            console.log(`PAD items leídos desde caché (subcolección) para DocDelivery ${docDeliveryStr}`);
             return await enrichPadItemsWithReferencia(data.items || [], registroId);
+        } else {
+            console.log(`DocDelivery no coincide en caché (${data.docDelivery} ≠ ${docDeliveryStr}), buscando en guias_medtronic`);
         }
+    } else {
+        console.log(`No existe caché en subcolección para registro ${registroId}, buscando en guias_medtronic`);
     }
 
     const guiasSnap = await getDocs(collection(db, 'guias_medtronic'));
@@ -115,6 +151,7 @@ async function getPadItems(docDelivery, registroId) {
     guiasSnap.forEach(gdoc => {
         const gdata = gdoc.data();
         if ((gdata.folioRef || '').toString().trim() === docDeliveryStr) {
+            console.log(`Encontrada guía Medtronic con folioRef ${docDeliveryStr}`);
             const folioGuia = gdata.folio || '';
             const detallesRaw = gdata.fullData?.Documento?.Detalle || [];
             const detalles = Array.isArray(detallesRaw) ? detallesRaw : [detallesRaw];
@@ -126,6 +163,8 @@ async function getPadItems(docDelivery, registroId) {
                 cantidad: det.QtyItem ? Math.round(parseFloat(det.QtyItem)) : 0,
                 vencimiento: det.FchVencim || ''
             })).filter(i => i.codigo);
+
+            console.log(`Se extrajeron ${foundItems.length} ítems de la guía`);
         }
     });
 
@@ -138,6 +177,7 @@ async function getPadItems(docDelivery, registroId) {
             cachedAt: new Date(),
             enrichedAt: new Date()
         });
+        console.log(`PAD items guardados en subcolección (primera vez) para ${docDeliveryStr}`);
     }
 
     return enriched;
@@ -280,10 +320,14 @@ async function renderTable(data) {
 
         if (docDelivery) {
             const padItems = await getPadItems(docDelivery, r._id);
+            console.log(`Renderizando ${padItems.length} ítems PAD para registro ${r._id}`);
+
             padItems.forEach(item => {
                 const vencFormateado = item.vencimiento ? formatDate(item.vencimiento) : '';
-                const descripcionMostrada = item.descripcionRef || item.descripcion || '';
+                const descripcionMostrada = item.descripcionRef || item.descripcion || '—';
                 const referenciaMostrada = item.referencia || item.codigo || '';
+
+                console.log(`PAD → Código: ${item.codigo} | Ref: ${referenciaMostrada} | Desc: ${descripcionMostrada}`);
 
                 const trChild = document.createElement('tr');
                 trChild.classList.add('fila-hija-pad');
