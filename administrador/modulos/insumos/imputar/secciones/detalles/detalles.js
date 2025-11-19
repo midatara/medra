@@ -1,6 +1,6 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { getFirestore, collection, getDocs, doc, getDoc, setDoc, query, where, limit } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { getFirestore, collection, getDocs, doc, getDoc, setDoc, deleteDoc, writeBatch, query, where, limit } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const firebaseConfig = {
     apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
@@ -36,7 +36,7 @@ function showToast(msg, type = 'success') {
     toast.textContent = msg;
     container.appendChild(toast);
     requestAnimationFrame(() => toast.classList.add('show'));
-    setTimeout(() => { toast.classToast.remove('show'); setTimeout(() => toast.remove(), 300); }, 5000);
+    setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 5000);
 }
 
 function formatNumber(n) { return Number(n || 0).toLocaleString('es-CL'); }
@@ -54,6 +54,7 @@ function formatTraspasoAt(timestamp) {
     return `${day}/${month}/${year}`;
 }
 
+// === ENRIQUECER PAD CON DESCRIPCIÓN DESDE referencias_implantes ===
 async function enrichPadItemsWithReferencia(items, registroId) {
     if (!items || items.length === 0) return items;
 
@@ -73,28 +74,29 @@ async function enrichPadItemsWithReferencia(items, registroId) {
                 referenciaCompleta: true
             };
         }
-        return item;
+        return { ...item, descripcionRef: item.descripcion || '' };
     }));
 
-    // FORZAMOS REESCRITURA DE LA SUBCOLECCIÓN
     const padRef = doc(db, 'consigna_historial', registroId, 'pad_items', 'data');
-    await setDoc(padRef, {
-        docDelivery: items[0]?.docDelivery || 'forzado',
-        items: enriched,
-        cachedAt: new Date(),
-        enrichedAt: new Date(),
-        forzado: true
-    }, { merge: false });
+    await setDoc(padRef, { items: enriched, enrichedAt: new Date() }, { merge: true });
 
-    console.log(`Subcolección REESCRITA para registro ${registroId} con descripciones correctas`);
     return enriched;
 }
 
+// === OBTENER ÍTEMS PAD (con caché + enriquecimiento) ===
 async function getPadItems(docDelivery, registroId) {
     if (!docDelivery) return [];
     const docDeliveryStr = docDelivery.toString().trim();
+    const padRef = doc(db, 'consigna_historial', registroId, 'pad_items', 'data');
+    const padSnap = await getDoc(padRef);
 
-    // FORZAMOS IGNORAR CACHÉ Y REPROCESAR
+    if (padSnap.exists()) {
+        const data = padSnap.data();
+        if (data.docDelivery === docDeliveryStr && data.items?.length > 0) {
+            return await enrichPadItemsWithReferencia(data.items, registroId);
+        }
+    }
+
     const guiasSnap = await getDocs(collection(db, 'guias_medtronic'));
     let foundItems = [];
 
@@ -115,15 +117,17 @@ async function getPadItems(docDelivery, registroId) {
         }
     });
 
-    if (foundItems.length === 0) {
-        console.log(`No se encontró guía para DocDelivery ${docDeliveryStr}, intentando leer caché como fallback`);
-        const padRef = doc(db, 'consigna_historial', registroId, 'pad_items', 'data');
-        const snap = await getDoc(padRef);
-        if (snap.exists()) return snap.data().items || [];
-        return [];
+    const enriched = await enrichPadItemsWithReferencia(foundItems, registroId);
+
+    if (enriched.length > 0) {
+        await setDoc(padRef, {
+            docDelivery: docDeliveryStr,
+            items: enriched,
+            cachedAt: new Date(),
+            enrichedAt: new Date()
+        });
     }
 
-    const enriched = await enrichPadItemsWithReferencia(foundItems, registroId);
     return enriched;
 }
 
@@ -266,8 +270,8 @@ async function renderTable(data) {
             const padItems = await getPadItems(docDelivery, r._id);
             padItems.forEach(item => {
                 const vencFormateado = item.vencimiento ? formatDate(item.vencimiento) : '';
-                const descripcionMostrada = item.descripcionRef || item.descripcion || 'Sin descripción';
-                const referenciaMostrada = item.referencia || item.codigo;
+                const descripcionMostrada = item.descripcionRef || item.descripcion || '';
+                const referenciaMostrada = item.referencia || item.codigo || '';
 
                 const trChild = document.createElement('tr');
                 trChild.classList.add('fila-hija-pad');
