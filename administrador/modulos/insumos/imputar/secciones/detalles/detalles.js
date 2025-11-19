@@ -70,9 +70,8 @@ async function enrichPadItemsWithReferencia(items, registroId) {
             const ref = snap.docs[0].data();
             const enrichedItem = {
                 ...item,
-                referencia: ref.referencia || '',
-                descripcionRef: ref.descripcion || `${ref.referencia || ''} ${ref.detalles || ''}`.trim(),
-                precioUnitarioRef: ref.precioUnitario || '',
+                referencia: ref.referencia || codigo,
+                descripcionRef: ref.descripcion || item.descripcion || '',
                 referenciaCompleta: true
             };
             cache[codigo] = enrichedItem;
@@ -123,7 +122,7 @@ async function getPadItems(docDelivery, registroId) {
 
             foundItems = detalles.map(det => ({
                 folio: folioGuia,
-                codigo: (det.CdgItem?.VlrCodigo || '').trim().split(' ')[0] || '',
+                codigo: (det.CdgItem?.VlrCodigo || '').split(' ')[0] || '',
                 descripcion: det.DscItem || det.NmbItem || '',
                 cantidad: det.QtyItem ? Math.round(parseFloat(det.QtyItem)) : 0,
                 vencimiento: det.FchVencim || ''
@@ -223,7 +222,7 @@ function applyTextFilters(data) {
     const cod = document.getElementById('filterCodigo').value.trim().toLowerCase();
 
     return data.filter(r => {
-        return (!adm || (r.almision || r.admision || '').toLowerCase().includes(adm)) &&
+        return (!adm || (r.admision || '').toLowerCase().includes(adm)) &&
                (!pac || (r.paciente || '').toLowerCase().includes(pac)) &&
                (!prov || (r.proveedor || '').toLowerCase().includes(prov)) &&
                (!cod || (r.codigo || '').toLowerCase().includes(cod));
@@ -285,7 +284,7 @@ async function renderTable(data) {
             padItems.forEach(item => {
                 const vencFormateado = item.vencimiento ? formatDate(item.vencimiento) : '';
                 const descripcionMostrada = item.descripcionRef || item.descripcion || '';
-                const referenciaMostrada = item.referencia || item.codigo || '';
+                const referenciaMostrada = item.referencia || item.codigo;
 
                 const trChild = document.createElement('tr');
                 trChild.classList.add('fila-hija-pad');
