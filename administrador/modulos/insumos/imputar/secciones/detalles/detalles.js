@@ -55,6 +55,7 @@ function formatTraspasoAt(timestamp) {
 }
 
 // === NUEVA FUNCIÓN: Obtener ítems PAD (desde subcolección o desde guias_medtronic) ===
+// === NUEVA FUNCIÓN ACTUALIZADA: Obtener ítems PAD con prefijo "sub" ===
 async function getPadItems(docDelivery, registroId) {
     if (!docDelivery) return [];
 
@@ -83,23 +84,23 @@ async function getPadItems(docDelivery, registroId) {
             const detalles = Array.isArray(detallesRaw) ? detallesRaw : detallesRaw ? [detallesRaw] : [];
 
             foundItems = detalles.map(det => ({
-                folio: folioGuia,
-                codigo: (det.CdgItem?.VlrCodigo || '').split(' ')[0] || '',
-                descripcion: det.DscItem || det.NmbItem || '',
-                cantidad: det.QtyItem ? Math.round(parseFloat(det.QtyItem)) : '',
-                vencimiento: det.FchVencim || ''
-            })).filter(i => i.codigo);
+                subFolio: folioGuia,
+                subCodigo: (det.CdgItem?.VlrCodigo || '').split(' ')[0] || '',
+                subDescripcion: det.DscItem || det.NmbItem || '',
+                subCantidad: det.QtyItem ? Math.round(parseFloat(det.QtyItem)) : 0,
+                subVencimiento: det.FchVencim || ''
+            })).filter(i => i.subCodigo);
         }
     });
 
-    // 3. Si encontramos ítems → guardarlos en la subcolección para la próxima
+    // 3. Si encontramos ítems → guardarlos con prefijo "sub"
     if (foundItems.length > 0) {
         await setDoc(padRef, {
             docDelivery: docDeliveryStr,
-            items: foundItems,
+            items: foundItems,  // ya tienen subCantidad, subCodigo, etc.
             cachedAt: new Date()
         });
-        console.log(`PAD items guardados en subcolección para ${docDeliveryStr}`);
+        console.log(`PAD items guardados con prefijo 'sub' para ${docDeliveryStr}`);
     }
 
     return foundItems;
@@ -245,12 +246,12 @@ async function renderTable(data) {
         if (docDelivery) {
             const padItems = await getPadItems(docDelivery, r._id);
             padItems.forEach(item => {
-                const vencFormateado = item.vencimiento ? formatDate(item.vencimiento) : '';
+                const vencFormateado = item.subVencimiento ? formatDate(item.subVencimiento) : '';
                 const trChild = document.createElement('tr');
                 trChild.classList.add('fila-hija-pad');
                 trChild.innerHTML = `
                     <td><span class="estado-badge" data-estado="PAD">PAD</span></td>
-                    <td style="text-align:center;font-weight:600;color:#d35400;">${item.codigo}</td>
+                    <td style="text-align:center;font-weight:600;color:#d35400;">${item.subCodigo || ''}</td>
                     <td>${r.admision || ''}</td>
                     <td>${r.paciente || ''}</td>
                     <td>${r.medico || ''}</td>
@@ -258,14 +259,14 @@ async function renderTable(data) {
                     <td>${r.proveedor || ''}</td>
                     <td></td>
                     <td></td>
-                    <td style="text-align:center">${item.cantidad || ''}</td>
+                    <td style="text-align:center">${item.subCantidad || ''}</td>
                     <td></td>
                     <td></td>
                     <td></td>
                     <td>${fechaRecepcion}</td>
                     <td>${fechaCXFormateada}</td>
-                    <td style="text-align:center">${item.folio || ''}</td>
-                    <td style="font-weight:500;color:#d35400;">${item.descripcion}</td>
+                    <td style="text-align:center">${item.subFolio || ''}</td>
+                    <td style="font-weight:500;color:#d35400;">${item.subDescripcion || ''}</td>
                     <td style="text-align:center;color:#d35400;">${vencFormateado}</td>
                     <td>${docDeliveryRaw}</td>
                 `;
