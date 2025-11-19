@@ -1,5 +1,5 @@
 function initColumnResizing() {
-    const table = document.querySelector('.imputados-table');
+    const table = document.querySelector('.cargados-table');
     if (!table) return;
 
     const headers = Array.from(table.querySelectorAll('th'));
@@ -45,19 +45,14 @@ function initColumnResizing() {
         }
     }
 
-    // Cargar anchos guardados
-    const saved = localStorage.getItem('imputados-column-widths');
+    const saved = localStorage.getItem('cargados-detail-column-widths');
     if (saved) {
         try {
             const widths = JSON.parse(saved);
             headers.forEach((th, i) => {
-                if (widths[i]) {
-                    updateColumnCells(i, widths[i]);
-                }
+                if (widths[i]) updateColumnCells(i, widths[i]);
             });
-        } catch (e) {
-            console.error('Error cargando anchos de imputados:', e);
-        }
+        } catch (e) { console.error(e); }
     } else {
         headers.forEach((header, i) => {
             const width = header.offsetWidth;
@@ -67,7 +62,7 @@ function initColumnResizing() {
     updateTableWidth();
 
     resizeHandles.forEach((handle, index) => {
-        handle.addEventListener('mousedown', (e) => {
+        handle.addEventListener('mousedown', e => {
             e.preventDefault();
             e.stopPropagation();
             isResizing = true;
@@ -82,7 +77,7 @@ function initColumnResizing() {
         });
     });
 
-    document.addEventListener('mousemove', (e) => {
+    document.addEventListener('mousemove', e => {
         if (!isResizing || currentColIndex === -1) return;
         const deltaX = e.clientX - startX;
         let newWidth = startWidth + deltaX;
@@ -105,7 +100,6 @@ function initColumnResizing() {
         }
     });
 
-    // Observer para cuando se renderiza nueva data
     const tbody = table.querySelector('tbody');
     if (tbody) {
         const observer = new MutationObserver(() => {
@@ -128,13 +122,11 @@ function initColumnResizing() {
 }
 
 function saveColumnWidths() {
-    const headers = document.querySelectorAll('.imputados-table th');
+    const headers = document.querySelectorAll('.cargados-table th');
     const widths = Array.from(headers).map(th => parseInt(th.style.width) || th.offsetWidth);
-    localStorage.setItem('imputados-column-widths', JSON.stringify(widths));
+    localStorage.setItem('cargados-detail-column-widths', JSON.stringify(widths));
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-        initColumnResizing();
-    }, 150);
+    setTimeout(() => initColumnResizing(), 150);
 });

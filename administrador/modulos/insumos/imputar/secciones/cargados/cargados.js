@@ -2,7 +2,7 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { getFirestore, collection, getDocs, query, where } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
-const firebaseConfig = { /* mismo que siempre */ 
+const firebaseConfig = {
     apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
     authDomain: "datara-salud.firebaseapp.com",
     projectId: "datara-salud",
@@ -32,7 +32,7 @@ function hideLoading() { document.getElementById('loading')?.classList.remove('s
 function showToast(msg, type = 'success') {
     const container = document.getElementById('toastContainer');
     const toast = document.createElement('div');
-    toast.className = `imputados-toast ${type}`;
+    toast.className = `cargados-toast ${type}`;
     toast.textContent = msg;
     container.appendChild(toast);
     requestAnimationFrame(() => toast.classList.add('show'));
@@ -69,7 +69,6 @@ async function loadData() {
         availableYears = Array.from(yearsSet).sort((a,b)=>b-a);
         availableMonths = monthsByYear;
 
-        // Año/mes actual como predeterminado
         const now = new Date();
         selectedYear = now.getFullYear().toString();
         selectedMonth = String(now.getMonth()+1).padStart(2,'0');
@@ -99,7 +98,7 @@ function populateYearSelect() {
 function populateMonthSelect() {
     monthSelect.innerHTML = '<option value="">Todo el año</option>';
     const months = availableMonths[selectedYear] || new Set();
-    const names = { '01':'Enero','02':'Febrero','03':'Marzo','04':'Abril','05':'Mayo','06':'Junio','07':'Julio','08':'Agosto','09':'Septiembre','10':'Octubre','11':'Noviembre','12':'Diciembre' };
+    const names = {'01':'Enero','02':'Febrero','03':'Marzo','04':'Abril','05':'Mayo','06':'Junio','07':'Julio','08':'Agosto','09':'Septiembre','10':'Octubre','11':'Noviembre','12':'Diciembre'};
     Array.from(months).sort().forEach(m => {
         const opt = document.createElement('option');
         opt.value = m; opt.textContent = names[m];
@@ -140,13 +139,11 @@ function applyFiltersAndRender() {
 }
 
 function renderTable(data) {
-    const tbody = document.querySelector('#imputadosTable tbody');
+    const tbody = document.querySelector('#cargadosTable tbody');
     tbody.innerHTML = '';
 
     if (data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="14" style="text-align:center;padding:40px;color:#999;">
-            No hay registros CARGADOS con los filtros aplicados
-        </td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="14" style="text-align:center;padding:40px;color:#999;">No hay registros CARGADOS con los filtros aplicados</td></tr>`;
         return;
     }
 
@@ -203,5 +200,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function debounce(fn, wait) {
-    let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), wait); };
+    let t;
+    return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), wait); };
 }
