@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Detalles por Lote - Insumos</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="detalles.css">
 </head>
 <body>
@@ -16,8 +16,8 @@
             </button>
         </div>
 
-        <h1 class="detalles-title">Detalles por Lote - Trazabilidad Completa</h1>
-        <p class="detalles-subtitle">Vista detallada con lotes, fechas de vencimiento y trazabilidad</p>
+        <h1 class="detalles-title">Detalles por Lote - Trazabilidad</h1>
+        <p class="detalles-subtitle">Listado completo para exportación con campos de lote, vencimiento y doc. delivery</p>
 
         <div class="detalles-controls-container">
             <div class="filters-grid">
@@ -48,8 +48,8 @@
             </div>
 
             <div class="scope-buttons">
-                <label><input type="radio" name="filterScope" value="currentMonth" checked> Solo mes/año seleccionado</label>
-                <label><input type="radio" name="filterScope" value="currentYear"> Todo el año seleccionado</label>
+                <label><input type="radio" name="filterScope" value="currentMonth" checked> Solo mes/año</label>
+                <label><input type="radio" name="filterScope" value="currentYear"> Todo el año</label>
                 <label><input type="radio" name="filterScope" value="all"> Todos los registros</label>
             </div>
 
@@ -65,20 +65,24 @@
                 <table class="detalles-table" id="detallesTable">
                     <thead>
                         <tr>
-                            <th>Admisión<div class="resize-handle"></div></th>
-                            <th>Código<div class="resize-handle"></div></th>
-                            <th>Cantidad<div class="resize-handle"></div></th>
-                            <th>Venta<div class="resize-handle"></div></th>
-                            <th>Fecha CX<div class="resize-handle"></div></th>
-                            <th>Previsión<div class="resize-handle"></div></th>
-                            <th>Convenio<div class="resize-handle"></div></th>
-                            <th>Paciente<div class="resize-handle"></div></th>
-                            <th>Descripción<div class="resize-handle"></div></th>
-                            <th>Proveedor<div class="resize-handle"></div></th>
-                            <th>Total Items<div class="resize-handle"></div></th>
-                            <th>Atributo<div class="resize-handle"></div></th>
-                            <th>Margen<div class="resize-handle"></div></th>
                             <th>Estado<div class="resize-handle"></div></th>
+                            <th>Admisión<div class="resize-handle"></div></th>
+                            <th>Paciente<div class="resize-handle"></div></th>
+                            <th>Médico<div class="resize-handle"></div></th>
+                            <th>Fecha CX<div class="resize-handle"></div></th>
+                            <th>Proveedor<div class="resize-handle"></div></th>
+                            <th>Código<div class="resize-handle"></div></th>
+                            <th>Descripción<div class="resize-handle"></div></th>
+                            <th>Cantidad<div class="resize-handle"></div></th>
+                            <th>Precio Unitario<div class="resize-handle"></div></th>
+                            <th>Atributo<div class="resize-handle"></div></th>
+                            <th>OC<div class="resize-handle"></div></th>
+                            <th>Fecha Recepción<div class="resize-handle"></div></th>
+                            <th>Fecha Carga<div class="resize-handle"></div></th>
+                            <th>Número Guía<div class="resize-handle"></div></th>
+                            <th>Lote<div class="resize-handle"></div></th>
+                            <th>Fecha Vencimiento<div class="resize-handle"></div></th>
+                            <th>Doc. Delivery<div class="resize-handle"></div></th>
                         </tr>
                     </thead>
                     <tbody></tbody>

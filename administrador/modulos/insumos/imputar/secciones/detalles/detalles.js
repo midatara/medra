@@ -131,6 +131,7 @@ function applyTextFilters(data) {
 }
 
 function applyFiltersAndRender() {
+    {
     let filtered = getFilteredByDate(allData);
     filtered = applyTextFilters(filtered);
     filtered.sort((a, b) => (b.fechaCX || '').localeCompare(a.fechaCX || ''));
@@ -142,34 +143,40 @@ function renderTable(data) {
     tbody.innerHTML = '';
 
     if (data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="14" style="text-align:center;padding:40px;color:#999;">No hay registros con los filtros aplicados</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="18" style="text-align:center;padding:40px;color:#999;">No hay registros con los filtros aplicados</td></tr>`;
         return;
     }
 
     data.forEach(r => {
-        const venta = r.ventaCalculada ? formatNumber(r.ventaCalculada) : '';
         const estado = r.estado || 'PENDIENTE';
+        const fechaCXFormateada = formatDate(r.fechaCX);
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
+            <td><span class="estado-badge" data-estado="${estado}">${estado}</span></td>
             <td>${r.admision || ''}</td>
-            <td>${r.codigo || ''}</td>
-            <td style="text-align:center">${r.cantidad || ''}</td>
-            <td style="text-align:right;font-weight:bold;color:#27ae60;">$$  {venta}</td>
-            <td>${formatDate(r.fechaCX)}</td>
-            <td>${r.prevision || ''}</td>
-            <td>${r.convenio || ''}</td>
             <td>${r.paciente || ''}</td>
-            <td>${r.descripcion || ''}</td>
+            <td>${r.medico || ''}</td>
+            <td>${fechaCXFormateada}</td>
             <td>${r.proveedor || ''}</td>
-            <td style="text-align:right">  $${formatNumber(r.totalItems)}</td>
+            <td>${r.codigo || ''}</td>
+            <td>${r.descripcion || ''}</td>
+            <td style="text-align:center">${r.cantidad || ''}</td>
+            <td style="text-align:right">${formatNumber(r.precioUnitario)}</td>
             <td>${r.atributo || ''}</td>
-            <td style="text-align:center;color:#d35400;font-weight:bold">${r.margen || ''}</td>
-            <td><span class="estado-badge" data-estado="$$ {estado}"> $${estado}</span></td>
+            <td></td> <!-- OC vacío -->
+            <td></td> <!-- Fecha Recepción vacía -->
+            <td>${fechaCXFormateada}</td> <!-- Fecha Carga = Fecha CX -->
+            <td style="text-align:center">0</td> <!-- Número Guía -->
+            <td></td> <!-- Lote vacío -->
+            <td></td> <!-- Fecha Vencimiento vacía -->
+            <td>${r.docDelivery || ''}</td> <!-- Doc. Delivery -->
         `;
         tbody.appendChild(tr);
     });
 }
 
+// Resto del código igual (eventos, debounce, etc.)
 document.addEventListener('DOMContentLoaded', () => {
     yearSelect.addEventListener('change', () => {
         selectedYear = yearSelect.value || new Date().getFullYear().toString();
