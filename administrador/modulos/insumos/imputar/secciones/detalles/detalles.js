@@ -59,34 +59,29 @@ function formatTraspasoAt(timestamp) {
 
 async function loadGuiasMap() {
     try {
-        console.log("DEBUG: Iniciando carga de guiasMap...");
         const snapshot = await getDocs(collection(db, 'guias_medtronic'));
         guiasMap = {};
-        let totalGuias = 0;
         snapshot.forEach(doc => {
             const data = doc.data();
-            const folio = (data.folio || '').trim().toUpperCase();  // ← Normalizado: trim + uppercase
-            if (!folio) return;
+            const folioRef = (data.folioRef || '').toString().trim();
+            if (!folioRef) return;
+
             const detallesRaw = data.fullData?.Documento?.Detalle || [];
             const detalles = Array.isArray(detallesRaw) ? detallesRaw : detallesRaw ? [detallesRaw] : [];
+
             const items = detalles.map(det => ({
                 codigo: (det.CdgItem?.VlrCodigo || '').split(' ')[0] || '',
                 descripcion: det.DscItem || det.NmbItem || '',
                 cantidad: det.QtyItem ? Math.round(parseFloat(det.QtyItem)) : '',
                 vencimiento: det.FchVencim || ''
-            })).filter(item => item.codigo);  // ← Filtrar items sin código
+            })).filter(item => item.codigo);
+
             if (items.length > 0) {
-                guiasMap[folio] = items;
-                totalGuias++;
+                guiasMap[folioRef] = items;
             }
         });
-        console.log(`DEBUG: guiasMap cargado: ${totalGuias} guías con ítems. Claves:`, Object.keys(guiasMap));
-        if (totalGuias === 0) {
-            console.warn("DEBUG: ¡guiasMap vacío! Verifica si 'guias_medtronic' tiene datos o permisos.");
-        }
     } catch (err) {
-        console.error('DEBUG: Error cargando guiasMap:', err);
-        showToast('Error cargando guías para PAD: ' + err.message, 'error');
+        console.error('Error cargando guías para PAD:', err);
     }
 }
 
@@ -123,7 +118,7 @@ async function loadData() {
         applyFiltersAndRender();
 
     } catch (err) {
-        console.error('DEBUG: Error en loadData:', err);
+        console.error(err);
         showToast('Error cargando datos: ' + err.message, 'error');
     } finally {
         hideLoading();
@@ -192,16 +187,13 @@ function renderTable(data) {
     }
 
     const fragment = document.createDocumentFragment();
-    let totalPadFilas = 0;
 
     data.forEach(r => {
         const estado = r.estado || 'PENDIENTE';
         const fechaCXFormateada = formatDate(r.fechaCX);
         const fechaRecepcion = formatTraspasoAt(r.traspasoAt);
         const docDeliveryRaw = r.docDelivery || '';
-        const docDelivery = docDeliveryRaw.trim().toUpperCase();  // ← Normalizado: trim + uppercase
-
-        console.log(`DEBUG: Procesando registro - docDelivery raw: '${docDeliveryRaw}' | normalizado: '${docDelivery}'`);
+        const docDelivery = docDeliveryRaw.toString().trim();
 
         const trMain = document.createElement('tr');
         trMain.classList.add('fila-principal');
@@ -228,7 +220,6 @@ function renderTable(data) {
         fragment.appendChild(trMain);
 
         if (docDelivery && guiasMap[docDelivery]) {
-            console.log(`DEBUG: ¡COINCIDENCIA! Agregando ${guiasMap[docDelivery].length} filas PAD para '${docDelivery}'`);
             guiasMap[docDelivery].forEach(item => {
                 const venc = item.vencimiento ? formatDate(item.vencimiento) : '';
                 const cant = item.cantidad ? `(x${item.cantidad})` : '';
@@ -236,24 +227,17 @@ function renderTable(data) {
                 trChild.classList.add('fila-hija-pad');
                 trChild.innerHTML = `
                     <td><span class="estado-badge" data-estado="PAD">PAD</span></td>
-                    <td colspan="16" style="padding-left:40px;background:#fff8e1;color:#d35400;">
+                    <td colspan="16" style="padding-left:40px;background:#fff8e1;color:#d35400;font-weight:500;">
                         <strong>${item.codigo}</strong> – ${item.descripcion} ${cant} ${venc ? `– Vence: ${venc}` : ''}
                     </td>
                     <td>${docDeliveryRaw}</td>
                 `;
                 fragment.appendChild(trChild);
-                totalPadFilas++;
             });
-        } else {
-            console.log(`DEBUG: Sin coincidencia para '${docDelivery}' (guiasMap tiene ${Object.keys(guiasMap).length} entradas)`);
         }
     });
 
     tbody.appendChild(fragment);
-    console.log(`DEBUG: Renderizado completo. Total filas PAD agregadas: ${totalPadFilas}`);
-    if (totalPadFilas === 0) {
-        console.warn("DEBUG: No se agregaron filas PAD. Revisa coincidencias arriba.");
-    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
