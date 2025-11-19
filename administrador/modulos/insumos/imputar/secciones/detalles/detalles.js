@@ -40,10 +40,21 @@ function showToast(msg, type = 'success') {
 }
 
 function formatNumber(n) { return Number(n || 0).toLocaleString('es-CL'); }
+
 function formatDate(str) {
     if (!str) return '';
     const [y, m, d] = str.split('-');
     return `${d.padStart(2,'0')}/${m.padStart(2,'0')}/${y}`;
+}
+
+// NUEVA FUNCIÓN: Formatear timestamp de traspasoAt → solo fecha DD/MM/AAAA
+function formatTraspasoAt(timestamp) {
+    if (!timestamp || !timestamp.toDate) return '';
+    const date = timestamp.toDate();
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
 }
 
 async function loadData() {
@@ -149,6 +160,7 @@ function renderTable(data) {
     data.forEach(r => {
         const estado = r.estado || 'PENDIENTE';
         const fechaCXFormateada = formatDate(r.fechaCX);
+        const fechaRecepcion = formatTraspasoAt(r.traspasoAt);  // ← Aquí usamos traspasoAt
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -164,7 +176,7 @@ function renderTable(data) {
             <td style="text-align:right">${formatNumber(r.precioUnitario)}</td>
             <td>${r.atributo || ''}</td>
             <td></td>                              <!-- OC vacío -->
-            <td></td>                              <!-- Fecha Recepción vacía -->
+            <td>${fechaRecepcion}</td>             <!-- Fecha Recepción ← desde traspasoAt -->
             <td>${fechaCXFormateada}</td>          <!-- Fecha Carga = Fecha CX -->
             <td style="text-align:center">0</td>    <!-- Número Guía -->
             <td></td>                              <!-- Lote vacío -->
