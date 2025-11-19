@@ -1,6 +1,6 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { getFirestore, collection, getDocs, doc, getDoc, setDoc, deleteDoc, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { getFirestore, collection, getDocs, doc, getDoc, setDoc, query, where, limit } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const firebaseConfig = {
     apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
@@ -54,24 +54,61 @@ function formatTraspasoAt(timestamp) {
     return `${day}/${month}/${year}`;
 }
 
-// === NUEVA FUNCIÓN: Obtener ítems PAD (desde subcolección o desde guias_medtronic) ===
+async function enrichPadItemsWithReferencia(items, registroId) {
+    if (!items || items.length === 0) return items;
+
+    const cache = {};
+    const enriched = await Promise.all(items.map(async item => {
+        const codigo = (item.codigo || '').toString().trim().toUpperCase();
+        if (!codigo || item.referenciaCompleta) return item;
+        if (cache[codigo]) return { ...item, ...cache[codigo] };
+
+        const q = query(collection(db, "referencias_implantes"), where("codigo", "==", codigo), limit(1));
+        const snap = await getDocs(q);
+
+        if (!snap.empty) {
+            const ref = snap.docs[0].data();
+            const enrichedItem = {
+                ...item,
+                referencia: ref.referencia || '',
+                descripcionRef: ref.descripcion || `${ref.referencia || ''} ${ref.detalles || ''}`.trim(),
+                precioUnitarioRef: ref.precioUnitario || '',
+                referenciaCompleta: true
+            };
+            cache[codigo] = enrichedItem;
+            return enrichedItem;
+        }
+        return item;
+    }));
+
+    const padRef = doc(db, 'consigna_historial', registroId, 'pad_items', 'data');
+    const current = (await getDoc(padRef)).data() || {};
+    if (current.items) {
+        const updated = current.items.map(old => {
+            const match = enriched.find(e => (e.codigo || '').toString().trim().toUpperCase() === (old.codigo || '').toString().trim().toUpperCase());
+            return match || old;
+        });
+        if (JSON.stringify(current.items) !== JSON.stringify(updated)) {
+            await setDoc(padRef, { items: updated, enrichedAt: new Date() }, { merge: true });
+        }
+    }
+
+    return enriched;
+}
+
 async function getPadItems(docDelivery, registroId) {
     if (!docDelivery) return [];
-
     const docDeliveryStr = docDelivery.toString().trim();
-
-    // 1. Intentar leer desde la subcolección pad_items del registro
     const padRef = doc(db, 'consigna_historial', registroId, 'pad_items', 'data');
     const padSnap = await getDoc(padRef);
 
     if (padSnap.exists()) {
         const data = padSnap.data();
         if (data.docDelivery === docDeliveryStr) {
-            return data.items || [];
+            return await enrichPadItemsWithReferencia(data.items || [], registroId);
         }
     }
 
-    // 2. Si no existe o no coincide → buscar en guias_medtronic
     const guiasSnap = await getDocs(collection(db, 'guias_medtronic'));
     let foundItems = [];
 
@@ -80,29 +117,30 @@ async function getPadItems(docDelivery, registroId) {
         if ((gdata.folioRef || '').toString().trim() === docDeliveryStr) {
             const folioGuia = gdata.folio || '';
             const detallesRaw = gdata.fullData?.Documento?.Detalle || [];
-            const detalles = Array.isArray(detallesRaw) ? detallesRaw : detallesRaw ? [detallesRaw] : [];
+            const detalles = Array.isArray(detallesRaw) ? detallesRaw : [detallesRaw];
 
             foundItems = detalles.map(det => ({
                 folio: folioGuia,
                 codigo: (det.CdgItem?.VlrCodigo || '').split(' ')[0] || '',
                 descripcion: det.DscItem || det.NmbItem || '',
-                cantidad: det.QtyItem ? Math.round(parseFloat(det.QtyItem)) : '',
+                cantidad: det.QtyItem ? Math.round(parseFloat(det.QtyItem)) : 0,
                 vencimiento: det.FchVencim || ''
             })).filter(i => i.codigo);
         }
     });
 
-    // 3. Si encontramos ítems → guardarlos en la subcolección para la próxima
-    if (foundItems.length > 0) {
+    const enriched = await enrichPadItemsWithReferencia(foundItems, registroId);
+
+    if (enriched.length > 0) {
         await setDoc(padRef, {
             docDelivery: docDeliveryStr,
-            items: foundItems,
-            cachedAt: new Date()
+            items: enriched,
+            cachedAt: new Date(),
+            enrichedAt: new Date()
         });
-        console.log(`PAD items guardados en subcolección para ${docDeliveryStr}`);
     }
 
-    return foundItems;
+    return enriched;
 }
 
 async function loadData() {
@@ -115,9 +153,8 @@ async function loadData() {
 
         for (const doc of snapshot.docs) {
             const d = doc.data();
-            d._id = doc.id; // Guardamos el ID para usar en subcolección
+            d._id = doc.id;
             allData.push(d);
-
             if (d.fechaCX) {
                 const [y, m] = d.fechaCX.split('-');
                 yearsSet.add(y);
@@ -241,16 +278,18 @@ async function renderTable(data) {
         `;
         fragment.appendChild(trMain);
 
-        // === CARGAR ÍTEMS PAD (desde caché o desde guias_medtronic) ===
         if (docDelivery) {
             const padItems = await getPadItems(docDelivery, r._id);
             padItems.forEach(item => {
                 const vencFormateado = item.vencimiento ? formatDate(item.vencimiento) : '';
+                const descripcionMostrada = item.descripcionRef || item.descripcion || '';
+                const referenciaMostrada = item.referencia || item.codigo || '';
+
                 const trChild = document.createElement('tr');
                 trChild.classList.add('fila-hija-pad');
                 trChild.innerHTML = `
                     <td><span class="estado-badge" data-estado="PAD">PAD</span></td>
-                    <td style="text-align:center;font-weight:600;color:#d35400;">${item.codigo}</td>
+                    <td style="text-align:center;font-weight:600;color:#d35400;">${referenciaMostrada}</td>
                     <td>${r.admision || ''}</td>
                     <td>${r.paciente || ''}</td>
                     <td>${r.medico || ''}</td>
@@ -265,7 +304,7 @@ async function renderTable(data) {
                     <td>${fechaRecepcion}</td>
                     <td>${fechaCXFormateada}</td>
                     <td style="text-align:center">${item.folio || ''}</td>
-                    <td style="font-weight:500;color:#d35400;">${item.descripcion}</td>
+                    <td style="font-weight:500;color:#d35400;">${descripcionMostrada}</td>
                     <td style="text-align:center;color:#d35400;">${vencFormateado}</td>
                     <td>${docDeliveryRaw}</td>
                 `;
@@ -277,7 +316,6 @@ async function renderTable(data) {
     tbody.appendChild(fragment);
 }
 
-// === Resto de eventos igual ===
 document.addEventListener('DOMContentLoaded', () => {
     yearSelect.addEventListener('change', () => {
         selectedYear = yearSelect.value || new Date().getFullYear().toString();
