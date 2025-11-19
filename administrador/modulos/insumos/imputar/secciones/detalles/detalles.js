@@ -182,7 +182,7 @@ function renderTable(data) {
     const tbody = document.querySelector('#detallesTable tbody');
     tbody.innerHTML = '';
     if (data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="18" style="text-align:center;padding:40px;color:#999;">No hay registros con los filtros aplicados</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="19" style="text-align:center;padding:40px;color:#999;">No hay registros con los filtros aplicados</td></tr>`;
         return;
     }
 
@@ -190,6 +190,7 @@ function renderTable(data) {
 
     data.forEach(r => {
         const estado = r.estado || 'PENDIENTE';
+        const referencia = r.referencia || '';
         const fechaCXFormateada = formatDate(r.fechaCX);
         const fechaRecepcion = formatTraspasoAt(r.traspasoAt);
         const docDeliveryRaw = r.docDelivery || '';
@@ -199,6 +200,7 @@ function renderTable(data) {
         trMain.classList.add('fila-principal');
         trMain.innerHTML = `
             <td><span class="estado-badge" data-estado="${estado}">${estado}</span></td>
+            <td style="text-align:center;font-weight:600;color:#2c3e50;">${referencia}</td>
             <td>${r.admision || ''}</td>
             <td>${r.paciente || ''}</td>
             <td>${r.medico || ''}</td>
@@ -227,6 +229,7 @@ function renderTable(data) {
                 trChild.classList.add('fila-hija-pad');
                 trChild.innerHTML = `
                     <td><span class="estado-badge" data-estado="PAD">PAD</span></td>
+                    <td style="text-align:center;color:#999;font-style:italic;">—</td>
                     <td colspan="16" style="padding-left:40px;background:#fff8e1;color:#d35400;font-weight:500;">
                         <strong>${item.codigo}</strong> – ${item.descripcion} ${cant} ${venc ? `– Vence: ${venc}` : ''}
                     </td>

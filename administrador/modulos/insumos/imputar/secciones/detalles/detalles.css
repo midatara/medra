@@ -31,23 +31,25 @@ html,body{margin:0;padding:0;height:100%;font-family:Arial,sans-serif;background
 
 /* Ajuste de anchos para 18 columnas */
 .detalles-table th:nth-child(1), td:nth-child(1) {width:100px}   /* Estado */
-.detalles-table th:nth-child(2), td:nth-child(2) {width:100px}   /* Admisión */
-.detalles-table th:nth-child(3), td:nth-child(3) {width:220px}      /* Paciente */
-.detalles-table th:nth-child(4), td:nth-child(4) {width:200px}   /* Médico */
-.detalles-table th:nth-child(5), td:nth-child(5) {width:100px}   /* Fecha CX */
-.detalles-table th:nth-child(6), td:nth-child(6) {width:200px}   /* Proveedor */
-.detalles-table th:nth-child(7), td:nth-child(7) {width:110px}   /* Código */
-.detalles-table th:nth-child(8), td:nth-child(8) {width:320px}   /* Descripción */
-.detalles-table th:nth-child(9), td:nth-child(9) {width:80px; text-align:center} /* Cantidad */
-.detalles-table th:nth-child(10), td:nth-child(10) {width:110px; text-align:right} /* Precio Unit. */
-.detalles-table th:nth-child(11), td:nth-child(11) {width:120px}  /* Atributo */
-.detalles-table th:nth-child(12), td:nth-child(12) {width:100px}  /* OC */
-.detalles-table th:nth-child(13), td:nth-child(13) {width:110px}  /* Fecha Recepción */
-.detalles-table th:nth-child(14), td:nth-child(14) {width:110px}  /* Fecha Carga */
-.detalles-table th:nth-child(15), td:nth-child(15) {width:100px; text-align:center} /* Número Guía */
-.detalles-table th:nth-child(16), td:nth-child(16) {width:120px}  /* Lote */
-.detalles-table th:nth-child(17), td:nth-child(17) {width:110px}  /* Fecha Vencimiento */
-.detalles-table th:nth-child(18), td:nth-child(18) {width:130px}  /* Doc. Delivery */
+.detalles-table th:nth-child(2), td:nth-child(2) {width:140px; text-align:center}   /* Referencia - NUEVA */
+/* Actualiza estos (suma +1 a cada nth-child) */
+.detalles-table th:nth-child(3), td:nth-child(3) {width:100px}   /* Admisión */
+.detalles-table th:nth-child(4), td:nth-child(4) {width:220px}   /* Paciente */
+.detalles-table th:nth-child(5), td:nth-child(5) {width:200px}   /* Médico */
+.detalles-table th:nth-child(6), td:nth-child(6) {width:100px}   /* Fecha CX */
+.detalles-table th:nth-child(7), td:nth-child(7) {width:200px}   /* Proveedor */
+.detalles-table th:nth-child(8), td:nth-child(8) {width:110px}   /* Código */
+.detalles-table th:nth-child(9), td:nth-child(9) {width:320px}   /* Descripción */
+.detalles-table th:nth-child(10), td:nth-child(10) {width:80px; text-align:center} /* Cantidad */
+.detalles-table th:nth-child(11), td:nth-child(11) {width:110px; text-align:right} /* Precio Unit. */
+.detalles-table th:nth-child(12), td:nth-child(12) {width:120px}  /* Atributo */
+.detalles-table th:nth-child(13), td:nth-child(13) {width:100px}  /* OC */
+.detalles-table th:nth-child(14), td:nth-child(14) {width:110px}  /* Fecha Recepción */
+.detalles-table th:nth-child(15), td:nth-child(15) {width:110px}  /* Fecha Carga */
+.detalles-table th:nth-child(16), td:nth-child(16) {width:100px; text-align:center} /* Número Guía */
+.detalles-table th:nth-child(17), td:nth-child(17) {width:120px}  /* Lote */
+.detalles-table th:nth-child(18), td:nth-child(18) {width:110px}  /* Fecha Vencimiento */
+.detalles-table th:nth-child(19), td:nth-child(19) {width:130px}  /* Doc. Delivery */
 
 .estado-badge{padding:4px 8px;border-radius:12px;font-size:10px;font-weight:bold;color:white}
 .estado-badge[data-estado="PENDIENTE"]{background:#e67e22}
