@@ -1,6 +1,6 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { getFirestore, collection, getDocs, doc, getDoc, setDoc, deleteDoc, writeBatch, query, where, limit } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { getFirestore, collection, getDocs, doc, getDoc, setDoc, query, where, limit } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const firebaseConfig = {
     apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
@@ -22,45 +22,19 @@ let selectedYear = new Date().getFullYear().toString();
 let selectedMonth = String(new Date().getMonth() + 1).padStart(2, '0');
 let filterScope = 'currentMonth';
 
-const yearSelect = document.getElementById('yearSelect');
-const monthSelect = document.getElementById('monthSelect');
-const refreshBtn = document.getElementById('refreshBtn');
-
 function showLoading() { document.getElementById('loading')?.classList.add('show'); }
 function hideLoading() { document.getElementById('loading')?.classList.remove('show'); }
 
-function showToast(msg, type = 'success') {
-    const container = document.getElementById('toastContainer');
-    const toast = document.createElement('div');
-    toast.className = `detalles-toast ${type}`;
-    toast.textContent = msg;
-    container.appendChild(toast);
-    requestAnimationFrame(() => toast.classList.add('show'));
-    setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 5000);
-}
-
 function formatNumber(n) { return Number(n || 0).toLocaleString('es-CL'); }
-function formatDate(str) {
-    if (!str) return '';
-    const [y, m, d] = str.split('-');
-    return `${d.padStart(2,'0')}/${m.padStart(2,'0')}/${y}`;
-}
-function formatTraspasoAt(timestamp) {
-    if (!timestamp || !timestamp.toDate) return '';
-    const date = timestamp.toDate();
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
-}
+function formatDate(str) { if (!str) return ''; const [y, m, d] = str.split('-'); return `${d.padStart(2,'0')}/${m.padStart(2,'0')}/${y}`; }
+function formatTraspasoAt(ts) { if (!ts?.toDate) return ''; const d = ts.toDate(); return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; }
 
-// === ENRIQUECER PAD CON DESCRIPCIÓN DESDE referencias_implantes ===
-async function enrichPadItemsWithReferencia(items, registroId) {
+async function enrichPadItems(items, registroId) {
     if (!items || items.length === 0) return items;
 
     const enriched = await Promise.all(items.map(async item => {
         const codigo = (item.codigo || '').toString().trim();
-        if (!codigo) return item;
+        if (!codigo) return { ...item, descripcionRef: item.descripcion || '' };
 
         const q = query(collection(db, "referencias_implantes"), where("referencia", "==", codigo), limit(1));
         const snap = await getDocs(q);
@@ -70,11 +44,11 @@ async function enrichPadItemsWithReferencia(items, registroId) {
             return {
                 ...item,
                 referencia: ref.referencia || codigo,
-                descripcionRef: ref.descripcion || item.descripcion || '',
+                descripcionRef: ref.descripcion || item.descripcion || codigo,
                 referenciaCompleta: true
             };
         }
-        return { ...item, descripcionRef: item.descripcion || '' };
+        return { ...item, descripcionRef: item.descripcion || codigo };
     }));
 
     const padRef = doc(db, 'consigna_historial', registroId, 'pad_items', 'data');
@@ -83,112 +57,86 @@ async function enrichPadItemsWithReferencia(items, registroId) {
     return enriched;
 }
 
-// === OBTENER ÍTEMS PAD (con caché + enriquecimiento) ===
 async function getPadItems(docDelivery, registroId) {
     if (!docDelivery) return [];
-    const docDeliveryStr = docDelivery.toString().trim();
+    const str = docDelivery.toString().trim();
     const padRef = doc(db, 'consigna_historial', registroId, 'pad_items', 'data');
-    const padSnap = await getDoc(padRef);
+    const snap = await getDoc(padRef);
 
-    if (padSnap.exists()) {
-        const data = padSnap.data();
-        if (data.docDelivery === docDeliveryStr && data.items?.length > 0) {
-            return await enrichPadItemsWithReferencia(data.items, registroId);
-        }
+    if (snap.exists() && snap.data().docDelivery === str && snap.data().items?.length > 0) {
+        return await enrichPadItems(snap.data().items, registroId);
     }
 
-    const guiasSnap = await getDocs(collection(db, 'guias_medtronic'));
-    let foundItems = [];
+    const guias = await getDocs(collection(db, 'guias_medtronic'));
+    let items = [];
 
-    guiasSnap.forEach(gdoc => {
-        const gdata = gdoc.data();
-        if ((gdata.folioRef || '').toString().trim() === docDeliveryStr) {
-            const folioGuia = gdata.folio || '';
-            const detallesRaw = gdata.fullData?.Documento?.Detalle || [];
-            const detalles = Array.isArray(detallesRaw) ? detallesRaw : [detallesRaw];
-
-            foundItems = detalles.map(det => ({
-                folio: folioGuia,
-                codigo: (det.CdgItem?.VlrCodigo || '').split(' ')[0] || '',
-                descripcion: det.DscItem || det.NmbItem || '',
-                cantidad: det.QtyItem ? Math.round(parseFloat(det.QtyItem)) : 0,
-                vencimiento: det.FchVencim || ''
+    guias.forEach(g => {
+        const d = g.data();
+        if ((d.folioRef || '').toString().trim() === str) {
+            const folio = d.folio || '';
+            const det = Array.isArray(d.fullData?.Documento?.Detalle) ? d.fullData.Documento.Detalle : [d.fullData?.Documento?.Detalle || {}];
+            items = det.map(x => ({
+                folio,
+                codigo: (x.CdgItem?.VlrCodigo || '').split(' ')[0] || '',
+                descripcion: x.DscItem || x.NmbItem || '',
+                cantidad: x.QtyItem ? Math.round(parseFloat(x.QtyItem)) : 0,
+                vencimiento: x.FchVencim || ''
             })).filter(i => i.codigo);
         }
     });
 
-    const enriched = await enrichPadItemsWithReferencia(foundItems, registroId);
-
+    const enriched = await enrichPadItems(items, registroId);
     if (enriched.length > 0) {
-        await setDoc(padRef, {
-            docDelivery: docDeliveryStr,
-            items: enriched,
-            cachedAt: new Date(),
-            enrichedAt: new Date()
-        });
+        await setDoc(padRef, { docDelivery: str, items: enriched, cachedAt: new Date(), enrichedAt: new Date() });
     }
-
     return enriched;
 }
 
 async function loadData() {
     showLoading();
     try {
-        const snapshot = await getDocs(collection(db, 'consigna_historial'));
-        allData = [];
-        const yearsSet = new Set();
-        const monthsByYear = {};
-
-        for (const doc of snapshot.docs) {
-            const d = doc.data();
-            d._id = doc.id;
-            allData.push(d);
-            if (d.fechaCX) {
-                const [y, m] = d.fechaCX.split('-');
-                yearsSet.add(y);
-                if (!monthsByYear[y]) monthsByYear[y] = new Set();
-                monthsByYear[y].add(m);
+        const snap = await getDocs(collection(db, 'consigna_historial'));
+        allData = snap.docs.map(d => ({ ...d.data(), _id: d.id }));
+        const years = new Set();
+        const months = {};
+        allData.forEach(r => {
+            if (r.fechaCX) {
+                const [y, m] = r.fechaCX.split('-');
+                years.add(y);
+                if (!months[y]) months[y] = new Set();
+                months[y].add(m);
             }
-        }
-
-        availableYears = Array.from(yearsSet).sort((a,b) => b - a);
-        availableMonths = monthsByYear;
-
-        const now = new Date();
-        selectedYear = now.getFullYear().toString();
-        selectedMonth = String(now.getMonth() + 1).padStart(2, '0');
-
+        });
+        availableYears = Array.from(years).sort((a,b) => b - a);
+        availableMonths = months;
         populateYearSelect();
         populateMonthSelect();
         applyFiltersAndRender();
-
-    } catch (err) {
-        console.error(err);
-        showToast('Error cargando datos: ' + err.message, 'error');
-    } finally {
-        hideLoading();
-    }
+    } catch (e) { console.error(e); }
+    finally { hideLoading(); }
 }
 
 function populateYearSelect() {
-    yearSelect.innerHTML = '<option value="">Todos los años</option>';
+    const s = document.getElementById('yearSelect');
+    s.innerHTML = '<option value="">Todos los años</option>';
     availableYears.forEach(y => {
-        const opt = document.createElement('option');
-        opt.value = y; opt.textContent = y;
-        if (y === selectedYear) opt.selected = true;
-        yearSelect.appendChild(opt);
+        const o = document.createElement('option');
+        o.value = y; o.textContent = y;
+        if (y === selectedYear) o.selected = true;
+        s.appendChild(o);
     });
 }
 
 function populateMonthSelect() {
-    monthSelect.innerHTML = '<option value="">Todo el año</option>';
+    const s = document.getElementById('monthSelect');
+    s.innerHTML = '<option value="">Todo el año</option>';
     const months = availableMonths[selectedYear] || new Set();
-    const names = {'01':'Enero','02':'Febrero','03':'Marzo','04':'Abril','05':'Mayo','06':'Junio','07':'Julio','08':'Agosto','09':'Septiembre','10':'Octubre','11':'Noviembre','12':'Diciembre'};
+    const names = { '01':'Enero','02':'Febrero','03':'Marzo','04':'Abril','05':'Mayo','06':'Junio','07':'Julio','08':'Agosto','09':'Septiembre','10':'Octubre','11':'Noviembre','12':'Diciembre' };
     Array.from(months).sort().forEach(m => {
-        const opt = document.createElement('option');
-        opt.value = m; opt.textContent = names[m];
-        if (m === selectedMonth) opt.selected = true;
-        monthSelect.appendChild(opt);
+        const o = document.createElement('option');
+        o.value = m; o.textContent = names[m];
+        if (m === selectedMonth) o.selected = true;
+        s.appendChild(o);
     });
 }
 
@@ -203,16 +151,17 @@ function getFilteredByDate(data) {
 }
 
 function applyTextFilters(data) {
-    const adm = document.getElementById('filterAdmision').value.trim().toLowerCase();
-    const pac = document.getElementById('filterPaciente').value.trim().toLowerCase();
-    const prov = document.getElementById('filterProveedor').value.trim().toLowerCase();
-    const cod = document.getElementById('filterCodigo').value.trim().toLowerCase();
-
+    const filters = {
+        adm: document.getElementById('filterAdmision').value.trim().toLowerCase(),
+        pac: document.getElementById('filterPaciente').value.trim().toLowerCase(),
+        prov: document.getElementById('filterProveedor').value.trim().toLowerCase(),
+        cod: document.getElementById('filterCodigo').value.trim().toLowerCase()
+    };
     return data.filter(r => {
-        return (!adm || (r.admision || '').toLowerCase().includes(adm)) &&
-               (!pac || (r.paciente || '').toLowerCase().includes(pac)) &&
-               (!prov || (r.proveedor || '').toLowerCase().includes(prov)) &&
-               (!cod || (r.codigo || '').toLowerCase().includes(cod));
+        return (!filters.adm || (r.admision || '').toLowerCase().includes(filters.adm)) &&
+               (!filters.pac || (r.paciente || '').toLowerCase().includes(filters.pac)) &&
+               (!filters.prov || (r.proveedor || '').toLowerCase().includes(filters.prov)) &&
+               (!filters.cod || (r.codigo || '').toLowerCase().includes(filters.cod));
     });
 }
 
@@ -227,29 +176,22 @@ async function renderTable(data) {
     const tbody = document.querySelector('#detallesTable tbody');
     tbody.innerHTML = '';
     if (data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="19" style="text-align:center;padding:40px;color:#999;">No hay registros con los filtros aplicados</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="19" style="text-align:center;padding:40px;color:#999;">No hay registros</td></tr>`;
         return;
     }
 
-    const fragment = document.createDocumentFragment();
+    const frag = document.createDocumentFragment();
 
     for (const r of data) {
-        const estado = r.estado || 'PENDIENTE';
-        const referencia = r.referencia || '';
-        const fechaCXFormateada = formatDate(r.fechaCX);
-        const fechaRecepcion = formatTraspasoAt(r.traspasoAt);
-        const docDeliveryRaw = r.docDelivery || '';
-        const docDelivery = docDeliveryRaw.toString().trim();
-
-        const trMain = document.createElement('tr');
-        trMain.classList.add('fila-principal');
-        trMain.innerHTML = `
-            <td><span class="estado-badge" data-estado="${estado}">${estado}</span></td>
-            <td style="text-align:center;font-weight:600;color:#2c3e50;">${referencia}</td>
+        const tr = document.createElement('tr');
+        tr.classList.add('fila-principal');
+        tr.innerHTML = `
+            <td><span class="estado-badge" data-estado="${r.estado || 'PENDIENTE'}">${r.estado || 'PENDIENTE'}</span></td>
+            <td style="text-align:center;font-weight:600;color:#2c3e50;">${r.referencia || ''}</td>
             <td>${r.admision || ''}</td>
             <td>${r.paciente || ''}</td>
             <td>${r.medico || ''}</td>
-            <td>${fechaCXFormateada}</td>
+            <td>${formatDate(r.fechaCX)}</td>
             <td>${r.proveedor || ''}</td>
             <td>${r.codigo || ''}</td>
             <td>${r.descripcion || ''}</td>
@@ -257,31 +199,27 @@ async function renderTable(data) {
             <td style="text-align:right">${formatNumber(r.precioUnitario)}</td>
             <td>${r.atributo || ''}</td>
             <td></td>
-            <td>${fechaRecepcion}</td>
-            <td>${fechaCXFormateada}</td>
+            <td>${formatTraspasoAt(r.traspasoAt)}</td>
+            <td>${formatDate(r.fechaCX)}</td>
             <td style="text-align:center">0</td>
             <td></td>
             <td></td>
-            <td>${docDeliveryRaw}</td>
+            <td>${r.docDelivery || ''}</td>
         `;
-        fragment.appendChild(trMain);
+        frag.appendChild(tr);
 
-        if (docDelivery) {
-            const padItems = await getPadItems(docDelivery, r._id);
-            padItems.forEach(item => {
-                const vencFormateado = item.vencimiento ? formatDate(item.vencimiento) : '';
-                const descripcionMostrada = item.descripcionRef || item.descripcion || '';
-                const referenciaMostrada = item.referencia || item.codigo || '';
-
-                const trChild = document.createElement('tr');
-                trChild.classList.add('fila-hija-pad');
-                trChild.innerHTML = `
+        if (r.docDelivery) {
+            const pad = await getPadItems(r.docDelivery, r._id);
+            pad.forEach(item => {
+                const trPad = document.createElement('tr');
+                trPad.classList.add('fila-hija-pad');
+                trPad.innerHTML = `
                     <td><span class="estado-badge" data-estado="PAD">PAD</span></td>
-                    <td style="text-align:center;font-weight:600;color:#d35400;">${referenciaMostrada}</td>
+                    <td style="text-align:center;font-weight:600;color:#d35400;">${item.referencia || item.codigo}</td>
                     <td>${r.admision || ''}</td>
                     <td>${r.paciente || ''}</td>
                     <td>${r.medico || ''}</td>
-                    <td>${fechaCXFormateada}</td>
+                    <td>${formatDate(r.fechaCX)}</td>
                     <td>${r.proveedor || ''}</td>
                     <td></td>
                     <td></td>
@@ -289,54 +227,29 @@ async function renderTable(data) {
                     <td></td>
                     <td></td>
                     <td></td>
-                    <td>${fechaRecepcion}</td>
-                    <td>${fechaCXFormateada}</td>
+                    <td>${formatTraspasoAt(r.traspasoAt)}</td>
+                    <td>${formatDate(r.fechaCX)}</td>
                     <td style="text-align:center">${item.folio || ''}</td>
-                    <td style="font-weight:500;color:#d35400;">${descripcionMostrada}</td>
-                    <td style="text-align:center;color:#d35400;">${vencFormateado}</td>
-                    <td>${docDeliveryRaw}</td>
+                    <td style="font-weight:500;color:#d35400;">${item.descripcionRef || item.descripcion || ''}</td>
+                    <td style="text-align:center;color:#d35400;">${item.vencimiento ? formatDate(item.vencimiento) : ''}</td>
+                    <td>${r.docDelivery || ''}</td>
                 `;
-                fragment.appendChild(trChild);
+                frag.appendChild(trPad);
             });
         }
     }
-
-    tbody.appendChild(fragment);
+    tbody.appendChild(frag);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    yearSelect.addEventListener('change', () => {
-        selectedYear = yearSelect.value || new Date().getFullYear().toString();
-        selectedMonth = '';
-        populateMonthSelect();
-        applyFiltersAndRender();
-    });
-
-    monthSelect.addEventListener('change', () => {
-        selectedMonth = monthSelect.value;
-        applyFiltersAndRender();
-    });
-
-    ['filterAdmision','filterPaciente','filterProveedor','filterCodigo'].forEach(id => {
-        document.getElementById(id).addEventListener('input', debounce(applyFiltersAndRender, 300));
-    });
-
-    document.querySelectorAll('input[name="filterScope"]').forEach(r => {
-        r.addEventListener('change', () => { filterScope = r.value; applyFiltersAndRender(); });
-    });
-
-    refreshBtn.addEventListener('click', loadData);
+    document.getElementById('yearSelect')?.addEventListener('change', () => { selectedYear = document.getElementById('yearSelect').value || new Date().getFullYear().toString(); selectedMonth = ''; populateMonthSelect(); applyFiltersAndRender(); });
+    document.getElementById('monthSelect')?.addEventListener('change', () => { selectedMonth = document.getElementById('monthSelect').value; applyFiltersAndRender(); });
+    ['filterAdmision','filterPaciente','filterProveedor','filterCodigo'].forEach(id => document.getElementById(id)?.addEventListener('input', () => setTimeout(applyFiltersAndRender, 300)));
+    document.querySelectorAll('input[name="filterScope"]').forEach(r => r.addEventListener('change', () => { filterScope = r.value; applyFiltersAndRender(); }));
+    document.getElementById('refreshBtn')?.addEventListener('click', loadData);
 
     onAuthStateChanged(auth, user => {
-        if (!user) {
-            window.location.replace('../../../index.html');
-        } else {
-            loadData();
-        }
+        if (!user) window.location.replace('../../../index.html');
+        else loadData();
     });
 });
-
-function debounce(fn, wait) {
-    let t;
-    return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), wait); };
-}
