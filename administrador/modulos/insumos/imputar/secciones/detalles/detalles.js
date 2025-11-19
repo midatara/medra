@@ -1,6 +1,6 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { getFirestore, collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { getFirestore, collection, getDocs, doc, getDoc, setDoc, deleteDoc, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const firebaseConfig = {
     apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
@@ -21,7 +21,6 @@ let availableMonths = {};
 let selectedYear = new Date().getFullYear().toString();
 let selectedMonth = String(new Date().getMonth() + 1).padStart(2, '0');
 let filterScope = 'currentMonth';
-let guiasMap = {};
 
 const yearSelect = document.getElementById('yearSelect');
 const monthSelect = document.getElementById('monthSelect');
@@ -41,13 +40,11 @@ function showToast(msg, type = 'success') {
 }
 
 function formatNumber(n) { return Number(n || 0).toLocaleString('es-CL'); }
-
 function formatDate(str) {
     if (!str) return '';
     const [y, m, d] = str.split('-');
     return `${d.padStart(2,'0')}/${m.padStart(2,'0')}/${y}`;
 }
-
 function formatTraspasoAt(timestamp) {
     if (!timestamp || !timestamp.toDate) return '';
     const date = timestamp.toDate();
@@ -57,34 +54,55 @@ function formatTraspasoAt(timestamp) {
     return `${day}/${month}/${year}`;
 }
 
-async function loadGuiasMap() {
-    try {
-        const snapshot = await getDocs(collection(db, 'guias_medtronic'));
-        guiasMap = {};
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            const folioRef = (data.folioRef || '').toString().trim();
-            if (!folioRef) return;
+// === NUEVA FUNCIÓN: Obtener ítems PAD (desde subcolección o desde guias_medtronic) ===
+async function getPadItems(docDelivery, registroId) {
+    if (!docDelivery) return [];
 
-            const folioGuia = data.folio || '';
-            const detallesRaw = data.fullData?.Documento?.Detalle || [];
+    const docDeliveryStr = docDelivery.toString().trim();
+
+    // 1. Intentar leer desde la subcolección pad_items del registro
+    const padRef = doc(db, 'consigna_historial', registroId, 'pad_items', 'data');
+    const padSnap = await getDoc(padRef);
+
+    if (padSnap.exists()) {
+        const data = padSnap.data();
+        if (data.docDelivery === docDeliveryStr) {
+            return data.items || [];
+        }
+    }
+
+    // 2. Si no existe o no coincide → buscar en guias_medtronic
+    const guiasSnap = await getDocs(collection(db, 'guias_medtronic'));
+    let foundItems = [];
+
+    guiasSnap.forEach(gdoc => {
+        const gdata = gdoc.data();
+        if ((gdata.folioRef || '').toString().trim() === docDeliveryStr) {
+            const folioGuia = gdata.folio || '';
+            const detallesRaw = gdata.fullData?.Documento?.Detalle || [];
             const detalles = Array.isArray(detallesRaw) ? detallesRaw : detallesRaw ? [detallesRaw] : [];
 
-            const items = detalles.map(det => ({
+            foundItems = detalles.map(det => ({
                 folio: folioGuia,
                 codigo: (det.CdgItem?.VlrCodigo || '').split(' ')[0] || '',
                 descripcion: det.DscItem || det.NmbItem || '',
                 cantidad: det.QtyItem ? Math.round(parseFloat(det.QtyItem)) : '',
                 vencimiento: det.FchVencim || ''
-            })).filter(item => item.codigo);
+            })).filter(i => i.codigo);
+        }
+    });
 
-            if (items.length > 0) {
-                guiasMap[folioRef] = items;
-            }
+    // 3. Si encontramos ítems → guardarlos en la subcolección para la próxima
+    if (foundItems.length > 0) {
+        await setDoc(padRef, {
+            docDelivery: docDeliveryStr,
+            items: foundItems,
+            cachedAt: new Date()
         });
-    } catch (err) {
-        console.error('Error cargando guías para PAD:', err);
+        console.log(`PAD items guardados en subcolección para ${docDeliveryStr}`);
     }
+
+    return foundItems;
 }
 
 async function loadData() {
@@ -95,16 +113,18 @@ async function loadData() {
         const yearsSet = new Set();
         const monthsByYear = {};
 
-        snapshot.forEach(doc => {
+        for (const doc of snapshot.docs) {
             const d = doc.data();
+            d._id = doc.id; // Guardamos el ID para usar en subcolección
             allData.push(d);
+
             if (d.fechaCX) {
                 const [y, m] = d.fechaCX.split('-');
                 yearsSet.add(y);
                 if (!monthsByYear[y]) monthsByYear[y] = new Set();
                 monthsByYear[y].add(m);
             }
-        });
+        }
 
         availableYears = Array.from(yearsSet).sort((a,b) => b - a);
         availableMonths = monthsByYear;
@@ -112,8 +132,6 @@ async function loadData() {
         const now = new Date();
         selectedYear = now.getFullYear().toString();
         selectedMonth = String(now.getMonth() + 1).padStart(2, '0');
-
-        await loadGuiasMap();
 
         populateYearSelect();
         populateMonthSelect();
@@ -180,7 +198,7 @@ function applyFiltersAndRender() {
     renderTable(filtered);
 }
 
-function renderTable(data) {
+async function renderTable(data) {
     const tbody = document.querySelector('#detallesTable tbody');
     tbody.innerHTML = '';
     if (data.length === 0) {
@@ -190,7 +208,7 @@ function renderTable(data) {
 
     const fragment = document.createDocumentFragment();
 
-    data.forEach(r => {
+    for (const r of data) {
         const estado = r.estado || 'PENDIENTE';
         const referencia = r.referencia || '';
         const fechaCXFormateada = formatDate(r.fechaCX);
@@ -223,8 +241,10 @@ function renderTable(data) {
         `;
         fragment.appendChild(trMain);
 
-        if (docDelivery && guiasMap[docDelivery]) {
-            guiasMap[docDelivery].forEach(item => {
+        // === CARGAR ÍTEMS PAD (desde caché o desde guias_medtronic) ===
+        if (docDelivery) {
+            const padItems = await getPadItems(docDelivery, r._id);
+            padItems.forEach(item => {
                 const vencFormateado = item.vencimiento ? formatDate(item.vencimiento) : '';
                 const trChild = document.createElement('tr');
                 trChild.classList.add('fila-hija-pad');
@@ -252,11 +272,12 @@ function renderTable(data) {
                 fragment.appendChild(trChild);
             });
         }
-    });
+    }
 
     tbody.appendChild(fragment);
 }
 
+// === Resto de eventos igual ===
 document.addEventListener('DOMContentLoaded', () => {
     yearSelect.addEventListener('change', () => {
         selectedYear = yearSelect.value || new Date().getFullYear().toString();
@@ -275,10 +296,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.querySelectorAll('input[name="filterScope"]').forEach(r => {
-        r.addEventListener('change', () => { 
-            filterScope = r.value; 
-            applyFiltersAndRender(); 
-        });
+        r.addEventListener('change', () => { filterScope = r.value; applyFiltersAndRender(); });
     });
 
     refreshBtn.addEventListener('click', loadData);
