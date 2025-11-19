@@ -21,6 +21,7 @@ let availableMonths = {};
 let selectedYear = new Date().getFullYear().toString();
 let selectedMonth = String(new Date().getMonth() + 1).padStart(2, '0');
 let filterScope = 'currentMonth';
+let guiasMap = {};
 
 const yearSelect = document.getElementById('yearSelect');
 const monthSelect = document.getElementById('monthSelect');
@@ -47,7 +48,6 @@ function formatDate(str) {
     return `${d.padStart(2,'0')}/${m.padStart(2,'0')}/${y}`;
 }
 
-// NUEVA FUNCIÓN: Formatear timestamp de traspasoAt → solo fecha DD/MM/AAAA
 function formatTraspasoAt(timestamp) {
     if (!timestamp || !timestamp.toDate) return '';
     const date = timestamp.toDate();
@@ -55,6 +55,29 @@ function formatTraspasoAt(timestamp) {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
     return `${day}/${month}/${year}`;
+}
+
+async function loadGuiasMap() {
+    try {
+        const snapshot = await getDocs(collection(db, 'guias_medtronic'));
+        guiasMap = {};
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            const folio = data.folio?.trim();
+            if (!folio) return;
+            const detalles = data.fullData?.Documento?.Detalle || [];
+            const itemsArray = Array.isArray(detalles) ? detalles : [detalles];
+            const items = itemsArray.map(det => ({
+                codigo: det.CdgItem?.VlrCodigo?.split(' ')[0] || '',
+                descripcion: det.DscItem || det.NmbItem || '',
+                cantidad: det.QtyItem ? Math.round(parseFloat(det.QtyItem)) : '',
+                vencimiento: det.FchVencim || ''
+            }));
+            guiasMap[folio] = items;
+        });
+    } catch (err) {
+        console.error('Error cargando guías PAD:', err);
+    }
 }
 
 async function loadData() {
@@ -82,6 +105,8 @@ async function loadData() {
         const now = new Date();
         selectedYear = now.getFullYear().toString();
         selectedMonth = String(now.getMonth() + 1).padStart(2, '0');
+
+        await loadGuiasMap();
 
         populateYearSelect();
         populateMonthSelect();
@@ -151,19 +176,22 @@ function applyFiltersAndRender() {
 function renderTable(data) {
     const tbody = document.querySelector('#detallesTable tbody');
     tbody.innerHTML = '';
-
     if (data.length === 0) {
         tbody.innerHTML = `<tr><td colspan="18" style="text-align:center;padding:40px;color:#999;">No hay registros con los filtros aplicados</td></tr>`;
         return;
     }
 
+    const fragment = document.createDocumentFragment();
+
     data.forEach(r => {
         const estado = r.estado || 'PENDIENTE';
         const fechaCXFormateada = formatDate(r.fechaCX);
-        const fechaRecepcion = formatTraspasoAt(r.traspasoAt);  // ← Aquí usamos traspasoAt
+        const fechaRecepcion = formatTraspasoAt(r.traspasoAt);
+        const docDelivery = (r.docDelivery || '').trim();
 
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
+        const trMain = document.createElement('tr');
+        trMain.classList.add('fila-principal');
+        trMain.innerHTML = `
             <td><span class="estado-badge" data-estado="${estado}">${estado}</span></td>
             <td>${r.admision || ''}</td>
             <td>${r.paciente || ''}</td>
@@ -175,16 +203,35 @@ function renderTable(data) {
             <td style="text-align:center">${r.cantidad || ''}</td>
             <td style="text-align:right">${formatNumber(r.precioUnitario)}</td>
             <td>${r.atributo || ''}</td>
-            <td></td>                              <!-- OC vacío -->
-            <td>${fechaRecepcion}</td>             <!-- Fecha Recepción ← desde traspasoAt -->
-            <td>${fechaCXFormateada}</td>          <!-- Fecha Carga = Fecha CX -->
-            <td style="text-align:center">0</td>    <!-- Número Guía -->
-            <td></td>                              <!-- Lote vacío -->
-            <td></td>                              <!-- Fecha Vencimiento vacía -->
-            <td>${r.docDelivery || ''}</td>        <!-- Doc. Delivery -->
+            <td></td>
+            <td>${fechaRecepcion}</td>
+            <td>${fechaCXFormateada}</td>
+            <td style="text-align:center">0</td>
+            <td></td>
+            <td></td>
+            <td>${r.docDelivery || ''}</td>
         `;
-        tbody.appendChild(tr);
+        fragment.appendChild(trMain);
+
+        if (docDelivery && guiasMap[docDelivery]) {
+            guiasMap[docDelivery].forEach(item => {
+                const venc = item.vencimiento ? formatDate(item.vencimiento) : '';
+                const cant = item.cantidad ? `(x${item.cantidad})` : '';
+                const trChild = document.createElement('tr');
+                trChild.classList.add('fila-hija-pad');
+                trChild.innerHTML = `
+                    <td><span class="estado-badge" data-estado="PAD">PAD</span></td>
+                    <td colspan="16" style="padding-left:40px;background:#fff8e1;color:#d35400;">
+                        <strong>${item.codigo}</strong> – ${item.descripcion} ${cant} ${venc ? `– Vence: ${venc}` : ''}
+                    </td>
+                    <td>${docDelivery}</td>
+                `;
+                fragment.appendChild(trChild);
+            });
+        }
     });
+
+    tbody.appendChild(fragment);
 }
 
 document.addEventListener('DOMContentLoaded', () => {

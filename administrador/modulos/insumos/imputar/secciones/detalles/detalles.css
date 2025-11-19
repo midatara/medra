@@ -69,3 +69,6 @@ html,body{margin:0;padding:0;height:100%;font-family:Arial,sans-serif;background
 .btn-back:hover{background:#5a6268;transform:translateY(-2px)}
 @media(max-width:1200px){.filters-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:768px){.filters-grid{grid-template-columns:1fr}.scope-buttons{justify-content:center}}
+.fila-hija-pad { background:#fff8e1 !important; }
+.fila-hija-pad:hover { background:#ffebcc !important; }
+.fila-hija-pad td:first-child .estado-badge { background:#e67e22; }
