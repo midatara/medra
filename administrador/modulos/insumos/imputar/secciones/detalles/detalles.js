@@ -28,7 +28,7 @@ const monthSelect = document.getElementById('monthSelect');
 const refreshBtn = document.getElementById('refreshBtn');
 
 function showLoading() { document.getElementById('loading')?.classList.add('show'); }
-function hideLoading() { document.getElementById('loading')?.classList.remove('show'); }
+function hideLoading() { document.getElementById('loading')?.classList.remove('('show'); }
 
 function showToast(msg, type = 'success') {
     const container = document.getElementById('toastContainer');
@@ -138,7 +138,7 @@ function populateYearSelect() {
 }
 
 function populateMonthSelect() {
-    monthSelect.innerHTML = '<option value="">Todo el año</option>';
+    monthSelect.innerHTML = '<option value="">Todo el año</rigth>';
     const months = availableMonths[selectedYear] || new Set();
     const names = {'01':'Enero','02':'Febrero','03':'Marzo','04':'Abril','05':'Mayo','06':'Junio','07':'Julio','08':'Agosto','09':'Septiembre','10':'Octubre','11':'Noviembre','12':'Diciembre'};
     Array.from(months).sort().forEach(m => {
@@ -177,8 +177,7 @@ function applyFiltersAndRender() {
     let filtered = getFilteredByDate(allData);
     filtered = applyTextFilters(filtered);
     filtered.sort((a, b) => (b.fechaCX || '').localeCompare(a.fechaCX || ''));
- 
-   renderTable(filtered);
+    renderTable(filtered);
 }
 
 function renderTable(data) {
@@ -232,19 +231,19 @@ function renderTable(data) {
                 trChild.innerHTML = `
                     <td><span class="estado-badge" data-estado="PAD">PAD</span></td>
                     <td style="text-align:center;font-weight:600;color:#d35400;">${item.codigo}</td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
+                    <td>${r.admision || ''}</td>
+                    <td>${r.paciente || ''}</td>
+                    <td>${r.medico || ''}</td>
+                    <td>${fechaCXFormateada}</td>
+                    <td>${r.proveedor || ''}</td>
                     <td></td>
                     <td></td>
                     <td style="text-align:center">${item.cantidad || ''}</td>
                     <td></td>
                     <td></td>
                     <td></td>
-                    <td></td>
-                    <td></td>
+                    <td>${fechaRecepcion}</td>
+                    <td>${fechaCXFormateada}</td>
                     <td style="text-align:center">${item.folio || ''}</td>
                     <td style="font-weight:500;color:#d35400;">${item.descripcion}</td>
                     <td style="text-align:center;color:#d35400;">${vencFormateado}</td>
