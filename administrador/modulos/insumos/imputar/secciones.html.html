@@ -120,6 +120,7 @@
 
     <div class="options-grid">
 
+        <!-- Pendientes -->
         <div class="option-card" id="pendientesCard" onclick="parent.loadContent('modulos/insumos/imputar/secciones/pendientes/pendientes.html')">
             <i class="fas fa-clock"></i>
             <h3>Pendientes de Imputar</h3>
@@ -129,17 +130,27 @@
             <span id="pendientesBadge" class="pendientes-badge">0</span>
         </div>
 
+        <!-- Ya Imputados -->
         <div class="option-card" onclick="parent.loadContent('modulos/insumos/imputar/secciones/cargados/cargados.html')">
             <i class="fas fa-check-circle"></i>
             <h3>Ya Imputados</h3>
             <p>Pacientes con insumos ya cargados</p>
         </div>
 
+        <!-- Todos los Registros -->
         <div class="option-card" onclick="parent.loadContent('modulos/insumos/imputar/secciones/generales/generales.html')">
             <i class="fas fa-clipboard-list"></i>
             <h3>Todos los Registros</h3>
             <p>Listado completo de imputaciones</p>
         </div>
+
+        <!-- NUEVA TARJETA: Detalles -->
+        <div class="option-card" onclick="parent.loadContent('modulos/insumos/imputar/secciones/detalles/detalles.html')">
+            <i class="fas fa-list-alt"></i>
+            <h3>Detalles por Lote</h3>
+            <p>Lotes, fechas de vencimiento y trazabilidad</p>
+        </div>
+
     </div>
 </div>
 
