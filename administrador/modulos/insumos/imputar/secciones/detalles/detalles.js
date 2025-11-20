@@ -58,12 +58,11 @@ async function getPadItems(docDelivery, registroId, parentData) {
     const padRef = doc(db, 'consigna_historial', registroId, 'pad_items', 'data');
     const padSnap = await getDoc(padRef);
 
+    // Si ya está cacheado con datos enriquecidos → devolver directo
     if (padSnap.exists()) {
         const data = padSnap.data();
-        if (data.docDelivery === docDeliveryStr && data.items) {
-            if (data.items.some(i => i.subDetalles || i.subAdmision)) {
-                return data.items;
-            }
+        if (data.docDelivery === docDeliveryStr && data.items && data.items.length > 0 && data.items[0].subAdmision !== undefined) {
+            return data.items;
         }
     }
 
@@ -104,11 +103,11 @@ async function getPadItems(docDelivery, registroId, parentData) {
 
         foundItems = foundItems.map(item => {
             const key = item.subCodigo.toUpperCase();
-            let descripcionReal = codigoMap[key] || referenciaMap[key] || item.subDescripcion || 'NO ENCONTRADO';
+            const descripcionDesdeRef = codigoMap[key] || referenciaMap[key];
 
             return {
                 ...item,
-                subDetalles: descripcionReal,
+                subDetalles: descripcionDesdeRef ? descripcionDesdeRef.trim() : 'NO EXISTE EN REFERENCIAS',
                 subAdmision: parentData.admision || '',
                 subPaciente: parentData.paciente || '',
                 subMedico: parentData.medico || '',
@@ -126,7 +125,7 @@ async function getPadItems(docDelivery, registroId, parentData) {
             cachedAt: new Date()
         }, { merge: true });
 
-        showToast(`Datos PAD enriquecidos y guardados para Doc.Delivery ${docDeliveryStr}`, 'success');
+        showToast(`Datos PAD actualizados y enriquecidos: ${docDeliveryStr}`, 'success');
     }
 
     return foundItems;
@@ -269,7 +268,7 @@ async function renderTable(data) {
         fragment.appendChild(trMain);
 
         if (docDelivery) {
-            const padItems = await getPadItems(docDelivery, r._id, r); // pasamos r como parentData
+            const padItems = await getPadItems(docDelivery, r._id, r);
             padItems.forEach(item => {
                 const vencFormateado = item.subVencimiento ? formatDate(item.subVencimiento) : '';
                 const fechaRecepcionPad = item.subFechaRecepcion ? formatTraspasoAt({ toDate: () => new Date(item.subFechaRecepcion) }) : fechaRecepcion;
@@ -285,10 +284,8 @@ async function renderTable(data) {
                     <td>${formatDate(item.subFechaCX) || fechaCXFormateada}</td>
                     <td>${item.subProveedor || ''}</td>
                     <td style="color:#95a5a6;font-style:italic;">No lleva OC</td>
-                    <td style="font-weight:600;${(item.subDetalles && item.subDetalles !== 'NO ENCONTRADO' && !item.subDetalles.includes('NO EXISTE')) ? 'color:#27ae60;' : 'color:#e74c3c;'}">
-                        ${item.subDetalles && item.subDetalles !== 'NO ENCONTRADO' && !item.subDetalles.includes('NO EXISTE') 
-                            ? item.subDetalles 
-                            : 'NO EXISTE EN REFERENCIAS'}
+                    <td style="font-weight:600;${item.subDetalles === 'NO EXISTE EN REFERENCIAS' ? 'color:#e74c3c;' : 'color:#27ae60;'}">
+                        ${item.subDetalles}
                     </td>
                     <td style="text-align:center">${item.subCantidad || ''}</td>
                     <td style="text-align:right;color:#7f8c8d;">0</td>
@@ -309,7 +306,7 @@ async function renderTable(data) {
     tbody.appendChild(fragment);
 }
 
-document .addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => {
     yearSelect.addEventListener('change', () => {
         selectedYear = yearSelect.value || new Date().getFullYear().toString();
         selectedMonth = '';
@@ -331,7 +328,7 @@ document .addEventListener('DOMContentLoaded', () => {
     });
 
     refreshBtn.addEventListener('click', () => {
-        showToast('Actualizando y enriqueciendo datos PAD...', 'info');
+        showToast('Actualizando y enriqueciendo todos los PAD...', 'info');
         loadData();
     });
 
