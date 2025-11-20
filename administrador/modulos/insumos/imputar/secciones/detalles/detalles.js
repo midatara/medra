@@ -51,7 +51,7 @@ function formatTraspasoAt(timestamp) {
     return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
 }
 
-async function getPadItems(docDelivery, registroId) {
+async function getPadItems(docDelivery, registroId, parentData) {
     if (!docDelivery) return [];
 
     const docDeliveryStr = docDelivery.toString().trim();
@@ -61,7 +61,7 @@ async function getPadItems(docDelivery, registroId) {
     if (padSnap.exists()) {
         const data = padSnap.data();
         if (data.docDelivery === docDeliveryStr && data.items) {
-            if (data.items.some(i => i.subDetalles && i.subDetalles !== i.subDescripcion)) {
+            if (data.items.some(i => i.subDetalles || i.subAdmision)) {
                 return data.items;
             }
         }
@@ -108,7 +108,15 @@ async function getPadItems(docDelivery, registroId) {
 
             return {
                 ...item,
-                subDetalles: descripcionReal
+                subDetalles: descripcionReal,
+                subAdmision: parentData.admision || '',
+                subPaciente: parentData.paciente || '',
+                subMedico: parentData.medico || '',
+                subProveedor: parentData.proveedor || '',
+                subFechaCX: parentData.fechaCX || '',
+                subAtributo: parentData.atributo || '',
+                subFechaRecepcion: parentData.traspasoAt ? parentData.traspasoAt.toDate().toISOString() : '',
+                subReferencia: parentData.referencia || ''
             };
         });
 
@@ -117,6 +125,8 @@ async function getPadItems(docDelivery, registroId) {
             items: foundItems,
             cachedAt: new Date()
         }, { merge: true });
+
+        showToast(`Datos PAD enriquecidos y guardados para Doc.Delivery ${docDeliveryStr}`, 'success');
     }
 
     return foundItems;
@@ -259,20 +269,21 @@ async function renderTable(data) {
         fragment.appendChild(trMain);
 
         if (docDelivery) {
-            const padItems = await getPadItems(docDelivery, r._id);
+            const padItems = await getPadItems(docDelivery, r._id, r); // pasamos r como parentData
             padItems.forEach(item => {
                 const vencFormateado = item.subVencimiento ? formatDate(item.subVencimiento) : '';
+                const fechaRecepcionPad = item.subFechaRecepcion ? formatTraspasoAt({ toDate: () => new Date(item.subFechaRecepcion) }) : fechaRecepcion;
 
                 const trChild = document.createElement('tr');
                 trChild.classList.add('fila-hija-pad');
                 trChild.innerHTML = `
                     <td><span class="estado-badge" data-estado="PAD">PAD</span></td>
                     <td style="text-align:center;font-weight:600;color:#d35400;">${item.subCodigo || ''}</td>
-                    <td>${r.admision || ''}</td>
-                    <td>${r.paciente || ''}</td>
-                    <td>${r.medico || ''}</td>
-                    <td>${fechaCXFormateada}</td>
-                    <td>${r.proveedor || ''}</td>
+                    <td>${item.subAdmision || ''}</td>
+                    <td>${item.subPaciente || ''}</td>
+                    <td>${item.subMedico || ''}</td>
+                    <td>${formatDate(item.subFechaCX) || fechaCXFormateada}</td>
+                    <td>${item.subProveedor || ''}</td>
                     <td style="color:#95a5a6;font-style:italic;">No lleva OC</td>
                     <td style="font-weight:600;${(item.subDetalles && item.subDetalles !== 'NO ENCONTRADO' && !item.subDetalles.includes('NO EXISTE')) ? 'color:#27ae60;' : 'color:#e74c3c;'}">
                         ${item.subDetalles && item.subDetalles !== 'NO ENCONTRADO' && !item.subDetalles.includes('NO EXISTE') 
@@ -281,10 +292,10 @@ async function renderTable(data) {
                     </td>
                     <td style="text-align:center">${item.subCantidad || ''}</td>
                     <td style="text-align:right;color:#7f8c8d;">0</td>
-                    <td>${r.atributo || ''}</td>
+                    <td>${item.subAtributo || ''}</td>
                     <td></td>
-                    <td>${fechaRecepcion}</td>
-                    <td>${fechaCXFormateada}</td>
+                    <td>${fechaRecepcionPad}</td>
+                    <td>${formatDate(item.subFechaCX) || fechaCXFormateada}</td>
                     <td style="text-align:center">${item.subFolio || ''}</td>
                     <td style="font-weight:500;color:#7f8c8d;">${item.subDescripcion || ''}</td>
                     <td style="text-align:center;color:#d35400;">${vencFormateado}</td>
@@ -298,7 +309,7 @@ async function renderTable(data) {
     tbody.appendChild(fragment);
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document .addEventListener('DOMContentLoaded', () => {
     yearSelect.addEventListener('change', () => {
         selectedYear = yearSelect.value || new Date().getFullYear().toString();
         selectedMonth = '';
@@ -320,7 +331,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     refreshBtn.addEventListener('click', () => {
-        showToast('Actualizando descripciones reales...', 'info');
+        showToast('Actualizando y enriqueciendo datos PAD...', 'info');
         loadData();
     });
 
