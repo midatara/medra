@@ -273,15 +273,15 @@ async function renderTable(data) {
                     <td>${r.medico || ''}</td>
                     <td>${fechaCXFormateada}</td>
                     <td>${r.proveedor || ''}</td>
-                    <td></td>
+                    <td style="color:#95a5a6;font-style:italic;">No lleva OC</td>
                     <td style="font-weight:600;${(item.subDetalles && item.subDetalles !== 'NO ENCONTRADO' && !item.subDetalles.includes('NO EXISTE')) ? 'color:#27ae60;' : 'color:#e74c3c;'}">
                         ${item.subDetalles && item.subDetalles !== 'NO ENCONTRADO' && !item.subDetalles.includes('NO EXISTE') 
                             ? item.subDetalles 
                             : 'NO EXISTE EN REFERENCIAS'}
                     </td>
                     <td style="text-align:center">${item.subCantidad || ''}</td>
-                    <td></td>
-                    <td></td>
+                    <td style="text-align:right;color:#7f8c8d;">0</td>
+                    <td>${r.atributo || ''}</td>
                     <td></td>
                     <td>${fechaRecepcion}</td>
                     <td>${fechaCXFormateada}</td>
