@@ -43,15 +43,12 @@ function formatNumber(n) { return Number(n || 0).toLocaleString('es-CL'); }
 function formatDate(str) {
     if (!str) return '';
     const [y, m, d] = str.split('-');
-    return `${d.padStart(2,'0')}/${m.padStart(2,'0')}/${y}`;
+    return `${d?.padStart(2,'0')}/${m?.padStart(2,'0')}/${y}`;
 }
 function formatTraspasoAt(timestamp) {
     if (!timestamp || !timestamp.toDate) return '';
     const date = timestamp.toDate();
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
+    return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
 }
 
 async function getPadItems(docDelivery, registroId) {
@@ -64,7 +61,7 @@ async function getPadItems(docDelivery, registroId) {
     if (padSnap.exists()) {
         const data = padSnap.data();
         if (data.docDelivery === docDeliveryStr && data.items) {
-            if (data.items.some(i => i.subDetalles)) {
+            if (data.items.some(i => i.subDetalles && i.subDetalles !== i.subDescripcion)) {
                 return data.items;
             }
         }
@@ -82,8 +79,8 @@ async function getPadItems(docDelivery, registroId) {
 
             foundItems = detalles.map(det => ({
                 subFolio: folioGuia,
-                subCodigo: (det.CdgItem?.VlrCodigo || '').split(' ')[0] || '',
-                subDescripcion: det.DscItem || det.NmbItem || '',
+                subCodigo: String(det.CdgItem?.VlrCodigo || '').split(' ')[0].trim(),
+                subDescripcion: String(det.DscItem || det.NmbItem || ''),
                 subCantidad: det.QtyItem ? Math.round(parseFloat(det.QtyItem)) : 0,
                 subVencimiento: det.FchVencim || ''
             })).filter(i => i.subCodigo);
@@ -92,17 +89,23 @@ async function getPadItems(docDelivery, registroId) {
 
     if (foundItems.length > 0) {
         const referenciasSnap = await getDocs(collection(db, "referencias_implantes"));
-        const referenciasMap = {};
+        const codigoMap = {};
+        const referenciaMap = {};
+
         referenciasSnap.forEach(doc => {
-            const data = doc.data();
-            if (data.codigo) {
-                referenciasMap[data.codigo.trim().toUpperCase()] = data.descripcion || data.detalles || '';
-            }
+            const d = doc.data();
+            const codigo = (d.codigo || '').toString().trim().toUpperCase();
+            const referencia = (d.referencia || '').toString().trim().toUpperCase();
+            const descripcion = (d.descripcion || d.detalles || '').toString().trim();
+
+            if (codigo) codigoMap[codigo] = descripcion;
+            if (referencia) referenciaMap[referencia] = descripcion;
         });
 
         foundItems = foundItems.map(item => {
-            const codigoKey = item.subCodigo.trim().toUpperCase();
-            const descripcionReal = referenciasMap[codigoKey] || item.subDescripcion || 'SIN DESCRIPCIÓN';
+            const key = item.subCodigo.toUpperCase();
+            let descripcionReal = codigoMap[key] || referenciaMap[key] || item.subDescripcion || 'NO ENCONTRADO';
+
             return {
                 ...item,
                 subDetalles: descripcionReal
@@ -200,7 +203,7 @@ function applyTextFilters(data) {
     return data.filter(r => {
         return (!adm || (r.admision || '').toLowerCase().includes(adm)) &&
                (!pac || (r.paciente || '').toLowerCase().includes(pac)) &&
-               (!prov || (r.proveedor || "").toLowerCase().includes(prov)) &&
+               (!prov || (r.proveedor || '').toLowerCase().includes(prov)) &&
                (!cod || (r.codigo || '').toLowerCase().includes(cod));
     });
 }
@@ -278,7 +281,7 @@ async function renderTable(data) {
                     <td>${fechaRecepcion}</td>
                     <td>${fechaCXFormateada}</td>
                     <td style="text-align:center">${item.subFolio || ''}</td>
-                    <td style="font-weight:500;color:#27ae60;">${item.subDetalles || item.subDescripcion || 'SIN DESCRIPCIÓN'}</td>
+                    <td style="font-weight:600;color:#27ae60;">${item.subDetalles || 'NO ENCONTRADO'}</td>
                     <td style="text-align:center;color:#d35400;">${vencFormateado}</td>
                     <td>${docDeliveryRaw}</td>
                 `;
@@ -311,7 +314,10 @@ document.addEventListener('DOMContentLoaded', () => {
         r.addEventListener('change', () => { filterScope = r.value; applyFiltersAndRender(); });
     });
 
-    refreshBtn.addEventListener('click', loadData);
+    refreshBtn.addEventListener('click', () => {
+        showToast('Recargando y actualizando descripciones...', 'info');
+        loadData();
+    });
 
     onAuthStateChanged(auth, user => {
         if (!user) {
