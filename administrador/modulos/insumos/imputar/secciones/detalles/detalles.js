@@ -54,14 +54,11 @@ function formatTraspasoAt(timestamp) {
     return `${day}/${month}/${year}`;
 }
 
-// === NUEVA FUNCIÓN: Obtener ítems PAD (desde subcolección o desde guias_medtronic) ===
-// === NUEVA FUNCIÓN ACTUALIZADA: Obtener ítems PAD con prefijo "sub" ===
 async function getPadItems(docDelivery, registroId) {
     if (!docDelivery) return [];
 
     const docDeliveryStr = docDelivery.toString().trim();
 
-    // 1. Intentar leer desde la subcolección pad_items del registro
     const padRef = doc(db, 'consigna_historial', registroId, 'pad_items', 'data');
     const padSnap = await getDoc(padRef);
 
@@ -72,7 +69,6 @@ async function getPadItems(docDelivery, registroId) {
         }
     }
 
-    // 2. Si no existe o no coincide → buscar en guias_medtronic
     const guiasSnap = await getDocs(collection(db, 'guias_medtronic'));
     let foundItems = [];
 
@@ -93,11 +89,10 @@ async function getPadItems(docDelivery, registroId) {
         }
     });
 
-    // 3. Si encontramos ítems → guardarlos con prefijo "sub"
     if (foundItems.length > 0) {
         await setDoc(padRef, {
             docDelivery: docDeliveryStr,
-            items: foundItems,  // ya tienen subCantidad, subCodigo, etc.
+            items: foundItems,  
             cachedAt: new Date()
         });
         console.log(`PAD items guardados con prefijo 'sub' para ${docDeliveryStr}`);
@@ -116,7 +111,7 @@ async function loadData() {
 
         for (const doc of snapshot.docs) {
             const d = doc.data();
-            d._id = doc.id; // Guardamos el ID para usar en subcolección
+            d._id = doc.id; 
             allData.push(d);
 
             if (d.fechaCX) {
@@ -242,7 +237,6 @@ async function renderTable(data) {
         `;
         fragment.appendChild(trMain);
 
-        // === CARGAR ÍTEMS PAD (desde caché o desde guias_medtronic) ===
         if (docDelivery) {
             const padItems = await getPadItems(docDelivery, r._id);
             padItems.forEach(item => {
@@ -278,7 +272,6 @@ async function renderTable(data) {
     tbody.appendChild(fragment);
 }
 
-// === Resto de eventos igual ===
 document.addEventListener('DOMContentLoaded', () => {
     yearSelect.addEventListener('change', () => {
         selectedYear = yearSelect.value || new Date().getFullYear().toString();
