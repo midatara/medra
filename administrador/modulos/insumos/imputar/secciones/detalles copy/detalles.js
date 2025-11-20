@@ -1,6 +1,6 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { getFirestore, collection, getDocs, doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { getFirestore, collection, getDocs, doc, getDoc, setDoc, deleteDoc, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const firebaseConfig = {
     apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
@@ -58,15 +58,14 @@ async function getPadItems(docDelivery, registroId) {
     if (!docDelivery) return [];
 
     const docDeliveryStr = docDelivery.toString().trim();
+
     const padRef = doc(db, 'consigna_historial', registroId, 'pad_items', 'data');
     const padSnap = await getDoc(padRef);
 
     if (padSnap.exists()) {
         const data = padSnap.data();
-        if (data.docDelivery === docDeliveryStr && data.items) {
-            if (data.items.some(i => i.subDetalles)) {
-                return data.items;
-            }
+        if (data.docDelivery === docDeliveryStr) {
+            return data.items || [];
         }
     }
 
@@ -91,29 +90,12 @@ async function getPadItems(docDelivery, registroId) {
     });
 
     if (foundItems.length > 0) {
-        const referenciasSnap = await getDocs(collection(db, "referencias_implantes"));
-        const referenciasMap = {};
-        referenciasSnap.forEach(doc => {
-            const data = doc.data();
-            if (data.codigo) {
-                referenciasMap[data.codigo.trim().toUpperCase()] = data.descripcion || data.detalles || '';
-            }
-        });
-
-        foundItems = foundItems.map(item => {
-            const codigoKey = item.subCodigo.trim().toUpperCase();
-            const descripcionReal = referenciasMap[codigoKey] || item.subDescripcion || 'SIN DESCRIPCIÓN';
-            return {
-                ...item,
-                subDetalles: descripcionReal
-            };
-        });
-
         await setDoc(padRef, {
             docDelivery: docDeliveryStr,
-            items: foundItems,
+            items: foundItems,  
             cachedAt: new Date()
-        }, { merge: true });
+        });
+        console.log(`PAD items guardados con prefijo 'sub' para ${docDeliveryStr}`);
     }
 
     return foundItems;
@@ -129,7 +111,7 @@ async function loadData() {
 
         for (const doc of snapshot.docs) {
             const d = doc.data();
-            d._id = doc.id;
+            d._id = doc.id; 
             allData.push(d);
 
             if (d.fechaCX) {
@@ -200,7 +182,7 @@ function applyTextFilters(data) {
     return data.filter(r => {
         return (!adm || (r.admision || '').toLowerCase().includes(adm)) &&
                (!pac || (r.paciente || '').toLowerCase().includes(pac)) &&
-               (!prov || (r.proveedor || "").toLowerCase().includes(prov)) &&
+               (!prov || (r.proveedor || '').toLowerCase().includes(prov)) &&
                (!cod || (r.codigo || '').toLowerCase().includes(cod));
     });
 }
@@ -278,7 +260,7 @@ async function renderTable(data) {
                     <td>${fechaRecepcion}</td>
                     <td>${fechaCXFormateada}</td>
                     <td style="text-align:center">${item.subFolio || ''}</td>
-                    <td style="font-weight:500;color:#27ae60;">${item.subDetalles || item.subDescripcion || 'SIN DESCRIPCIÓN'}</td>
+                    <td style="font-weight:500;color:#d35400;">${item.subDescripcion || ''}</td>
                     <td style="text-align:center;color:#d35400;">${vencFormateado}</td>
                     <td>${docDeliveryRaw}</td>
                 `;
