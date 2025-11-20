@@ -274,7 +274,11 @@ async function renderTable(data) {
                     <td>${fechaCXFormateada}</td>
                     <td>${r.proveedor || ''}</td>
                     <td></td>
-                    <td style="font-weight:600;color:#27ae60;">${item.subDetalles || 'NO ENCONTRADO'}</td>
+                    <td style="font-weight:600;${(item.subDetalles && item.subDetalles !== 'NO ENCONTRADO' && !item.subDetalles.includes('NO EXISTE')) ? 'color:#27ae60;' : 'color:#e74c3c;'}">
+                        ${item.subDetalles && item.subDetalles !== 'NO ENCONTRADO' && !item.subDetalles.includes('NO EXISTE') 
+                            ? item.subDetalles 
+                            : 'NO EXISTE EN REFERENCIAS'}
+                    </td>
                     <td style="text-align:center">${item.subCantidad || ''}</td>
                     <td></td>
                     <td></td>
