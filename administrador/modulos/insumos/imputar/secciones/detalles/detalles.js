@@ -281,9 +281,9 @@ async function renderTable(data) {
                     <td>${fechaRecepcion}</td>
                     <td>${fechaCXFormateada}</td>
                     <td style="text-align:center">${item.subFolio || ''}</td>
-                    <td style="font-weight:600;color:#27ae60;">${item.subDetalles || 'NO ENCONTRADO'}</td>
+                    <td style="font-weight:500;color:#7f8c8d;">${item.subDescripcion || ''}</td>
                     <td style="text-align:center;color:#d35400;">${vencFormateado}</td>
-                    <td>${docDeliveryRaw}</td>
+                    <td style="font-weight:600;color:#27ae60;">${item.subDetalles || 'NO ENCONTRADO'}</td>
                 `;
                 fragment.appendChild(trChild);
             });
@@ -315,7 +315,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     refreshBtn.addEventListener('click', () => {
-        showToast('Recargando y actualizando descripciones...', 'info');
+        showToast('Actualizando descripciones reales...', 'info');
         loadData();
     });
 
