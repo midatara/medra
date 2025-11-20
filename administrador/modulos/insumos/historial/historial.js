@@ -1,6 +1,6 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, onAuthStateChanged, setPersistence, browserSessionPersistence } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { getFirestore, collection, getDocs, query, where, orderBy, doc, updateDoc, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { getFirestore, collection, getDocs, query, where, orderBy, doc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const firebaseConfig = {
     apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
@@ -223,8 +223,7 @@ function initControls() {
         selectedYear = yearSelect.value;
         const monthsInYear = availableMonths[selectedYear] || new Set();
         if (selectedMonth && !monthsInYear.has(selectedMonth)) {
-            selectedMonth = String(new Date().getMonth() + 1).padStart(2, '0');
-            if (!monthsInYear.has(selectedMonth)) selectedMonth = '';
+            selectedMonth = '';
         }
         populateMonthSelect();
         await loadRegistros();
@@ -377,9 +376,6 @@ document.addEventListener('DOMContentLoaded', () => {
             populateYearSelect();
             populateMonthSelect();
             initControls();
-
-            await completarPrevisionYConvenioDesdeReportes();
-
             await loadRegistros();
         } catch (error) {
             showToast('Error al inicializar: ' + error.message, 'error');
