@@ -262,6 +262,7 @@ async function renderTable(data) {
             const padItems = await getPadItems(docDelivery, r._id);
             padItems.forEach(item => {
                 const vencFormateado = item.subVencimiento ? formatDate(item.subVencimiento) : '';
+
                 const trChild = document.createElement('tr');
                 trChild.classList.add('fila-hija-pad');
                 trChild.innerHTML = `
@@ -273,7 +274,7 @@ async function renderTable(data) {
                     <td>${fechaCXFormateada}</td>
                     <td>${r.proveedor || ''}</td>
                     <td></td>
-                    <td></td>
+                    <td style="font-weight:600;color:#27ae60;">${item.subDetalles || 'NO ENCONTRADO'}</td>
                     <td style="text-align:center">${item.subCantidad || ''}</td>
                     <td></td>
                     <td></td>
@@ -283,7 +284,7 @@ async function renderTable(data) {
                     <td style="text-align:center">${item.subFolio || ''}</td>
                     <td style="font-weight:500;color:#7f8c8d;">${item.subDescripcion || ''}</td>
                     <td style="text-align:center;color:#d35400;">${vencFormateado}</td>
-                    <td style="font-weight:600;color:#27ae60;">${item.subDetalles || 'NO ENCONTRADO'}</td>
+                    <td>${docDeliveryRaw}</td>
                 `;
                 fragment.appendChild(trChild);
             });
