@@ -273,19 +273,26 @@ async function renderTable(data) {
                 const vencFormateado = item.subVencimiento ? formatDate(item.subVencimiento) : '';
                 const fechaRecepcionPad = item.subFechaRecepcion ? formatTraspasoAt({ toDate: () => new Date(item.subFechaRecepcion) }) : fechaRecepcion;
 
+                // NUEVA LÓGICA: descripción final para mostrar
+                const descripcionFinal = item.subDetalles && item.subDetalles !== 'NO EXISTE EN REFERENCIAS' 
+                    ? item.subDetalles 
+                    : 'NO EXISTE EN REFERENCIAS';
+
+                const colorDescripcion = item.subDetalles === 'NO EXISTE EN REFERENCIAS' ? '#e74c3c' : '#27ae60';
+
                 const trChild = document.createElement('tr');
                 trChild.classList.add('fila-hija-pad');
                 trChild.innerHTML = `
                     <td><span class="estado-badge" data-estado="PAD">PAD</span></td>
-                    <td style="text-align:center;font-weight:600;color:#d35400;">${item.subCodigo || ''}</td>
+                    <td style="text-align:center;font-weight:600;color:#d35400;">${item.subReferencia || item.subCodigo || ''}</td>
                     <td>${item.subAdmision || ''}</td>
                     <td>${item.subPaciente || ''}</td>
                     <td>${item.subMedico || ''}</td>
                     <td>${formatDate(item.subFechaCX) || fechaCXFormateada}</td>
                     <td>${item.subProveedor || ''}</td>
-                    <td style="color:#95a5a6;font-style:italic;">No lleva OC</td>
-                    <td style="font-weight:600;${item.subDetalles === 'NO EXISTE EN REFERENCIAS' ? 'color:#e74c3c;' : 'color:#27ae60;'}">
-                        ${item.subDetalles}
+                    <td>${item.subCodigo || ''}</td>
+                    <td style="font-weight:600;color:${colorDescripcion};">
+                        ${descripcionFinal}
                     </td>
                     <td style="text-align:center">${item.subCantidad || ''}</td>
                     <td style="text-align:right;color:#7f8c8d;">0</td>
@@ -294,7 +301,9 @@ async function renderTable(data) {
                     <td>${fechaRecepcionPad}</td>
                     <td>${formatDate(item.subFechaCX) || fechaCXFormateada}</td>
                     <td style="text-align:center">${item.subFolio || ''}</td>
-                    <td style="font-weight:500;color:#7f8c8d;">${item.subDescripcion || ''}</td>
+                    <td style="font-weight:500;color:#7f8c8d;">
+                        ${descripcionFinal === 'NO EXISTE EN REFERENCIAS' ? 'NO EXISTE EN REFERENCIAS' : (item.subDescripcion || '')}
+                    </td>
                     <td style="text-align:center;color:#d35400;">${vencFormateado}</td>
                     <td>${docDeliveryRaw}</td>
                 `;
