@@ -273,12 +273,15 @@ async function renderTable(data) {
                 const vencFormateado = item.subVencimiento ? formatDate(item.subVencimiento) : '';
                 const fechaRecepcionPad = item.subFechaRecepcion ? formatTraspasoAt({ toDate: () => new Date(item.subFechaRecepcion) }) : fechaRecepcion;
 
-                // NUEVA LÓGICA: descripción final para mostrar
-                const descripcionFinal = item.subDetalles && item.subDetalles !== 'NO EXISTE EN REFERENCIAS' 
-                    ? item.subDetalles 
+                // Descripción enriquecida (columna 9)
+                const descripcionEnriquecida = item.subDetalles && item.subDetalles !== 'NO EXISTE EN REFERENCIAS'
+                    ? item.subDetalles
                     : 'NO EXISTE EN REFERENCIAS';
 
                 const colorDescripcion = item.subDetalles === 'NO EXISTE EN REFERENCIAS' ? '#e74c3c' : '#27ae60';
+
+                // Lote / detalle original de la guía (columna 17) → NUNCA se reemplaza por el mensaje de error
+                const loteOGuia = item.subDescripcion || '';
 
                 const trChild = document.createElement('tr');
                 trChild.classList.add('fila-hija-pad');
@@ -291,9 +294,7 @@ async function renderTable(data) {
                     <td>${formatDate(item.subFechaCX) || fechaCXFormateada}</td>
                     <td>${item.subProveedor || ''}</td>
                     <td>${item.subCodigo || ''}</td>
-                    <td style="font-weight:600;color:${colorDescripcion};">
-                        ${descripcionFinal}
-                    </td>
+                    <td style="font-weight:600;color:${colorDescripcion};">${descripcionEnriquecida}</td>
                     <td style="text-align:center">${item.subCantidad || ''}</td>
                     <td style="text-align:right;color:#7f8c8d;">0</td>
                     <td>${item.subAtributo || ''}</td>
@@ -301,9 +302,7 @@ async function renderTable(data) {
                     <td>${fechaRecepcionPad}</td>
                     <td>${formatDate(item.subFechaCX) || fechaCXFormateada}</td>
                     <td style="text-align:center">${item.subFolio || ''}</td>
-                    <td style="font-weight:500;color:#7f8c8d;">
-                        ${descripcionFinal === 'NO EXISTE EN REFERENCIAS' ? 'NO EXISTE EN REFERENCIAS' : (item.subDescripcion || '')}
-                    </td>
+                    <td style="font-weight:500;color:#7f8c8d;">${loteOGuia}</td>
                     <td style="text-align:center;color:#d35400;">${vencFormateado}</td>
                     <td>${docDeliveryRaw}</td>
                 `;
