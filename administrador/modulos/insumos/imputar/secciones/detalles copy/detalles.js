@@ -1,6 +1,6 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { getFirestore, collection, getDocs, doc, getDoc, setDoc, deleteDoc, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { getFirestore, collection, getDocs, doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const firebaseConfig = {
     apiKey: "AIzaSyD6JY7FaRqjZoN6OzbFHoIXxd-IJL3H-Ek",
@@ -43,29 +43,26 @@ function formatNumber(n) { return Number(n || 0).toLocaleString('es-CL'); }
 function formatDate(str) {
     if (!str) return '';
     const [y, m, d] = str.split('-');
-    return `${d.padStart(2,'0')}/${m.padStart(2,'0')}/${y}`;
+    return `${d?.padStart(2,'0')}/${m?.padStart(2,'0')}/${y}`;
 }
 function formatTraspasoAt(timestamp) {
     if (!timestamp || !timestamp.toDate) return '';
     const date = timestamp.toDate();
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
+    return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
 }
 
-async function getPadItems(docDelivery, registroId) {
+async function getPadItems(docDelivery, registroId, parentData) {
     if (!docDelivery) return [];
 
     const docDeliveryStr = docDelivery.toString().trim();
-
     const padRef = doc(db, 'consigna_historial', registroId, 'pad_items', 'data');
     const padSnap = await getDoc(padRef);
 
+    // Si ya está cacheado con datos enriquecidos → devolver directo
     if (padSnap.exists()) {
         const data = padSnap.data();
-        if (data.docDelivery === docDeliveryStr) {
-            return data.items || [];
+        if (data.docDelivery === docDeliveryStr && data.items && data.items.length > 0 && data.items[0].subAdmision !== undefined) {
+            return data.items;
         }
     }
 
@@ -81,8 +78,8 @@ async function getPadItems(docDelivery, registroId) {
 
             foundItems = detalles.map(det => ({
                 subFolio: folioGuia,
-                subCodigo: (det.CdgItem?.VlrCodigo || '').split(' ')[0] || '',
-                subDescripcion: det.DscItem || det.NmbItem || '',
+                subCodigo: String(det.CdgItem?.VlrCodigo || '').split(' ')[0].trim(),
+                subDescripcion: String(det.DscItem || det.NmbItem || ''),
                 subCantidad: det.QtyItem ? Math.round(parseFloat(det.QtyItem)) : 0,
                 subVencimiento: det.FchVencim || ''
             })).filter(i => i.subCodigo);
@@ -90,12 +87,45 @@ async function getPadItems(docDelivery, registroId) {
     });
 
     if (foundItems.length > 0) {
+        const referenciasSnap = await getDocs(collection(db, "referencias_implantes"));
+        const codigoMap = {};
+        const referenciaMap = {};
+
+        referenciasSnap.forEach(doc => {
+            const d = doc.data();
+            const codigo = (d.codigo || '').toString().trim().toUpperCase();
+            const referencia = (d.referencia || '').toString().trim().toUpperCase();
+            const descripcion = (d.descripcion || d.detalles || '').toString().trim();
+
+            if (codigo) codigoMap[codigo] = descripcion;
+            if (referencia) referenciaMap[referencia] = descripcion;
+        });
+
+        foundItems = foundItems.map(item => {
+            const key = item.subCodigo.toUpperCase();
+            const descripcionDesdeRef = codigoMap[key] || referenciaMap[key];
+
+            return {
+                ...item,
+                subDetalles: descripcionDesdeRef ? descripcionDesdeRef.trim() : 'NO EXISTE EN REFERENCIAS',
+                subAdmision: parentData.admision || '',
+                subPaciente: parentData.paciente || '',
+                subMedico: parentData.medico || '',
+                subProveedor: parentData.proveedor || '',
+                subFechaCX: parentData.fechaCX || '',
+                subAtributo: parentData.atributo || '',
+                subFechaRecepcion: parentData.traspasoAt ? parentData.traspasoAt.toDate().toISOString() : '',
+                subReferencia: parentData.referencia || ''
+            };
+        });
+
         await setDoc(padRef, {
             docDelivery: docDeliveryStr,
-            items: foundItems,  
+            items: foundItems,
             cachedAt: new Date()
-        });
-        console.log(`PAD items guardados con prefijo 'sub' para ${docDeliveryStr}`);
+        }, { merge: true });
+
+        showToast(`Datos PAD actualizados y enriquecidos: ${docDeliveryStr}`, 'success');
     }
 
     return foundItems;
@@ -111,7 +141,7 @@ async function loadData() {
 
         for (const doc of snapshot.docs) {
             const d = doc.data();
-            d._id = doc.id; 
+            d._id = doc.id;
             allData.push(d);
 
             if (d.fechaCX) {
@@ -238,29 +268,33 @@ async function renderTable(data) {
         fragment.appendChild(trMain);
 
         if (docDelivery) {
-            const padItems = await getPadItems(docDelivery, r._id);
+            const padItems = await getPadItems(docDelivery, r._id, r);
             padItems.forEach(item => {
                 const vencFormateado = item.subVencimiento ? formatDate(item.subVencimiento) : '';
+                const fechaRecepcionPad = item.subFechaRecepcion ? formatTraspasoAt({ toDate: () => new Date(item.subFechaRecepcion) }) : fechaRecepcion;
+
                 const trChild = document.createElement('tr');
                 trChild.classList.add('fila-hija-pad');
                 trChild.innerHTML = `
                     <td><span class="estado-badge" data-estado="PAD">PAD</span></td>
                     <td style="text-align:center;font-weight:600;color:#d35400;">${item.subCodigo || ''}</td>
-                    <td>${r.admision || ''}</td>
-                    <td>${r.paciente || ''}</td>
-                    <td>${r.medico || ''}</td>
-                    <td>${fechaCXFormateada}</td>
-                    <td>${r.proveedor || ''}</td>
-                    <td></td>
-                    <td></td>
+                    <td>${item.subAdmision || ''}</td>
+                    <td>${item.subPaciente || ''}</td>
+                    <td>${item.subMedico || ''}</td>
+                    <td>${formatDate(item.subFechaCX) || fechaCXFormateada}</td>
+                    <td>${item.subProveedor || ''}</td>
+                    <td style="color:#95a5a6;font-style:italic;">No lleva OC</td>
+                    <td style="font-weight:600;${item.subDetalles === 'NO EXISTE EN REFERENCIAS' ? 'color:#e74c3c;' : 'color:#27ae60;'}">
+                        ${item.subDetalles}
+                    </td>
                     <td style="text-align:center">${item.subCantidad || ''}</td>
+                    <td style="text-align:right;color:#7f8c8d;">0</td>
+                    <td>${item.subAtributo || ''}</td>
                     <td></td>
-                    <td></td>
-                    <td></td>
-                    <td>${fechaRecepcion}</td>
-                    <td>${fechaCXFormateada}</td>
+                    <td>${fechaRecepcionPad}</td>
+                    <td>${formatDate(item.subFechaCX) || fechaCXFormateada}</td>
                     <td style="text-align:center">${item.subFolio || ''}</td>
-                    <td style="font-weight:500;color:#d35400;">${item.subDescripcion || ''}</td>
+                    <td style="font-weight:500;color:#7f8c8d;">${item.subDescripcion || ''}</td>
                     <td style="text-align:center;color:#d35400;">${vencFormateado}</td>
                     <td>${docDeliveryRaw}</td>
                 `;
@@ -293,7 +327,10 @@ document.addEventListener('DOMContentLoaded', () => {
         r.addEventListener('change', () => { filterScope = r.value; applyFiltersAndRender(); });
     });
 
-    refreshBtn.addEventListener('click', loadData);
+    refreshBtn.addEventListener('click', () => {
+        showToast('Actualizando y enriqueciendo todos los PAD...', 'info');
+        loadData();
+    });
 
     onAuthStateChanged(auth, user => {
         if (!user) {
